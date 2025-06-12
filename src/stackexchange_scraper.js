@@ -1,10 +1,4 @@
-// Stack Exchange Q&A Scraper (Bookmarklet version)
-// Extracts question, answers, and comments from Stack Exchange pages
-// Author: koal44
-// License: MIT
-// Usage: Save as bookmarklet, visit any StackExchange page and open the bookmark.
-
-javascript:(function() {
+function runBookmarklet(rootNode = document) {
     // Page DOM Outline:
     //
     // div#question-header
@@ -43,10 +37,11 @@ javascript:(function() {
     //         a.comment-user → comment username + href
     //         span.comment-date > span.relative-time-clean[title] → comment timestamp (parse up to first comma)
 
-    function cleanNodeList(nodeList) {
+    //TODO: fix `node` so loop doesn't conflict with parameter name...
+    function cleanNode(node) { 
         var result = '';
 
-        nodeList.forEach(function(node) {
+        node.childNodes.forEach(function(node) {
             if (node.nodeType === Node.TEXT_NODE) {
                 result += node.textContent;
             } else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -63,7 +58,7 @@ javascript:(function() {
                         });
                     }
                     result += `>`;
-                    result += cleanNodeList(Array.from(node.childNodes));
+                    result += cleanNode(node);
                     result += `</${tagName}>`;
                 }
             }
@@ -72,8 +67,9 @@ javascript:(function() {
         return result.trim();
     }
 
-    var allBodies = document.querySelectorAll('.s-prose.js-post-body');
-    var allComments = document.querySelectorAll('ul.comments-list');
+    console.log(rootNode);
+    var allBodies = rootNode.querySelectorAll('.s-prose.js-post-body');
+    var allComments = rootNode.querySelectorAll('ul.comments-list');
 
     var questionObj = { response: '', comments: [] };
     var answersData = [];
@@ -85,7 +81,7 @@ javascript:(function() {
         var questionParts = [];
 
         questionParagraphs.forEach(function(p) {
-            var cleaned = cleanNodeList(p.childNodes);
+            var cleaned = cleanNode(p);
             if (cleaned.length > 0) {
                 questionParts.push(cleaned);
             }
@@ -95,7 +91,7 @@ javascript:(function() {
 
         var questionCommentSpans = allComments[0].querySelectorAll('li span.comment-copy');
         questionCommentSpans.forEach(function(span) {
-            var cleaned = cleanNodeList(span.childNodes);
+            var cleaned = cleanNode(span);
             if (cleaned.length > 0) {
                 questionObj.comments.push(cleaned);
             }
@@ -111,7 +107,7 @@ javascript:(function() {
         var responseParts = [];
 
         answerParagraphs.forEach(function(p) {
-            var cleaned = cleanNodeList(p.childNodes);
+            var cleaned = cleanNode(p);
             if (cleaned.length > 0) {
                 responseParts.push(cleaned);
             }
@@ -122,7 +118,7 @@ javascript:(function() {
         if (i < allComments.length) {
             var answerCommentSpans = allComments[i].querySelectorAll('li span.comment-copy');
             answerCommentSpans.forEach(function(span) {
-                var cleaned = cleanNodeList(span.childNodes);
+                var cleaned = cleanNode(span);
                 if (cleaned.length > 0) {
                     answerObj.comments.push(cleaned);
                 }
@@ -296,5 +292,4 @@ javascript:(function() {
     copyTextArea.style.opacity = '0';
     copyTextArea.style.pointerEvents = 'none';
     doc.body.appendChild(copyTextArea);
-
-})();
+}

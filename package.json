@@ -1,0 +1,17 @@
+{
+  "name": "stackexchange-bookmarklet",
+  "version": "1.0.0",
+  "description": "StackExchange Q&A bookmarklet scraper",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "keywords": ["stackexchange", "bookmarklet", "scraper", "javascript", "latex", "MathJax"],
+  "author": "koal44",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "js-string-escape": "^1.0.1",
+    "terser": "^5.42.0"
+  }
+}

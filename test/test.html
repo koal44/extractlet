@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="../src/stackexchange_scraper.js"></script>
+    <script src="example_html_string.js"></script>
+
+    <script>
+        let doc;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+
+            iframe.style.display = 'block';
+            iframe.style.width = '100%';
+            iframe.style.height = '800px';
+
+            document.body.appendChild(iframe);
+            iframe.contentWindow.document.open();
+            iframe.contentWindow.document.write(exampleHtml);
+            iframe.contentWindow.document.close();
+            doc = iframe.contentWindow.document;
+        });
+
+        function runTestBookmarklet() {
+            //const parser = new DOMParser();
+            //const doc = parser.parseFromString(exampleHtml, 'text/html');
+            runBookmarklet(doc)
+        }
+    </script>
+</head>
+
+<body>
+    <h1>StackExchange Scraper Test</h1>
+    <button onclick="runTestBookmarklet()">Run Scraper</button>
+</body>
+</html>
