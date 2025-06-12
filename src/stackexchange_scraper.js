@@ -1,4 +1,33 @@
-function runBookmarklet(rootNode = document) {
+function serializeNode(node) {
+    let result = '';
+
+    node.childNodes.forEach(child => {
+        if (child.nodeType === Node.TEXT_NODE || child.tagName === 'SCRIPT') {
+            result += child.textContent;
+            return;
+        }
+
+        if (child.tagName === 'NOBR') return;
+        if (child.className && /MJX|MathJax/.test(child.className)) return;
+        if (child.id && /MathJax/.test(child.id)) return;
+
+        if (child.tagName === 'P') {
+            result += serializeNode(child);
+            return;
+        }
+        if (child.nodeType === Node.ELEMENT_NODE) {
+            const tagName = child.tagName.toLowerCase();
+            const attributes = child.hasAttributes()
+                ? ' ' + [...child.attributes].map(attr => `${attr.name}="${attr.value}"`).join(' ')
+                : '';
+            result += `<${tagName}${attributes}>${serializeNode(child)}</${tagName}>`;
+        }
+    });
+
+    return result.trim();
+}
+
+function scrapePage(rootNode) {
     // Page DOM Outline:
     //
     // div#question-header
@@ -37,37 +66,6 @@ function runBookmarklet(rootNode = document) {
     //         a.comment-user → comment username + href
     //         span.comment-date > span.relative-time-clean[title] → comment timestamp (parse up to first comma)
 
-    //TODO: fix `node` so loop doesn't conflict with parameter name...
-    function cleanNode(node) { 
-        var result = '';
-
-        node.childNodes.forEach(function(node) {
-            if (node.nodeType === Node.TEXT_NODE) {
-                result += node.textContent;
-            } else if (node.nodeType === Node.ELEMENT_NODE) {
-                if (node.tagName === 'SCRIPT') {
-                    result += node.textContent;
-                } else if (node.className && node.className.match(/MathJax/)) {
-                    // Skip MathJax elements
-                } else {
-                    const tagName = node.tagName.toLowerCase();
-                    result += `<${tagName}`;
-                    if (node.hasAttributes()) {
-                        Array.from(node.attributes).forEach(attr => {
-                            result += ` ${attr.name}="${attr.value}"`;
-                        });
-                    }
-                    result += `>`;
-                    result += cleanNode(node);
-                    result += `</${tagName}>`;
-                }
-            }
-        });
-
-        return result.trim();
-    }
-
-    console.log(rootNode);
     var allBodies = rootNode.querySelectorAll('.s-prose.js-post-body');
     var allComments = rootNode.querySelectorAll('ul.comments-list');
 
@@ -77,21 +75,18 @@ function runBookmarklet(rootNode = document) {
     // Process question (first element)
     if (allBodies.length > 0 && allComments.length > 0) {
         var questionBody = allBodies[0];
-        var questionParagraphs = questionBody.querySelectorAll('p');
         var questionParts = [];
 
-        questionParagraphs.forEach(function(p) {
-            var cleaned = cleanNode(p);
-            if (cleaned.length > 0) {
-                questionParts.push(cleaned);
-            }
-        });
+        var cleaned = serializeNode(questionBody);
+        if (cleaned.length > 0) {
+            questionParts.push(cleaned);
+        }
 
         questionObj.response = questionParts.join('\n\n');
 
         var questionCommentSpans = allComments[0].querySelectorAll('li span.comment-copy');
         questionCommentSpans.forEach(function(span) {
-            var cleaned = cleanNode(span);
+            var cleaned = serializeNode(span);
             if (cleaned.length > 0) {
                 questionObj.comments.push(cleaned);
             }
@@ -101,24 +96,19 @@ function runBookmarklet(rootNode = document) {
     // Process answers (remaining elements)
     for (var i = 1; i < allBodies.length; i++) {
         var answerObj = { response: '', comments: [] };
-
-        var answerBody = allBodies[i];
-        var answerParagraphs = answerBody.querySelectorAll('p');
         var responseParts = [];
-
-        answerParagraphs.forEach(function(p) {
-            var cleaned = cleanNode(p);
-            if (cleaned.length > 0) {
-                responseParts.push(cleaned);
-            }
-        });
+        var answerBody = allBodies[i];
+        var cleaned = serializeNode(answerBody);
+        if (cleaned.length > 0) {
+            responseParts.push(cleaned);
+        }
 
         answerObj.response = responseParts.join('\n\n');
 
         if (i < allComments.length) {
             var answerCommentSpans = allComments[i].querySelectorAll('li span.comment-copy');
             answerCommentSpans.forEach(function(span) {
-                var cleaned = cleanNode(span);
+                var cleaned = serializeNode(span);
                 if (cleaned.length > 0) {
                     answerObj.comments.push(cleaned);
                 }
@@ -128,11 +118,19 @@ function runBookmarklet(rootNode = document) {
         answersData.push(answerObj);
     }
 
-    // Open popup window
+    return {
+        question: questionObj,
+        answers: answersData
+    }
+}
+
+function runBookmarklet(rootNode = document) {
+    var data = scrapePage(rootNode);
+    var answersData = data.answers;
+
     var w = window.open("", "_blank", "");
     var doc = w.document;
     doc.title = "Stack Exchange - Scraped Q&A";
-
     var style = doc.createElement("style");
     style.textContent = `
         body { background: white; color: black; font-family: sans-serif; padding: 20px; }
@@ -153,42 +151,18 @@ function runBookmarklet(rootNode = document) {
     var copyButton = doc.createElement("button");
     copyButton.textContent = "Copy to Clipboard";
 
-    // problematic because of content security policy. in firefox the popup didn't have focus which
-    // caused "NotAllowedError: Clipboard write was blocked due to lack of user activation"
-
-    //copyButton.addEventListener("click", function() {
-    //    window.focus();
-    //    var textToCopy = `Question:\n${questionObj.response}\n\nComments:\n${questionObj.comments.join('\n')}\n\nAnswers:\n`;
-    //    answersData.forEach(function(answer, idx) {
-    //        textToCopy += `Answer ${idx + 1}:\n${answer.response}\nComments:\n${answer.comments.join('\n')}\n\n`;
-    //    });
-    //    navigator.clipboard.writeText(textToCopy).then(function() {
-    //        //alert("Content copied to clipboard!");
-    //    }, function(err) {
-    //        let dbginfo = "=== Debug Info ===";
-    //        dbginfo += "\nw.opener: " + w.opener;
-    //        dbginfo += "\nwindow.isSecureContext: " + w.isSecureContext;
-    //        dbginfo += "\nnavigator.clipboard: " + navigator.clipboard;
-    //        dbginfo += "\ndocument.hasFocus(): " + document.hasFocus();
-    //        dbginfo += "\nopener.document.hasFocus(): " + w.opener.document.hasFocus();
-    //        dbginfo += "\ndocument.visibilityState: " + document.visibilityState;
-    //        dbginfo += "\n=== End Debug Info ===";
-    //        alert("Failed to copy content: " + err + "\n" + dbginfo);
-    //    });
-    //});
-
     copyButton.addEventListener("click", function() {
         var textToCopy = `===== Stack Exchange - Scraped Q&A =====\n`;
         textToCopy += `URL: ${window.location.href}`;
-        textToCopy += `\n\n==== Question ====\n${questionObj.response}\n`;
+        textToCopy += `\n\n==== Question ====\n${data.question.response}\n`;
 
-        if (questionObj.comments.length > 0) {
-            questionObj.comments.forEach(function(comment, commentIdx) {
+        if (data.question.comments.length > 0) {
+            data.question.comments.forEach(function(comment, commentIdx) {
                 textToCopy += `\nComment ${commentIdx + 1}: ${comment}\n`;
             });
         }
 
-        answersData.forEach(function(answer, idx) {
+        data.answers.forEach(function(answer, idx) {
             textToCopy += `\n\n=== Answer ${idx + 1} ===\n${answer.response}\n`;
 
             if (answer.comments.length > 0) {
@@ -236,14 +210,14 @@ function runBookmarklet(rootNode = document) {
     questionNode.appendChild(h1);
 
     var questionContentNode = doc.createElement("pre");
-    questionContentNode.innerHTML = questionObj.response;
+    questionContentNode.innerHTML = data.question.response;
     questionNode.appendChild(questionContentNode);
 
-    if (questionObj.comments.length > 0) {
+    if (data.question.comments.length > 0) {
         var questionCommentsNode = doc.createElement("div");
         questionNode.appendChild(questionCommentsNode);
 
-        questionObj.comments.forEach(function(comment, commentIdx) {
+        data.question.comments.forEach(function(comment, commentIdx) {
             var h3 = doc.createElement("h3");
             h3.textContent = `Comment ${commentIdx + 1}`;
             questionCommentsNode.appendChild(h3);
@@ -255,7 +229,7 @@ function runBookmarklet(rootNode = document) {
     }
 
     // Render answers
-    answersData.forEach(function(answer, answerIdx) {
+    data.answers.forEach(function(answer, answerIdx) {
         var answerNode = doc.createElement("div");
         answerNode.style.marginBottom = "20px";
         doc.body.appendChild(answerNode);
