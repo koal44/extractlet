@@ -4,14 +4,31 @@
   "description": "StackExchange Q&A bookmarklet scraper",
   "main": "build.js",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "watch": "npm-watch"
   },
-  "keywords": ["stackexchange", "bookmarklet", "scraper", "javascript", "latex", "MathJax"],
+  "watch": {
+    "build": {
+      "patterns": [
+        "src/stackexchange_scraper.js",
+        "test/example.htm"
+      ]
+    }
+  },
+  "keywords": [
+    "stackexchange",
+    "bookmarklet",
+    "scraper",
+    "javascript",
+    "latex",
+    "MathJax"
+  ],
   "author": "koal44",
   "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
     "js-string-escape": "^1.0.1",
+    "npm-watch": "^0.13.0",
     "terser": "^5.42.0"
   }
 }
