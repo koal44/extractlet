@@ -1,4 +1,49 @@
+/**
+ * DOM Reference
+ * 
+ * div#question-header
+ *   a.question-hyperlink                → Question title
+ * 
+ * div#question
+ *   div.post-layout
+ *     div.s-prose                        → Question body
+ *     div.post-signature.owner           → Contributor (Question Author)
+ *       div.user-info
+ *         span.relativetime[title]       → Timestamp
+ *         div.user-details[itemprop="author"]? > a
+ *     div.post-signature                 → Contributor (Editor, optional)
+ *       div.user-info
+ *         span.relativetime[title]       → Timestamp
+ *         div.user-details[itemprop="author"]? > a
+ *     ul.comments-list
+ *       li#comment-XXXX
+ *         div.comment-body
+ *           span.comment-copy            → Comment text
+ *           a.comment-user               → Contributor (Comment Author)
+ *           span.comment-date > span.relativetime-clean[title] → Timestamp
+ * 
+ * div#answers
+ *   div.answer#answer-XXXX
+ *     div.post-layout
+ *       div.s-prose                      → Answer body
+ *       div.post-signature               → Contributor (Answer Author)
+ *         div.user-info
+ *           span.relativetime[title]     → Timestamp
+ *           div.user-details[itemprop="author"] > a
+ *       div.post-signature               → Contributor (Editor, optional)
+ *         div.user-info
+ *           span.relativetime[title]     → Timestamp
+ *           div.user-details > a
+ *       ul.comments-list
+ *         li#comment-XXXX
+ *           div.comment-body
+ *             span.comment-copy          → Comment text
+ *             a.comment-user             → Contributor (Comment Author)
+ *             span.comment-date > span.relativetime-clean[title] → Timestamp
+ */
+
 function serializeNode(node) {
+    if (!node || !node.childNodes) return '';
     let result = '';
 
     node.childNodes.forEach(child => {
@@ -27,106 +72,78 @@ function serializeNode(node) {
     return result.trim();
 }
 
-function scrapePage(rootNode) {
-    // Page DOM Outline:
-    //
-    // div#question-header
-    //   a.question-hyperlink → question title
-    //
-    // div#question
-    //   div.s-prose.js-post-body → question body paragraphs
-    //   div.post-signature.owner
-    //     div.user-info
-    //       span.relative-time[title] → question creation date
-    //       div.user-details > a → question author username + href
-    //   div.post-signature (optional, editor)
-    //     div.user-info
-    //       span.relative-time[title] → last edit date
-    //       div.user-details > a → editor username + href
-    //   ul.comments-list
-    //     li#comment-XXXX
-    //       span.comment-copy → comment text
-    //       a.comment-user → comment username + href
-    //       span.comment-date > span.relative-time-clean[title] → comment timestamp (parse up to first comma)
-    //
-    // div#answers
-    //   div.answer#answer-XXXX
-    //     div.s-prose.js-post-body → answer body paragraphs
-    //     div.post-signature.owner
-    //       div.user-info
-    //         span.relative-time[title] → answer creation date
-    //         div.user-details > a → answer author username + href
-    //     div.post-signature (optional, editor)
-    //       div.user-info
-    //         span.relative-time[title] → last edit date
-    //         div.user-details > a → editor username + href
-    //     ul.comments-list
-    //       li#comment-XXXX
-    //         span.comment-copy → comment text
-    //         a.comment-user → comment username + href
-    //         span.comment-date > span.relative-time-clean[title] → comment timestamp (parse up to first comma)
-
-    var allBodies = rootNode.querySelectorAll('.s-prose.js-post-body');
-    var allComments = rootNode.querySelectorAll('ul.comments-list');
-
-    var questionObj = { response: '', comments: [] };
-    var answersData = [];
-
-    // Process question (first element)
-    if (allBodies.length > 0 && allComments.length > 0) {
-        var questionBody = allBodies[0];
-        var questionParts = [];
-
-        var cleaned = serializeNode(questionBody);
-        if (cleaned.length > 0) {
-            questionParts.push(cleaned);
-        }
-
-        questionObj.response = questionParts.join('\n\n');
-
-        var questionCommentSpans = allComments[0].querySelectorAll('li span.comment-copy');
-        questionCommentSpans.forEach(function(span) {
-            var cleaned = serializeNode(span);
-            if (cleaned.length > 0) {
-                questionObj.comments.push(cleaned);
-            }
-        });
-    }
-
-    // Process answers (remaining elements)
-    for (var i = 1; i < allBodies.length; i++) {
-        var answerObj = { response: '', comments: [] };
-        var responseParts = [];
-        var answerBody = allBodies[i];
-        var cleaned = serializeNode(answerBody);
-        if (cleaned.length > 0) {
-            responseParts.push(cleaned);
-        }
-
-        answerObj.response = responseParts.join('\n\n');
-
-        if (i < allComments.length) {
-            var answerCommentSpans = allComments[i].querySelectorAll('li span.comment-copy');
-            answerCommentSpans.forEach(function(span) {
-                var cleaned = serializeNode(span);
-                if (cleaned.length > 0) {
-                    answerObj.comments.push(cleaned);
-                }
-            });
-        }
-
-        answersData.push(answerObj);
-    }
+function scrapeContributorInfo(baseNode, timestampSelector, userSelector) {
+    const timestamp = (baseNode.querySelector(timestampSelector)?.getAttribute('title') ?? '').split(',')[0].trim();
+    const userNode = baseNode.querySelector(userSelector);
+    const name = userNode?.textContent.trim() ?? '';
+    const href = userNode?.getAttribute('href');
+    const userId = href?.match(/\/users\/(\d+)/)?.[1] ?? '-1';
+    const username = (href?.split('/').pop() ?? '').split('?')[0];
+    const isOwner = baseNode.classList.contains('owner'); // OP of the entire post
+    const contributorType = userNode?.getAttribute('itemprop') === 'author'? 'author' : 'editor';
 
     return {
-        question: questionObj,
-        answers: answersData
-    }
+        contributorType,
+        isOwner,
+        timestamp,
+        name,
+        userId,
+        username
+    };
+}
+
+function scrapePosts(root) {
+    const postLayouts = root.querySelectorAll('.post-layout');
+    const posts = [];
+
+    postLayouts.forEach(postLayout => {
+        // Extract post body
+        const postBodyNode = postLayout.querySelector('.s-prose');
+        const body = postBodyNode ? serializeNode(postBodyNode) : '';
+
+        // Extract contributors
+        const signatureNodes = postLayout.querySelectorAll('.post-signature');
+        const contributors = Array.from(signatureNodes).map(sig =>
+            scrapeContributorInfo(sig, '.relativetime', '.user-details a')
+        );
+
+        // Extract comments
+        const commentNodes = postLayout.querySelectorAll('ul.comments-list li div.comment-body');
+        const comments = Array.from(commentNodes).map(div => {
+            const bodySpan = div.querySelector('span.comment-copy');
+            const body = serializeNode(bodySpan);
+            const userInfo = scrapeContributorInfo(div, '.relativetime-clean', 'a.comment-user');
+            userInfo.contributorType = 'commenter';
+            return {
+                body,
+                ...userInfo
+            };
+        });
+
+        // Assemble post object
+        posts.push({
+            body,
+            contributors,
+            comments
+        });
+    });
+
+    return posts;
+}
+
+function scrapeQuestionTitle(root) {
+    const qtitle = root.querySelector('#question-header a.question-hyperlink')?.textContent.trim() ?? '';
+    return qtitle;
 }
 
 function runBookmarklet(rootNode = document) {
-    var data = scrapePage(rootNode);
-    var answersData = data.answers;
+    const scrapedPosts = scrapePosts(rootNode);
+    const questionTitle = scrapeQuestionTitle(rootNode);
+    const data = {
+        questionTitle: questionTitle,
+        question: scrapedPosts[0],
+        answers: scrapedPosts.slice(1)
+    }
 
     var w = window.open("", "_blank", "");
     var doc = w.document;
@@ -154,20 +171,20 @@ function runBookmarklet(rootNode = document) {
     copyButton.addEventListener("click", function() {
         var textToCopy = `===== Stack Exchange - Scraped Q&A =====\n`;
         textToCopy += `URL: ${window.location.href}`;
-        textToCopy += `\n\n==== Question ====\n${data.question.response}\n`;
+        textToCopy += `\n\n==== Question ====\n${data.question.body}\n`;
 
         if (data.question.comments.length > 0) {
             data.question.comments.forEach(function(comment, commentIdx) {
-                textToCopy += `\nComment ${commentIdx + 1}: ${comment}\n`;
+                textToCopy += `\nComment ${commentIdx + 1}: ${comment.body}\n`;
             });
         }
 
         data.answers.forEach(function(answer, idx) {
-            textToCopy += `\n\n=== Answer ${idx + 1} ===\n${answer.response}\n`;
+            textToCopy += `\n\n=== Answer ${idx + 1} ===\n${answer.body}\n`;
 
             if (answer.comments.length > 0) {
                 answer.comments.forEach(function(comment, commentIdx) {
-                    textToCopy += `\nComment ${commentIdx + 1}: ${comment}\n`;
+                    textToCopy += `\nComment ${commentIdx + 1}: ${comment.body}\n`;
                 });
             }
 
@@ -210,7 +227,7 @@ function runBookmarklet(rootNode = document) {
     questionNode.appendChild(h1);
 
     var questionContentNode = doc.createElement("pre");
-    questionContentNode.innerHTML = data.question.response;
+    questionContentNode.innerHTML = data.question.body;
     questionNode.appendChild(questionContentNode);
 
     if (data.question.comments.length > 0) {
@@ -223,7 +240,7 @@ function runBookmarklet(rootNode = document) {
             questionCommentsNode.appendChild(h3);
 
             var commentContentNode = doc.createElement("pre");
-            commentContentNode.innerHTML = comment;
+            commentContentNode.innerHTML = comment.body;
             questionCommentsNode.appendChild(commentContentNode);
         });
     }
@@ -239,7 +256,7 @@ function runBookmarklet(rootNode = document) {
         answerNode.appendChild(h2);
 
         var answerContentNode = doc.createElement("pre");
-        answerContentNode.innerHTML = answer.response;
+        answerContentNode.innerHTML = answer.body;
         answerNode.appendChild(answerContentNode);
 
         if (answer.comments.length > 0) {
@@ -252,7 +269,7 @@ function runBookmarklet(rootNode = document) {
                 commentsNode.appendChild(h3);
 
                 var commentContentNode = doc.createElement("pre");
-                commentContentNode.innerHTML = comment;
+                commentContentNode.innerHTML = comment.body;
                 commentsNode.appendChild(commentContentNode);
             });
         }
