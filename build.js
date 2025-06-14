@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const terser = require('terser');
 const jsStringEscape = require('js-string-escape');
 
@@ -10,11 +11,41 @@ if (!fs.existsSync('test')) {
 }
 
 // create example.js from example.html
-const exampleHtml = fs.readFileSync('test/example.htm', 'utf8');
-const exampleEscaped = jsStringEscape(exampleHtml);
-const exampleJsContent = "const exampleHtml = \"" + exampleEscaped + "\";";
-fs.writeFileSync('test/example_html_string.js', exampleJsContent);
-console.log('Example HTML converted to example.js successfully.');
+const testDir = 'test';
+const htmlSuffix = '.htm';
+const outputSuffix = '_html_string.js';
+
+const files = fs.readdirSync(testDir);
+const jsExampleFiles = [];
+
+for (const file of files) {
+    if (!file.endsWith(htmlSuffix)) continue;
+
+    const baseName = path.basename(file, htmlSuffix);  // e.g., 'example1'
+    const inputPath = path.join(testDir, file);
+    const outputPath = path.join(testDir, baseName + outputSuffix);
+    const constName = baseName + 'Html';  // e.g., 'example1Html'
+    jsExampleFiles.push(baseName + outputSuffix)
+
+    const html = fs.readFileSync(inputPath, 'utf8');
+    const escaped = jsStringEscape(html);
+    const jsContent = `var ${constName} = "${escaped}";\n`; // use var or window[constName]
+    fs.writeFileSync(outputPath, jsContent);
+    console.log(`Built ${outputPath}`);
+}
+
+const jsExamplesFilesString = `const exampleFiles = ${JSON.stringify(jsExampleFiles, null, 4)};`;
+fs.writeFileSync('test/example_files.js', jsExamplesFilesString);
+console.log('Built test/example_files.js');
+
+
+
+
+
+
+
+
+
 
 const scraper = fs.readFileSync('src/stackexchange_scraper.js', 'utf8');
 

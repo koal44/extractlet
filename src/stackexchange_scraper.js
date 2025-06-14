@@ -201,7 +201,7 @@ function buildCopyButton(data, doc) {
         textArea.select();
 
         try {
-            var successful = doc.execCommand('copy');
+            const successful = doc.execCommand('copy');
             if (successful) {
                 button.disabled = true;
                 button.style.backgroundColor = "#28a745";
@@ -286,7 +286,7 @@ function buildPosts(data) {
         const h2 = h('h2', {}, postHeader);
         postNode.appendChild(h2);
 
-        const contentNode = h('pre', {});
+        const contentNode = h('div', {});
         contentNode.innerHTML = post.body;
         postNode.appendChild(contentNode);
 
@@ -302,7 +302,7 @@ function buildPosts(data) {
                 const h3 = h('h3', {}, `Comment ${commentIdx + 1}`);
                 commentsNode.appendChild(h3);
 
-                const commentContentNode = h('pre', {});
+                const commentContentNode = h('div', {});
                 commentContentNode.innerHTML = comment.body;
                 commentsNode.appendChild(commentContentNode);
 
@@ -324,12 +324,20 @@ function runBookmarklet(root = document) {
         posts: scrapedPosts,
     }
 
-    var doc = window.open("", "_blank", "").document;
+    const doc = window.open("", "_blank", "").document;
     doc.title = "Stack Exchange - Scraped Q&A";
-    var style = doc.createElement("style");
+    const style = doc.createElement("style");
     style.textContent = `
-        body { background: white; color: black; font-family: sans-serif; padding: 20px; }
-        pre { white-space: pre-wrap; margin-top: 5px; }
+        body {
+            background: white;
+            color: black;
+            font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+            padding: 20px;
+        }
+        div {
+            white-space: pre-line;
+            margin-top: 5px;
+        }
         h1, h2, h3 { margin-bottom: 0px; }
     `;
     doc.head.appendChild(style);

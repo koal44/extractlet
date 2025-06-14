@@ -1,3 +1,3 @@
 node_modules/
 dist/
-test/example_html_strings.js
+test/*_html_string.js

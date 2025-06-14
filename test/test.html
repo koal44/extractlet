@@ -2,36 +2,79 @@
 <html lang="en">
 <head>
     <script src="../src/stackexchange_scraper.js"></script>
-    <script src="example_html_string.js"></script>
-
+    <script src="example_files.js"></script>
     <script>
-        let doc;
+        const defaultExample = 'example2';
+        let doc; // Global document reference for the iframe
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
+        function loadScripts(callback) {
+            let loaded = 0;
 
-            iframe.style.display = 'block';
-            iframe.style.width = '100%';
-            iframe.style.height = '800px';
+            for (const file of exampleFiles) {
+                const script = document.createElement('script');
+                script.src = file;
+                script.onload = () => {
+                    loaded++;
+                    if (loaded === exampleFiles.length) callback();
+                };
+                document.head.appendChild(script);
+            }
+        }
 
-            document.body.appendChild(iframe);
-            iframe.contentWindow.document.open();
-            iframe.contentWindow.document.write(exampleHtml);
-            iframe.contentWindow.document.close();
-            doc = iframe.contentWindow.document;
+        document.addEventListener('DOMContentLoaded', function () {
+            loadScripts(() => {
+                const exampleNames = exampleFiles.map(file => file.replace('_html_string.js', ''));
+                const select = document.getElementById('exampleSelect');
+                for (const name of exampleNames) {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    select.appendChild(opt);
+                }
+
+                if (exampleNames.includes(defaultExample)) {
+                    select.value = defaultExample;
+                    loadExampleIntoIframe(defaultExample);
+                }
+            });
         });
 
+        function loadExampleIntoIframe(name) {
+            const varName = name + 'Html';
+            const html = window[varName];
+
+            if (!html) {
+                console.error(`Missing HTML string for ${name}`);
+                return;
+            }
+
+            const iframe = document.getElementById('previewFrame');
+            iframe.contentWindow.document.open();
+            iframe.contentWindow.document.write(html);
+            iframe.contentWindow.document.close();
+            doc = iframe.contentWindow.document;
+
+            document.getElementById('bookmarkletButton').disabled = false;
+        }
+    </script>
+
+    <script>
+        /*
         function runTestBookmarklet() {
             //const parser = new DOMParser();
             //const doc = parser.parseFromString(exampleHtml, 'text/html');
             runBookmarklet(doc)
-        }
+        }*/
     </script>
 </head>
 
 <body>
     <h1>StackExchange Scraper Test</h1>
-    <button onclick="runTestBookmarklet()">Run Scraper</button>
+    <label for="exampleSelect">Choose example:</label>
+    <select id="exampleSelect" onchange="loadExampleIntoIframe(this.value)">
+        <option disabled selected value="">-- select example --</option>
+    </select>
+    <button id="bookmarkletButton" onclick="runBookmarklet(doc)" disabled>Run Scraper</button>
+    <iframe id="previewFrame" style="display: block; width: 100%; height: 800px; margin-top: 30px;"></iframe>
 </body>
 </html>
