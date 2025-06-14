@@ -18,25 +18,7 @@ console.log('Example HTML converted to example.js successfully.');
 
 const scraper = fs.readFileSync('src/stackexchange_scraper.js', 'utf8');
 
-// build bookmarklet.js
-// this is for https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d
-const bookmarklet = `
-// Stack Exchange Q&A Scraper (Bookmarklet version)
-// Extracts question, answers, and comments from Stack Exchange pages
-// Author: koal44
-// License: MIT
-// Usage: Save as bookmarklet, visit any StackExchange page and open the bookmark.
-
-javascript:(function() {
-${scraper};
-runBookmarklet();
-})();
-`;
-
-fs.writeFileSync('dist/bookmarklet.js', bookmarklet);
-console.log('Bookmarklet built successfully.');
-
-// build bookmarklet.min.js (minified version)
+// build bookmarklet.min.js and bookmarklet.js
 (async () => {
     const minified = await terser.minify(scraper, {
         compress: true,
@@ -58,4 +40,33 @@ console.log('Bookmarklet built successfully.');
 
     fs.writeFileSync('dist/bookmarklet.min.js', bookmarklet_min);
     console.log('Minified bookmarklet built successfully.');
+
+    // build bookmarklet.js
+    const gistUrl = 'https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d'
+    const bookmarklet = `
+/*
+${gistUrl}
+
+Stack Exchange Q&A Scraper Bookmarklet
+View and copy readable StackExchange posts including original LaTeX code.
+
+Author: koal44
+License: MIT
+Usage: Save the Minified Code as a bookmark, then visit any StackExchange page and click it.
+
+--- Minified Code ---
+(Paste the following line as your bookmark URL)
+${bookmarklet_min}
+*/
+
+javascript:(function() {
+${scraper};
+runBookmarklet();
 })();
+`;
+
+    fs.writeFileSync('dist/bookmarklet.js', bookmarklet);
+    console.log('Bookmarklet built successfully.');
+})();
+
+

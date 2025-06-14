@@ -11,7 +11,8 @@
     "build": {
       "patterns": [
         "src/stackexchange_scraper.js",
-        "test/example.htm"
+        "test/example.htm",
+        "build.js"
       ]
     }
   },
