@@ -1,3 +1,5 @@
 node_modules/
 dist/
 test/*_html_string.js
+test/scratchpad.js
+test/scratchpad.html
