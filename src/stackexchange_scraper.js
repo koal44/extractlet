@@ -44,13 +44,6 @@
 
 /** */
 
-const blockTags = new Set([
-    'P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
-    'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'TABLE', 'HR', 'BR'
-]);
-const inlineTags = new Set(['SPAN', 'NOBR', 'A', 'B', 'I', 'STRONG', 'EM', 'CODE']);
-const flattenTags = new Set(['P', 'DIV', 'SPAN', 'NOBR']);
-
 function toHtml(node) {
     if (!node) return '';
 
@@ -68,8 +61,8 @@ function toHtml(node) {
         trimmed = str.trimEnd();
         suffix = (trimmed.length == str.length) ? '' : suffix;
 
-        //console.log(`[TEXT] "${node.textContent}"`);
-        //console.log(`→ [TRIMMED] "${prefix + trimmed + suffix}"`);
+        //log(`[TEXT] "${node.textContent}"`);
+        //log(`→ [TRIMMED] "${prefix + trimmed + suffix}"`);
 
         return prefix + trimmed + suffix;
     }
@@ -79,7 +72,7 @@ function toHtml(node) {
     if (node.className && /MJX|MathJax/.test(node.className)) return '';
     if (node.id && /MathJax/.test(node.id)) return '';
 
-    if (flattenTags.has(node.tagName)) {
+    if (['P', 'DIV', 'SPAN', 'NOBR'].contains(node.tagName)) {
         return [...node.childNodes].map(toHtml).join('');
     }
 
@@ -112,26 +105,22 @@ function shouldIgnore(node) {
     return true;
 }
 
-// normal - collapse vertical+horizontal ws
-// pre - preserve all ws, no collapsing
-// pre-line - collapse horizontal ws, preserve vertical ws
-
 function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar = '', isRoot = true) {
     if (!node || shouldIgnore(node) || node.nodeType !== Node.ELEMENT_NODE) return '';
 
     function glueChildren(n, glueMode, ws = wsMode, ld = listDepth, qd = quoteDepth, lc = lastChar) {
         const prevLc = lc;
         const result = [];
-        console.log(`toMd.glue: processing node ${n.tagName} with ws=${ws}, ld=${ld}, qd=${qd}, lc="${lc}", glueMode=${glueMode}`);
+        log(`toMd.glue: processing node ${n.tagName} with ws=${ws}, ld=${ld}, qd=${qd}, lc="${lc}", glueMode=${glueMode}`);
 
         const children = n.childNodes;
         for (let i = 0; i < children.length; i++) {
             const child = children[i];
-            console.log(`toMd.glue: processing child ${child.nodeName} with ws=${ws}, ld=${ld}, qd=${qd}, lc="${lc}"`);
+            log(`toMd.glue: processing child ${child.nodeName} with ws=${ws}, ld=${ld}, qd=${qd}, lc="${lc}"`);
             let md = '';
             if (child.nodeType === Node.TEXT_NODE) {
                 md = child.textContent;
-                //console.log(`toMd.glue.child.md.pre-ws: "${md}"`);
+                //log(`toMd.glue.child.md.pre-ws: "${md}"`);
                 if (/^\s*$/.test(md)) continue; // all whitespace
 
                 switch (ws) {
@@ -140,7 +129,7 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
                 case 'pre-line': md = md.replace(/[ \t]+/g, ' '); break;
                 default: throw new Error(`Unsupported whitespace mode: ${ws}`);
                 }
-                //console.log(`tomd.glue.text.md.post-ws: "${md}"`);
+                //log(`tomd.glue.text.md.post-ws: "${md}"`);
             }
             else if (child.nodeType === Node.ELEMENT_NODE) {
                 md = toMd(child, ws, ld, qd, lc, false);
@@ -156,25 +145,25 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
                 && (isPrevBlock || (!isCurBlock && /\s/.test(lc)));
             const shouldTrimPrevEnd = !shouldTrimCurStart && isCurBlock && result.length > 0;
 
-            console.log(`toMd.glue.logic: parentNode=${n.tagName} isCurBlock=${isCurBlock}, isPrevBlock=${isPrevBlock}, shouldTrimCurStart=${shouldTrimCurStart}, shouldTrimPrevEnd=${shouldTrimPrevEnd}, hasLeadingSemanticIndentation=${hasLeadingSemanticIndentation}`);
+            log(`toMd.glue.logic: parentNode=${n.tagName} isCurBlock=${isCurBlock}, isPrevBlock=${isPrevBlock}, shouldTrimCurStart=${shouldTrimCurStart}, shouldTrimPrevEnd=${shouldTrimPrevEnd}, hasLeadingSemanticIndentation=${hasLeadingSemanticIndentation}`);
             
             if (shouldTrimCurStart) {
                 md = md.trimStart();
             }
             if (shouldTrimPrevEnd) {
-                //console.log(`toMd.glue is trimming prev!`);
-                //console.log(`toMd.glue.prev-before: "${result[result.length - 1]}"`);
+                //log(`toMd.glue is trimming prev!`);
+                //log(`toMd.glue.prev-before: "${result[result.length - 1]}"`);
                 result[result.length - 1] = result[result.length - 1].trimEnd();
-                //console.log(`toMd.glue.prev-after: "${result[result.length - 1]}"`);
+                //log(`toMd.glue.prev-after: "${result[result.length - 1]}"`);
             }
 
-            console.log(`toMd.glue.push.md: "${md}"`);
+            log(`toMd.glue.push.md: "${md}"`);
             result.push(md);
             lc = md.length > 0 ? md[md.length - 1] : lc;
         }
 
         let glued = result.join('');
-        console.log(`toMd.glue: glued result before processing: "${glued}"`);
+        log(`toMd.glue: glued result before processing: "${glued}"`);
         
         const hasBlockStructure = glueMode === 'block';
         if (isRoot) {
@@ -187,12 +176,12 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
             glued = prefix + glued;
         }
 
-        //console.log(`toMd.glue: final glued result: "${glued}"`);
+        //log(`toMd.glue: final glued result: "${glued}"`);
         return glued;
     }
 
     let result = '';
-    console.log(`toMd.elemNode: ${node.tagName}`);
+    log(`toMd.elemNode: ${node.tagName}`);
     switch (node.tagName) {
     case 'DIV':
         result = glueChildren(node, 'flat', 'normal');
@@ -266,13 +255,13 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
 
         
 
-        console.log(`toMd: LI index=${index}, listType=${listType}, listDepth=${listDepth}`);
+        log(`toMd: LI index=${index}, listType=${listType}, listDepth=${listDepth}`);
         const bullet = listType === 'OL' ? `${index + 1}.` : '-';
         //const indent = '    '.repeat(Math.max(0, listDepth - 1));
         result = glueChildren(node, 'li', 'normal'); //.trimStart();
 
-        console.log(`toMd.LI node=${node.tagName}, index=${index}, listType=${listType}, listDepth=${listDepth}`);
-        console.log(`toMd.LI.result-before: "${result}"`);
+        log(`toMd.LI node=${node.tagName}, index=${index}, listType=${listType}, listDepth=${listDepth}`);
+        log(`toMd.LI.result-before: "${result}"`);
 
 
         result = result.startsWith('\n\n') ? result.slice(2) : result; // <li><p>
@@ -281,7 +270,7 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
 
         const indent = listDepth > 1 ? '    ' : '  '; // 2 spaces for top-level lists, 4 for nested
 
-        const liPrefix = result.match(/^\n*/)[0];
+        const liPrefix = result.match(new RegExp('^\\n*'))[0];
         const liSuffix = result.match(/\n*$/)[0];
         result = result.slice(liPrefix.length, result.length - liSuffix.length);
         result = result.split('\n').join('\n' + indent + '  ');
@@ -307,9 +296,9 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
 
     case 'BLOCKQUOTE':
         result = glueChildren(node, 'block', 'normal', listDepth, quoteDepth + 1);
-        console.log(`toMd: blockquote content before formatting: "${result}"`);
-        console.log(`toMd.blockquote: quoteDepth=${quoteDepth}`);
-        const bqPrefix = result.match(/^\n*/)[0];
+        log(`toMd: blockquote content before formatting: "${result}"`);
+        log(`toMd.blockquote: quoteDepth=${quoteDepth}`);
+        const bqPrefix = result.match(new RegExp('^\\n*'))[0];
         const bqSuffix = result.match(/\n*$/)[0];
         result = result.slice(bqPrefix.length, result.length - bqSuffix.length);
         //const bqIndenter = '> '.repeat(quoteDepth + 1);
@@ -322,7 +311,7 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
         break;
     }
 
-    console.log(`toMd: result for ${node.tagName} is "${result}"`);
+    log(`toMd: result for ${node.tagName} is "${result}"`);
     return result;
 }
 
@@ -609,99 +598,24 @@ function runBookmarklet(root = document) {
     doc.body.appendChild(posts);
 }
 
+/* @debug-start */
+const DEBUG = typeof process !== 'undefined' && process.env.DEBUG === 'true';
+function log(...args) {
+    if (!DEBUG) return;
+
+    for (const arg of args) {
+        if (typeof arg === 'string') {
+            console.log(arg.replace(/\n/g, '\\n').replace(/\t/g, '\\t'));
+        } else {
+            console.log(
+                JSON.stringify(arg, null, 2)
+                .replace(/\n/g, '\\n')
+                .replace(/\t/g, '\\t')
+            );
+        }
+    }
+}
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toHtml, toMd };
+    module.exports = { toHtml, toMd };
 }
-
-/*
-function isLastSibling(node) {
-    let current = node.nextSibling;
-    while (current) {
-        if (current.nodeType === Node.TEXT_NODE && /\S/.test(current.textContent)) return false;
-        if (current.nodeType === Node.ELEMENT_NODE && blockTags.has(current.tagName)) return false;
-        current = current.nextSibling;
-    }
-    return true;
-}
-
-function isFirstSibling(node) {
-    let sibling = node.previousSibling;
-    while (sibling) {
-        if (sibling.nodeType === Node.TEXT_NODE && /\S/.test(sibling.textContent)) return false;
-        if (sibling.nodeType === Node.ELEMENT_NODE && blockTags.has(sibling.tagName)) return false;
-        sibling = sibling.previousSibling;
-    }
-    return true;
-}
-
-function isRenderable(node) {
-    if (!node) throw new Error('isRenderable called with null or undefined node');
-
-    if (node.nodeType === Node.TEXT_NODE) return /\S/.test(node.textContent);
-    if (shouldIgnore(node)) return false;
-    if (node.nodeType !== Node.ELEMENT_NODE) return false;
-
-    for (const child of node.childNodes) {
-        if (isRenderable(child)) return true;
-    }
-
-    return false;
-}
-
-function isFirstRenderable(node, mode = 'strict') {
-    if (!node) throw new Error('isFirstRenderable called with null or undefined node');
-    let current = node;
-    //console.log(`isFirstRenderable: checking node ${current.nodeName}`);
-    if (current.nodeType === Node.TEXT_NODE && /^\s*$/.test(current.textContent)) return false;
-    while (current = current.previousSibling) {
-        //console.log(`isFirstRenderable: checking sibling ${current.nodeName}`);
-        if (current.nodeType === Node.TEXT_NODE && /\S/.test(current.textContent)) return false;
-        //console.log(`isFirstRenderable: checking tagname ${current.tagName}`);
-        if (isRenderable(current)) return mode === 'block' && blockTags.has(current.tagName);
-    }
-    current = node;
-    while (current = current.parentNode) {
-        //console.log(`isFirstRenderable: checking parent ${current.nodeName}`);
-        if (current.nodeType === Node.ELEMENT_NODE && current.tagName === 'BODY') return true;
-        if (current.nodeType === Node.ELEMENT_NODE) {
-            return isFirstRenderable(current, mode);
-        }
-    }
-    throw new Error('isFirstInFlow: ??');
-}
-
-function isLastRenderable(node, mode = 'strict') {
-    if (!node) throw new Error('isLastRenderable called with null or undefined node');
-    let current = node;
-
-    if (current.nodeType === Node.TEXT_NODE && /^\s*$/.test(current.textContent)) return false;
-
-    while (current = current.nextSibling) {
-        if (current.nodeType === Node.TEXT_NODE && /\S/.test(current.textContent)) return false;
-        if (isRenderable(current)) return mode === 'block' && blockTags.has(current.tagName);
-    }
-
-    current = node;
-    while (current = current.parentNode) {
-        if (current.nodeType === Node.ELEMENT_NODE && current.tagName === 'BODY') return true;
-        if (current.nodeType === Node.ELEMENT_NODE) {
-            return isLastRenderable(current, mode);
-        }
-    }
-
-    throw new Error('isLastRenderable: ??');
-}
-
-function hasDirectContent(node) {
-    if (!node) throw new Error('hasDirectContent called with null or undefined node');
-    if (shouldIgnore(node)) return false;
-
-    if (node.nodeType === Node.ELEMENT_NODE) {
-        for (const child of node.childNodes) {
-            if (child.nodeType === Node.TEXT_NODE && /\S/.test(child.textContent)) return true;
-            if (inlineTags.has(child.tagName) && isRenderable(child)) return true;
-        }
-    }
-    return false;
-}
-*/
+/* @debug-end */

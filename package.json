@@ -5,7 +5,7 @@
   "main": "build.js",
   "scripts": {
     "build": "node build.js",
-    "test": "node --test --test-reporter=spec test/*.test.js",
+    "test": "node --env-file=.env --test --test-reporter=spec test/*.test.js",
     "watch": "npm-watch"
   },
   "watch": {

@@ -3,6 +3,8 @@ const path = require('path');
 const terser = require('terser');
 const jsStringEscape = require('js-string-escape');
 
+const gistUrl = 'https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d'
+
 if (!fs.existsSync('dist')) {
     fs.mkdirSync('dist');
 }
@@ -39,20 +41,18 @@ fs.writeFileSync('test/example_files.js', jsExamplesFilesString);
 console.log('Built test/example_files.js');
 
 
-
-
-
-
-
-
-
-
-const scraper = fs.readFileSync('src/stackexchange_scraper.js', 'utf8');
-
 // build bookmarklet.min.js and bookmarklet.js
+const scraper = fs.readFileSync('src/stackexchange_scraper.js', 'utf8');
 (async () => {
+    // Remove debug functions and console.log() statements
+    const cleaned = scraper
+        .replace(/\/\* @debug-start \*\/[\s\S]*?\/\* @debug-end \*\//g, '')
+        .split('\n')
+        .filter(line => !/^\s*(\/\/\s*)?(console\.)?log\(/.test(line))
+        .join('\n');
+
     const minified = await terser.minify(scraper, {
-        compress: true,
+        compress: { global_defs: { DEBUG: false }, dead_code: true }, // true
         mangle: false,
         format: {
             beautify: false,
@@ -73,7 +73,6 @@ const scraper = fs.readFileSync('src/stackexchange_scraper.js', 'utf8');
     console.log('Minified bookmarklet built successfully.');
 
     // build bookmarklet.js
-    const gistUrl = 'https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d'
     const bookmarklet = `
 /*
 ${gistUrl}
@@ -91,13 +90,11 @@ ${bookmarklet_min}
 */
 
 javascript:(function() {
-${scraper};
+${cleaned}
 runBookmarklet();
-})();
-`;
+
+})();`;
 
     fs.writeFileSync('dist/bookmarklet.js', bookmarklet);
     console.log('Bookmarklet built successfully.');
 })();
-
-
