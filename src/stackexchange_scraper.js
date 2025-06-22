@@ -48,7 +48,7 @@ function toHtml(node) {
     if (!node) return '';
 
     if (node.nodeType === Node.TEXT_NODE) {
-        const str = node.textContent;
+        let str = node.textContent;
         if (str === ' ' && node.nextSibling != null && node.previousSibling != null) return ' '; // Preserve single spaces
         if (/^\s*$/.test(str)) return ''; // all whitespace
 
@@ -72,7 +72,7 @@ function toHtml(node) {
     if (node.className && /MJX|MathJax/.test(node.className)) return '';
     if (node.id && /MathJax/.test(node.id)) return '';
 
-    if (['P', 'DIV', 'SPAN', 'NOBR'].contains(node.tagName)) {
+    if (['P', 'DIV', 'SPAN', 'NOBR'].includes(node.tagName)) {
         return [...node.childNodes].map(toHtml).join('');
     }
 
@@ -105,18 +105,18 @@ function shouldIgnore(node) {
     return true;
 }
 
-function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar = '', isRoot = true) {
+function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '', isRoot = true) {
     if (!node || shouldIgnore(node) || node.nodeType !== Node.ELEMENT_NODE) return '';
 
-    function glueChildren(n, glueMode, ws = wsMode, ld = listDepth, qd = quoteDepth, lc = lastChar) {
+    function glueChildren(n, glueMode, ws = wsMode, os = olStart, qd = quoteDepth, lc = lastChar) {
         const prevLc = lc;
         const result = [];
-        log(`toMd.glue: processing node ${n.tagName} with ws=${ws}, ld=${ld}, qd=${qd}, lc="${lc}", glueMode=${glueMode}`);
+        log(`toMd.glue: processing node ${n.tagName} with ws=${ws}, os=${os}, qd=${qd}, lc="${lc}", glueMode=${glueMode}`);
 
         const children = n.childNodes;
         for (let i = 0; i < children.length; i++) {
             const child = children[i];
-            log(`toMd.glue: processing child ${child.nodeName} with ws=${ws}, ld=${ld}, qd=${qd}, lc="${lc}"`);
+            //log(`toMd.glue: processing child ${child.nodeName} with ws=${ws}, os=${os}, qd=${qd}, lc="${lc}"`);
             let md = '';
             if (child.nodeType === Node.TEXT_NODE) {
                 md = child.textContent;
@@ -132,7 +132,7 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
                 //log(`tomd.glue.text.md.post-ws: "${md}"`);
             }
             else if (child.nodeType === Node.ELEMENT_NODE) {
-                md = toMd(child, ws, ld, qd, lc, false);
+                md = toMd(child, ws, os, qd, lc, false);
             }
 
             const isCurBlock = md.startsWith('\n');
@@ -145,7 +145,7 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
                 && (isPrevBlock || (!isCurBlock && /\s/.test(lc)));
             const shouldTrimPrevEnd = !shouldTrimCurStart && isCurBlock && result.length > 0;
 
-            log(`toMd.glue.logic: parentNode=${n.tagName} isCurBlock=${isCurBlock}, isPrevBlock=${isPrevBlock}, shouldTrimCurStart=${shouldTrimCurStart}, shouldTrimPrevEnd=${shouldTrimPrevEnd}, hasLeadingSemanticIndentation=${hasLeadingSemanticIndentation}`);
+            //log(`toMd.glue.logic: parentNode=${n.tagName} isCurBlock=${isCurBlock}, isPrevBlock=${isPrevBlock}, shouldTrimCurStart=${shouldTrimCurStart}, shouldTrimPrevEnd=${shouldTrimPrevEnd}, hasLeadingSemanticIndentation=${hasLeadingSemanticIndentation}`);
             
             if (shouldTrimCurStart) {
                 md = md.trimStart();
@@ -157,7 +157,7 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
                 //log(`toMd.glue.prev-after: "${result[result.length - 1]}"`);
             }
 
-            log(`toMd.glue.push.md: "${md}"`);
+            //log(`toMd.glue.push.md: "${md}"`);
             result.push(md);
             lc = md.length > 0 ? md[md.length - 1] : lc;
         }
@@ -216,9 +216,11 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
         break;
 
     case 'A':
-        const href = node.getAttribute('href');
-        const inn = glueChildren(node, 'inline', 'normal');
-        result = href ? `[${inn}](${href})` : inn;
+        const aText = glueChildren(node, 'inline', 'normal');
+        const href = (node.getAttribute('href') || '').trim();
+        let title = (node.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
+        title = title ? ` "${title}"` : '';
+        result = href ? `[${aText}](${href}${title})` : aText;
         break;
 
     case 'H1':
@@ -229,7 +231,7 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
     case 'H6':
         const level = +node.tagName[1];
         const hashes = '#'.repeat(level);
-        result = `\n\n${hashes} ${glueChildren(node, 'inline', 'normal')} ${hashes}\n\n`;
+        result = `\n\n${hashes} ${glueChildren(node, 'inline', 'normal')}\n\n`;
         break;
 
     case 'HR':
@@ -238,55 +240,70 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
     
     case 'UL':
     case 'OL':
-        result = glueChildren(node, 'list', 'normal', listDepth + 1);
+        const startIndex = +(node.getAttribute('start') || '1');
+        result = glueChildren(node, 'list', 'normal', startIndex);
         break;
 
-    case 'LI':
+    case 'LI': {
         const listType = node.parentNode.tagName;
-        if (listType !== 'UL' && listType !== 'OL') throw new Error('LI must be child of UL or OL');
+        if (listType !== 'UL' && listType !== 'OL') {
+            throw new Error('LI must be child of UL or OL');
+        }
 
-        let index = 0;
-        let sibling = node;
-        while ((sibling = sibling.previousSibling)) {
+        // Determine bullet (e.g., "1. ", "- ")
+        let index = olStart;
+        for (let sibling = node.previousSibling; sibling; sibling = sibling.previousSibling) {
             if (sibling.nodeType === Node.ELEMENT_NODE && sibling.tagName === 'LI') {
                 index++;
             }
         }
+        const bullet = listType === 'OL' ? `${index}. ` : '- ';
+        const pad = ' '.repeat(bullet.length);
 
-        
+        // Glue children content
+        result = glueChildren(node, 'li', 'normal');
 
-        log(`toMd: LI index=${index}, listType=${listType}, listDepth=${listDepth}`);
-        const bullet = listType === 'OL' ? `${index + 1}.` : '-';
-        //const indent = '    '.repeat(Math.max(0, listDepth - 1));
-        result = glueChildren(node, 'li', 'normal'); //.trimStart();
+        //log(`toMd.LI node=${node.tagName}, index=${index}, listType=${listType}, olStart=${olStart}`);
+        //log(`toMd.LI.result-before: "${result}"`);
 
-        log(`toMd.LI node=${node.tagName}, index=${index}, listType=${listType}, listDepth=${listDepth}`);
-        log(`toMd.LI.result-before: "${result}"`);
+        // Normalize leading/trailing newlines
+        result = result.startsWith('\n\n') ? result.slice(2) : result;
+        result = result.endsWith('\n') ? result : result + '\n';
 
+        const leadingWs = result.match(/^(\n*)/)?.[0] ?? '';
+        const trailingWs = result.match(/(\n*)$/)?.[0] ?? '';
+        result = result.slice(leadingWs.length, result.length - trailingWs.length);
 
-        result = result.startsWith('\n\n') ? result.slice(2) : result; // <li><p>
-        result = result.endsWith('\n') ? result : result + '\n'; // <li><p>
-        //result = result.trimEnd() + '\n';
+        // Split and compact layout
+        const lines = result.split(/(\n+)/);
+        //log(`toMd.LI.result-split: ${JSON.stringify(lines)}`);
 
-        const indent = listDepth > 1 ? '    ' : '  '; // 2 spaces for top-level lists, 4 for nested
+        // Collapse \n\n before nested list bullets. (REVIEW: stylistic choice)
+        for (let i = 0; i < lines.length - 1; i++) {
+            if (lines[i].endsWith('\n\n') && /^(\d+\.\s|- )/.test(lines[i + 1])) {
+                //log(`toMd.LI: collapsing \\n\\n before nested list bullet at index ${i}`);
+                lines[i] = lines[i].slice(0, -1); // trim one newline
+            }
+        }
 
-        const liPrefix = result.match(new RegExp('^\\n*'))[0];
-        const liSuffix = result.match(/\n*$/)[0];
-        result = result.slice(liPrefix.length, result.length - liSuffix.length);
-        result = result.split('\n').join('\n' + indent + '  ');
-        result = liPrefix + result + liSuffix;
+        // Indent all lines after line breaks
+        result = lines.map(line =>
+            line.startsWith('\n') ? line + pad : line
+        ).join('');
+        log(`toMd.LI.result-split-join: "${result}"`);
 
-
-        result = `${indent}${bullet} ${result}`;
+        // Reassemble
+        result = `${bullet}${leadingWs}${result}${trailingWs}`;
         break;
+    }
 
     case 'PRE':
-        const langClass = Array.from(node.classList).find(cls => cls.startsWith('lang-'));
-        const lang = langClass ? langClass.slice(5) : '';
+        //const langClass = Array.from(node.classList).find(cls => cls.startsWith('lang-'));
+        //const lang = langClass ? langClass.slice(5) : '';
         result = glueChildren(node, 'flat', 'pre');
         result = result.endsWith('\n\n') ? result.slice(0, -1) : result;
         result = result.endsWith('\n') ? result : result + '\n';
-        result = '```' + lang + '\n' + result + '```\n\n';
+        result = '```' + '\n' + result + '```\n\n';
         break;
 
     case 'CODE':
@@ -295,19 +312,115 @@ function toMd(node, wsMode = 'normal', listDepth = 0, quoteDepth = 0, lastChar =
         break;
 
     case 'BLOCKQUOTE':
-        result = glueChildren(node, 'block', 'normal', listDepth, quoteDepth + 1);
-        log(`toMd: blockquote content before formatting: "${result}"`);
-        log(`toMd.blockquote: quoteDepth=${quoteDepth}`);
+        result = glueChildren(node, 'block', 'normal', olStart, quoteDepth + 1);
+        //log(`toMd: blockquote content before formatting: "${result}"`);
+        //log(`toMd.blockquote: quoteDepth=${quoteDepth}`);
         const bqPrefix = result.match(new RegExp('^\\n*'))[0];
         const bqSuffix = result.match(/\n*$/)[0];
         result = result.slice(bqPrefix.length, result.length - bqSuffix.length);
-        //const bqIndenter = '> '.repeat(quoteDepth + 1);
         result = result.split('\n').map(line => '> ' + line).join('\n');
         result = bqPrefix + result + bqSuffix;
         break;
 
+    case 'IMG': {
+        const alt = (node.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
+        const src = node.getAttribute('src') || '';
+        let title = (node.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
+        title = title ? ` "${title}"` : '';
+        result = src ? `![${alt}](${src}${title})` : '';
+        break;
+    }
+
+    case 'DEL':
+    case 'S':
+    case 'STRIKE':
+        result = `~~${glueChildren(node, 'inline', 'normal')}~~`;
+        break;
+
+    case 'KBD':
+        result = `<kbd>${glueChildren(node, 'inline', 'normal')}</kbd>`;
+        break;
+
+    case 'TABLE': {
+        const table = [];
+        const rows = Array.from(node.querySelectorAll('tr'));
+        const headerRow =
+            rows.find(r => [...r.children].some(cell => cell.tagName === 'TH'))
+            || rows[0];
+        if (!headerRow) break;
+
+        const nCols = headerRow.children.length;
+        const minColWidth = 3; // Minimum column width for table cells
+
+        for (const row of rows) {
+            if (row !== headerRow && table.length === 1) {
+                // insert separator immediately after header
+                table.push(new Array(nCols).fill(''));
+            }
+
+            const trow = [];
+            for (const cell of row.children) {
+                if (cell.tagName !== 'TH' && cell.tagName !== 'TD') continue;
+                trow.push(toMd(cell).trim());
+            }
+
+            table.push(trow);
+        }
+
+        //log('DEBUG table array of arrays:', table);
+
+        const colWidths = table.reduce((widths, row) => {
+            row.forEach((cell, i) => {
+                widths[i] = Math.max(widths[i], cell.length);
+            });
+            return widths;
+        }, new Array(nCols).fill(minColWidth));
+
+        for (let i = 0; i < table.length; i++) {
+            const row = table[i];
+            if (row.length !== nCols) {
+                log(`WARNING: Row ${i} has ${row.length} columns, expected ${nCols}`);
+            }
+
+            for (let j = 0; j < nCols; j++) {
+                let cell = row[j] ?? 'ERR';
+                const width = colWidths[j];
+
+                let leftMark = ' ';
+                let rightMark = ' ';
+                let endWall = j === nCols - 1 ? '|\n' : '';
+
+                if (i === 1) { // separator row
+                    const style = headerRow.children[j]?.getAttribute('style') ?? '';
+                    leftMark = style.includes('left') || style.includes('center') ? ':' : ' ';
+                    rightMark = style.includes('right') || style.includes('center') ? ':' : ' ';
+                    cell = '-'.repeat(width);
+                }
+
+                if (cell.length < width) {
+                    cell = cell.padEnd(width, ' ');
+                }
+
+                //log(`toMd.TABLE: cell[${i}][${j}](width=${cell.length}, expected=${width}) = "${cell}" `);
+                result += `|${leftMark}${cell}${rightMark}${endWall}`;
+            }
+        }
+
+        break;
+    }
+
+    case 'TH':
+    case 'TD':
+        result = glueChildren(node, 'inline', 'normal');
+
+        // norm vertical breaks; inline whitespace is valid in GFM tables
+        if (/\n/.test(result)) log('WARNING: multi-line cell content in table:', result);
+        result = result.replace(/\n+/g, ' ').replace(/\r+/g, '')
+
+        break;
+
     default:
-        result = '';
+        result = node.outerHTML || '';
         break;
     }
 
@@ -343,7 +456,7 @@ function scrapePosts(root) {
     postLayouts.forEach(postLayout => {
         // Extract post body
         const postBodyNode = postLayout.querySelector('.s-prose');
-        const body = postBodyNode ? toHtml(postBodyNode) : '';
+        const body = postBodyNode ? toMd(postBodyNode) : '';
 
         // Extract contributors
         const signatureNodes = postLayout.querySelectorAll('.post-signature');
@@ -355,7 +468,7 @@ function scrapePosts(root) {
         const commentNodes = postLayout.querySelectorAll('ul.comments-list li div.comment-body');
         const comments = Array.from(commentNodes).map(div => {
             const bodySpan = div.querySelector('span.comment-copy');
-            const body = toHtml(bodySpan);
+            const body = toMd(bodySpan);
             const userInfo = scrapeContributorInfo(div, '.relativetime-clean', 'a.comment-user');
             userInfo.contributorType = 'commenter';
             return {
@@ -600,19 +713,21 @@ function runBookmarklet(root = document) {
 
 /* @debug-start */
 const DEBUG = typeof process !== 'undefined' && process.env.DEBUG === 'true';
+const LOG_JSONIFY_STRINGS = false;
 function log(...args) {
     if (!DEBUG) return;
 
     for (const arg of args) {
+        let out;
         if (typeof arg === 'string') {
-            console.log(arg.replace(/\n/g, '\\n').replace(/\t/g, '\\t'));
+            out = LOG_JSONIFY_STRINGS
+                    ? JSON.stringify(arg).slice(1, -1).replace(/\n/g, '\\n').replace(/\t/g, '\\t')
+                    : arg.replace(/\n/g, '\\n').replace(/\t/g, '\\t');
         } else {
-            console.log(
-                JSON.stringify(arg, null, 2)
-                .replace(/\n/g, '\\n')
-                .replace(/\t/g, '\\t')
-            );
+            out = JSON.stringify(arg, null, 2)
+                .replace(/\n/g, '\\n').replace(/\t/g, '\\t');
         }
+        console.log(out);
     }
 }
 if (typeof module !== 'undefined' && module.exports) {
