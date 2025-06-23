@@ -3,7 +3,7 @@ const path = require('path');
 const terser = require('terser');
 const jsStringEscape = require('js-string-escape');
 
-const gistUrl = 'https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d'
+const gistUrl = 'https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d';
 
 if (!fs.existsSync('dist')) {
     fs.mkdirSync('dist');
@@ -27,7 +27,7 @@ for (const file of files) {
     const inputPath = path.join(testDir, file);
     const outputPath = path.join(testDir, baseName + outputSuffix);
     const constName = baseName + 'Html';  // e.g., 'example1Html'
-    jsExampleFiles.push(baseName + outputSuffix)
+    jsExampleFiles.push(baseName + outputSuffix);
 
     const html = fs.readFileSync(inputPath, 'utf8');
     const escaped = jsStringEscape(html);
