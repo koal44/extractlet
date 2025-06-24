@@ -2,6 +2,7 @@
   "name": "stackexchange-bookmarklet",
   "version": "1.0.0",
   "description": "StackExchange Q&A bookmarklet scraper",
+  "gistUrl": "https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d",
   "main": "build.js",
   "scripts": {
     "build": "node build.js",
