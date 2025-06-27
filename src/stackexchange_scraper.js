@@ -67,7 +67,8 @@ function toHtml(node) {
 
   for (const attr of node.attributes) {
     if (['href', 'src', 'title'].includes(attr.name)) {
-      clone.setAttribute(attr.name, attr.value);
+      const val = node[attr.name] || attr.value;
+      clone.setAttribute(attr.name, val);
     }
   }
 
@@ -223,7 +224,7 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
 
     case 'A': {
       const aText = glueChildren(node, 'inline', 'normal');
-      const href = (node.getAttribute('href') || '').trim();
+      const href = (node.href || node.getAttribute('href') || '').trim();
       let title = (node.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
       title = title ? ` "${title}"` : '';
       result = href ? `[${aText}](${href}${title})` : aText;
@@ -337,7 +338,7 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
 
     case 'IMG': {
       const alt = (node.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
-      const src = node.getAttribute('src') || '';
+      const src = node.src || node.getAttribute('src') || '';
       let title = (node.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
       title = title ? ` "${title}"` : '';
       result = src ? `![${alt}](${src}${title})` : '';

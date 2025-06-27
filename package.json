@@ -36,6 +36,7 @@
   "type": "commonjs",
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "better-sqlite3": "^12.1.1",
     "eslint": "^9.29.0",
     "globals": "^16.2.0",
     "js-string-escape": "^1.0.1",
