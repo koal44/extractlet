@@ -2,44 +2,30 @@
  * DOM Reference
  * 
  * div#question-header
- *   a.question-hyperlink                → Question title
+ *   a.question-hyperlink                         → Question title
  * 
  * div#question
+ * div#answers > div.answer#answer-XXXX
  *   div.post-layout
- *     div.s-prose                        → Question body
- *     div.post-signature.owner           → Contributor (Question Author)
+ *     div.vote-cell
+ *       div[itemprop="upvoteCount"][data-value]  → Upvote count
+ *     div.s-prose                                → Post body (question or answer)
+ *     div.post-signature.owner                   → Contributor (Question Author) 
+ *     div.post-signature                         → Contributor (Answer Author or Editor)
  *       div.user-info
- *         span.relativetime[title]       → Timestamp
- *         div.user-details[itemprop="author"]? > a
- *     div.post-signature                 → Contributor (Editor, optional)
- *       div.user-info
- *         span.relativetime[title]       → Timestamp
- *         div.user-details[itemprop="author"]? > a
+ *         span.relativetime[title]               → Timestamp
+ *         div.user-details[itemprop="author"]?
+ *           a                                    → Author/Editor name/id
  *     ul.comments-list
  *       li#comment-XXXX
+ *         div.comment-score
+ *           span.cool                            → Comment score
  *         div.comment-body
- *           span.comment-copy            → Comment text
- *           a.comment-user               → Contributor (Comment Author)
- *           span.comment-date > span.relativetime-clean[title] → Timestamp
+ *           span.comment-copy                    → Comment text
+ *           a.comment-user                       → Contributor (Comment Author)
+ *           span.comment-date
+ *             span.relativetime-clean[title]     → Timestamp
  * 
- * div#answers
- *   div.answer#answer-XXXX
- *     div.post-layout
- *       div.s-prose                      → Answer body
- *       div.post-signature               → Contributor (Answer Author)
- *         div.user-info
- *           span.relativetime[title]     → Timestamp
- *           div.user-details[itemprop="author"] > a
- *       div.post-signature               → Contributor (Editor, optional)
- *         div.user-info
- *           span.relativetime[title]     → Timestamp
- *           div.user-details > a
- *       ul.comments-list
- *         li#comment-XXXX
- *           div.comment-body
- *             span.comment-copy          → Comment text
- *             a.comment-user             → Contributor (Comment Author)
- *             span.comment-date > span.relativetime-clean[title] → Timestamp
  */
 
 /** */
@@ -447,25 +433,48 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
   return result;
 }
 
-function scrapeContributorInfo(baseNode, timestampSelector, userSelector) {
-  const timestamp = (baseNode.querySelector(timestampSelector)?.getAttribute('title') ?? '').split(',')[0].trim();
-  const userNode = baseNode.querySelector(userSelector);
+function scrapeUserInfo(userNode) {
   const name = userNode?.textContent.trim() ?? '';
   const href = userNode?.getAttribute('href');
-  const userId = href?.match(/\/users\/(\d+)/)?.[1] ?? '-1';
+  const match = href?.match(/\/users\/(\d+)/);
+  const userId = match ? parseInt(match[1], 10) : -1;
   const username = (href?.split('/').pop() ?? '').split('?')[0];
-  const isOwner = baseNode.classList.contains('owner'); // OP of the entire post
-  const userDetailsNode = baseNode.querySelector('.user-details');
-  const contributorType = userDetailsNode?.getAttribute('itemprop') === 'author'? 'author' : 'editor';
 
-  return {
-    contributorType,
-    isOwner,
-    timestamp,
-    name,
-    userId,
-    username,
-  };
+  return { name, userId, username };
+}
+
+function scrapePostContributor(signatureNode) {
+  const timestamp = signatureNode.querySelector('.relativetime')?.getAttribute('title')?.split(',')[0].trim() ?? '';
+  const userNode = signatureNode.querySelector('.user-details a');
+  const isOwner = signatureNode.classList.contains('owner'); // OP of the entire post
+  const contributorType = signatureNode.querySelector('.user-details')?.getAttribute('itemprop') === 'author' ? 'author' : 'editor';
+  const { name, userId, username } = scrapeUserInfo(userNode);
+
+  return { contributorType, isOwner, timestamp, name, userId, username };
+}
+
+function scrapeCommentContributor(commentItem) {
+  const timestamp = commentItem.querySelector('.relativetime-clean')?.getAttribute('title')?.split(',')[0].trim() ?? '';
+  const userNode = commentItem.querySelector('a.comment-user');
+  const { name, userId, username } = scrapeUserInfo(userNode);
+
+  return { contributorType: 'commenter', isOwner: false, timestamp, name, userId, username };
+}
+
+function scrapePostVote(postLayout) {
+  const voteNode = postLayout.querySelector('div.vote-cell div[itemprop="upvoteCount"]');
+  const vote = voteNode?.dataset?.value ?? voteNode?.textContent ?? '';
+  const n = parseInt(vote.trim(), 10);
+
+  return Number.isFinite(n) ? n : 0;
+}
+
+function scrapeCommentVote(commentItem) {
+  const scoreNode = commentItem.querySelector('div.comment-score span.cool');
+  const vote = scoreNode?.textContent ?? '';
+  const n = parseInt(vote.trim(), 10);
+
+  return Number.isFinite(n) ? n : 0;
 }
 
 function scrapePosts(root) {
@@ -481,31 +490,24 @@ function scrapePosts(root) {
     // Extract contributors
     const signatureNodes = postLayout.querySelectorAll('.post-signature');
     const contributors = Array.from(signatureNodes).map(sig =>
-      scrapeContributorInfo(sig, '.relativetime', '.user-details a')
+      scrapePostContributor(sig)
     );
 
+    const vote = scrapePostVote(postLayout);
+
     // Extract comments
-    const commentNodes = postLayout.querySelectorAll('ul.comments-list li div.comment-body');
-    const comments = Array.from(commentNodes).map(div => {
-      const bodySpan = div.querySelector('span.comment-copy');
+    const commentNodes = postLayout.querySelectorAll('ul.comments-list li');
+    const comments = Array.from(commentNodes).map(li => {
+      const bodySpan = li.querySelector('div.comment-body > span.comment-copy');
       const bodyHtml = toHtml(bodySpan);
       const bodyMd = toMd(bodySpan);
-      const userInfo = scrapeContributorInfo(div, '.relativetime-clean', 'a.comment-user');
-      userInfo.contributorType = 'commenter';
-      return {
-        bodyHtml,
-        bodyMd,
-        contributors: [userInfo],
-      };
+      const contributors = [scrapeCommentContributor(li)];
+      const vote = scrapeCommentVote(li);
+      return { bodyHtml, bodyMd, contributors, vote };
     });
 
     // Assemble post object
-    posts.push({
-      bodyHtml,
-      bodyMd,
-      contributors,
-      comments,
-    });
+    posts.push({ bodyHtml, bodyMd, contributors, comments, vote });
   });
 
   return posts;
@@ -539,7 +541,6 @@ function h(tag, attrs = {}, ...children) {
 }
 
 function buildCopyButton(data, doc, postIdx = -1) {
-
   const color = '#4ca5f2';
   const bg = '#f2f4f7';
 
@@ -624,7 +625,7 @@ function buildCopyButton(data, doc, postIdx = -1) {
       
       const postHeader = idx === 0 ? 'Question' : `Answer ${idx}`;
       txt += `\n\n❖❖ ${postHeader} ❖❖\n\n${post.bodyMd}`;
-      const contributors = stringifyContributors(post.contributors);
+      const contributors = displayContributorsAndVotes(post.contributors, post.vote);
       if (contributors) {
         txt += `\n\n${contributors}`;
       }
@@ -633,7 +634,7 @@ function buildCopyButton(data, doc, postIdx = -1) {
       if (post.comments.length > 0) {
         post.comments.forEach(function(comment, commentIdx) {
           txt += `\nComment ${commentIdx + 1}:\n${comment.bodyMd}`;
-          const contributors = stringifyContributors(comment.contributors);
+          const contributors = displayContributorsAndVotes(comment.contributors, comment.vote);
           if (contributors) {
             txt += ` ${contributors}`;
           }
@@ -670,7 +671,7 @@ function buildCopyButton(data, doc, postIdx = -1) {
   }, button, response);
 }
 
-function stringifyContributors(contributors) {
+function displayContributorsAndVotes(contributors, voteCount) {
   if (!contributors || contributors.length === 0) return '';
 
   // Sort once, newest first
@@ -717,18 +718,22 @@ function stringifyContributors(contributors) {
     return { name, date };
   });
 
-  // Format output
+  let contributorsText = '';
   if (s.length === 1) {
-    return `[[ ${s[0].name} on ${s[0].date} ]]`;
+    contributorsText = `${s[0].name} on ${s[0].date}`;
   } else if (s.length === 2) {
     if (s[0].name === s[1].name) {
-      return `[[ ${s[0].name} on ${s[0].date}; edited on ${s[1].date} ]]`;
+      contributorsText = `${s[0].name} on ${s[0].date}; edited on ${s[1].date}`;
     } else {
-      return `[[ ${s[0].name} on ${s[0].date}; edited by ${s[1].name} on ${s[1].date} ]]`;
+      contributorsText = `${s[0].name} on ${s[0].date}; edited by ${s[1].name} on ${s[1].date}`;
     }
   } else {
-    return '';
+    contributorsText = '';
   }
+
+  const voteText = `${voteCount >= 0 ? '+' : ''}${voteCount}`;
+
+  return `[[ ${contributorsText} | ${voteText} ]]`;
 }
 
 function buildPosts(data, doc) {
@@ -758,7 +763,7 @@ function buildPosts(data, doc) {
     if (post.bodyHtml) contentNodeHtml.appendChild(post.bodyHtml);
     postNode.appendChild(contentNodeHtml);
 
-    const postContribs = stringifyContributors(post.contributors);
+    const postContribs = displayContributorsAndVotes(post.contributors, post.vote);
     const postContribsMd = h('div', { style: 'margin-top: 1.4em;' }, `${postContribs}`);
     contentNodeMd.appendChild(postContribsMd);
     const postContribsHtml = h('div', {}, `${postContribs}`);
@@ -783,7 +788,7 @@ function buildPosts(data, doc) {
         if (comment.bodyHtml) commentContentNodeHtml.appendChild(comment.bodyHtml);
         commentsNode.appendChild(commentContentNodeHtml);
 
-        const commentContrib = stringifyContributors(comment.contributors);
+        const commentContrib = displayContributorsAndVotes(comment.contributors, comment.vote);
         const commentContribMd = h('span', {}, ` ${commentContrib}`);
         commentContentNodeMd.appendChild(commentContribMd);
         const commentContribHtml = h('span', {}, ` ${commentContrib}`);
