@@ -43,17 +43,62 @@ function toHtml(node) {
 
   // display the original MathJax LaTeX content
   if (node.tagName === 'SCRIPT') { // non-MathJax scripts have already been filtered out
-    const pre = document.createElement('pre');
-    pre.style.display = 'inline';
-    pre.textContent = node.textContent;
-    return pre;
+    const math = document.createElement('math');
+    math.textContent = node.textContent;
+    return math;
   }
 
   const clone = document.createElement(node.tagName.toLowerCase());
 
+  const allowedStyles = ['display', 'clear']; // img styles for widhth/height???
   for (const attr of node.attributes) {
-    if (['href', 'src', 'title'].includes(attr.name)) {
-      const val = node[attr.name] || attr.value;
+    const name = attr.name.toLowerCase();
+    let val = '';
+
+    switch (name) {
+      case 'href':
+      case 'src':
+        if (attr.value.startsWith('javascript:')) {
+          val = '#';  // ignore JavaScript links
+        } else if (attr.value.startsWith('//')) { // protocol-relative URL
+          val = 'https:' + attr.value;
+        }
+        else {
+          val = node[name] || attr.value; // prefer resolved URL
+        }
+        break;
+      case 'title':
+        val = attr.value.replace(/\s+/g, ' ').trim();
+        break;
+      case 'rowspan':
+      case 'colspan':
+      case name.startsWith('data-') && name:
+        val = attr.value;
+        break;
+      case 'width':
+      case 'height':
+        if (node.tagName === 'IMG') val = attr.value;
+        break;
+      case 'style': {
+        const styles = attr.value.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
+        const styleObj = {};
+        for (const style of styles) {
+          const [key, value] = style.split(':').map(s => s.trim());
+          if (!key || !value) continue;
+          const isAllowed = allowedStyles.includes(key);
+          const isImageSize = node.tagName === 'IMG' && (key === 'width' || key === 'height');
+          if (isAllowed || isImageSize) {
+            styleObj[key] = value;
+          }
+        }
+        val = Object.entries(styleObj).map(([k, v]) => `${k}: ${v}`).join('; ');
+        break;
+      }
+      default:
+        break;
+    }
+
+    if (val) {
       clone.setAttribute(attr.name, val);
     }
   }
@@ -97,7 +142,7 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
   function glueChildren(n, glueMode, ws = wsMode, os = olStart, qd = quoteDepth, lc = lastChar) {
     const prevLc = lc;
     const result = [];
-    log(`toMd.glue: processing node ${n.tagName} with ws=${ws}, os=${os}, qd=${qd}, lc="${lc}", glueMode=${glueMode}`);
+    // log(`toMd.glue: processing node ${n.tagName} with ws=${ws}, os=${os}, qd=${qd}, lc="${lc}", glueMode=${glueMode}`);
 
     const children = n.childNodes;
     for (let i = 0; i < children.length; i++) {
@@ -149,7 +194,7 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
     }
 
     let glued = result.join('');
-    log(`toMd.glue: glued result before processing: "${glued}"`);
+    // log(`toMd.glue: glued result before processing: "${glued}"`);
     
     const hasBlockStructure = glueMode === 'block';
     if (isRoot) {
@@ -167,7 +212,7 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
   }
 
   let result = '';
-  log(`toMd.elemNode: ${node.tagName}`);
+  // log(`toMd.elemNode: ${node.tagName}`);
   switch (node.tagName) {
     case 'DIV': {
       result = glueChildren(node, 'flat', 'normal');
@@ -287,7 +332,7 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
       result = lines.map(line =>
         line.startsWith('\n') ? line + pad : line
       ).join('');
-      log(`toMd.LI.result-split-join: "${result}"`);
+      // log(`toMd.LI.result-split-join: "${result}"`);
 
       // Reassemble
       result = `${bullet}${leadingWs}${result}${trailingWs}`;
@@ -416,7 +461,9 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
       result = glueChildren(node, 'inline', 'normal');
 
       // norm vertical breaks; inline whitespace is valid in GFM tables
-      if (/\n/.test(result)) log('WARNING: multi-line cell content in table:', result);
+      if (/\n/.test(result)) {
+        log('WARNING: multi-line cell content in table:', result);
+      }
       result = result.replace(/\n+/g, ' ').replace(/\r+/g, '');
 
       break;
@@ -429,7 +476,7 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
   
   }
 
-  log(`toMd: result for ${node.tagName} is "${result}"`);
+  // log(`toMd: result for ${node.tagName} is "${result}"`);
   return result;
 }
 
@@ -988,19 +1035,25 @@ function runBookmarklet(root = document) {
 /* exported runBookmarklet */
 const DEBUG = typeof process !== 'undefined' && process.env.DEBUG === 'true';
 const LOG_JSONIFY_STRINGS = false;
+const LOG_ESCAPE_WS = false;
+const LOG_INDENT = 2;
 function log(...args) {
   if (!DEBUG) return;
 
   for (const arg of args) {
     let out;
     if (typeof arg === 'string') {
-      out = LOG_JSONIFY_STRINGS
-            ? JSON.stringify(arg).slice(1, -1).replace(/\n/g, '\\n').replace(/\t/g, '\\t')
-            : arg.replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+      out = LOG_JSONIFY_STRINGS ? JSON.stringify(arg).slice(1, -1) : arg;
     } else {
-      out = JSON.stringify(arg, null, 2)
-            .replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+      try {
+        out = JSON.stringify(arg, null, LOG_INDENT);
+      } catch (err) {
+        out = `[Unserializable object: ${err.message}]`;
+      }
     }
+    if (LOG_ESCAPE_WS) {
+      out = out.replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+    } 
     console.log(out);
   }
 }
