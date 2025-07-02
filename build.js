@@ -1,13 +1,14 @@
-const fs = require('fs');
-const path = require('path');
-const terser = require('terser');
-const jsStringEscape = require('js-string-escape');
-const Database = require('better-sqlite3');
+import fs from 'node:fs';
+import path from 'node:path';
+import { minify } from 'terser';
+import jsStringEscape from 'js-string-escape';
+import Database from 'better-sqlite3';
 
 const gistUrl = 'https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d';
 const bookmarkTitle = 'stackexchange-scraper';
 const testPath = 'test';
 const distPath = 'dist';
+const srcPath = 'src';
 const shouldUpdateBookmarklet = true;
 
 (async () => {
@@ -19,6 +20,8 @@ const shouldUpdateBookmarklet = true;
   if (shouldUpdateBookmarklet) {
     updateBookmarkletInFirefox(bookmarkletUrl);
   }
+  generateVanillaSourceFiles();
+  console.log('Build process completed successfully.');
 })();
 
 function createExampleJs() {
@@ -60,7 +63,7 @@ function cleanTheCodeForSharing(srcCode) {
 }
 
 async function buildMinifiedCode(srcCode) {
-  const minified = await terser.minify(srcCode, {
+  const minified = await minify(srcCode, {
     compress: { global_defs: { DEBUG: false }, dead_code: true },
     mangle: false,
     format: {
@@ -189,4 +192,17 @@ function updateBookmarkletInFirefox(bookmarkUrl) {
   })();
 
   db.close();
+}
+
+function generateVanillaSourceFiles() {
+  const srcFiles = fs.readdirSync(srcPath).filter(file => file.endsWith('.js'));
+  const debugPattern = /\/\* @debug-start \*\/[\s\S]*?\/\* @debug-end \*\//g;
+  for (const file of srcFiles) {
+    const filePath = path.join(srcPath, file);
+    let content = fs.readFileSync(filePath, 'utf8');
+    content = content.replace(debugPattern, ''); // Remove debug sections
+    const outputPath = path.join(testPath, file.replace(/\.js$/, '.generated.js'));
+    fs.writeFileSync(outputPath, content);
+    console.log(`Generated ${outputPath}`);
+  }
 }

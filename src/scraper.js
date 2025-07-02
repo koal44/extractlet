@@ -538,43 +538,10 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
       ) {
         result = `<!-- language: lang-${lang} -->\n\n${result}\n`;
       } else {
-        result = `\`\`\`\n${result}\n\`\`\`\n\n`;
+        result = `\`\`\`\n${result}\`\`\`\n\n`;
       }
       break;
     }
-
-    case 'PRE2': {
-      console.log('toMd: PRE node');
-      console.log('PRE className:', node.className);
-
-      // Step 1: Extract code content
-      result = glueChildren(node, 'flat', 'pre');
-
-      // Normalize line endings
-      result = result.endsWith('\n\n') ? result.slice(0, -1) : result;
-      result = result.endsWith('\n') ? result : result + '\n';
-
-      // Step 2: Indent all lines by 4 spaces (SO snippet requires this)
-      result = result.split('\n').map(line => '    ' + line).join('\n');
-
-      // Step 3: Check for snippet language
-      const snippetLangs = ['js', 'css', 'html'];
-      for (const lang of snippetLangs) {
-        if (
-          node.classList.contains(`lang-${lang}`) &&
-          node.classList.contains(`snippet-code-${lang}`)
-        ) {
-          result = `<!-- language: lang-${lang} -->\n\n${result}`;
-          break;
-        }
-      }
-
-      // Step 4: Append extra newline (so that <!-- end snippet --> isn’t glued to code)
-      result += '\n';
-
-      break;
-    }
-
 
     case 'CODE': {
       const fence = node.parentNode.tagName === 'PRE'? '' : node.textContent.includes('`') ? '``' : '`';
@@ -1209,7 +1176,6 @@ function log(...args) {
     console.log(out);
   }
 }
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toHtml, toMd, scrapePostContributor };
-}
+// if (typeof module !== 'undefined' && module.exports) { }
+export { toHtml, toMd, scrapePostContributor, runBookmarklet };
 /* @debug-end */

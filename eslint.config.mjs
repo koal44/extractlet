@@ -34,7 +34,7 @@ export default defineConfig([
   },
   {
     files: ['**/*.js'],
-    languageOptions: { sourceType: 'script' },
+    languageOptions: { sourceType: 'module' },
   },
   {
     files: ['src/**/*.js'],

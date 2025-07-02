@@ -1,7 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert');
-const { toHtml, toMd, scrapePostContributor } = require('../src/scraper.js');
-const { JSDOM } = require('jsdom');
+import { test } from 'node:test';
+import * as assert from 'node:assert'; 
+import { toHtml, toMd, scrapePostContributor } from '../src/scraper.js';
+import { JSDOM } from 'jsdom';
 
 const dom = new JSDOM();
 global.Node = dom.window.Node;
