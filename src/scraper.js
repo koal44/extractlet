@@ -7,7 +7,7 @@
  * div#question
  * div#answers > div.answer#answer-XXXX
  *   div.post-layout
- *     div.vote-cell
+ *     div.votecell
  *       div[itemprop="upvoteCount"][data-value]  → Upvote count
  *     div.s-prose                                → Post body (question or answer)
  *     div.post-signature.owner                   → Contributor (Question Author) 
@@ -19,7 +19,7 @@
  *     ul.comments-list
  *       li#comment-XXXX
  *         div.comment-score
- *           span.cool                            → Comment score
+ *           span                                 → Comment score
  *         div.comment-body
  *           span.comment-copy                    → Comment text
  *           a.comment-user                       → Contributor (Comment Author)
@@ -29,6 +29,187 @@
  */
 
 /** */
+
+const STYLE_MAIN = /* css */ `
+  html {
+    --color-base: #0c0d0e;
+
+    background: white;
+    color: var(--color-base);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 1em;
+    line-height: 1.4;
+  }
+  body {
+    margin: 0 auto;
+    padding: 1.5em;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    margin: 1em 0 0.25em 0;
+  }
+  p, ul, ol, blockquote, pre {
+    margin: 0.5em 0;
+  }
+  a {
+    color: var(--color-base);
+    text-decoration: underline;
+  }
+  b, strong {
+    font-weight: 600;
+  }
+  ul, ol {
+    padding-left: 1.4em;
+    margin: 0.3em 0;
+  }
+  ul li {
+    margin: 0.2em 0;
+    color: #333;
+  }
+  ul li::marker {
+    color: #777;
+    font-size: 0.8em;
+  }
+  blockquote {
+    border-left: 2px solid #999;
+    margin: 0.5em 0;
+    padding-left: 0.8em;
+    color: #333;
+  }
+  pre, code {
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+    background: #eee;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    overflow-x: auto;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+  textarea {
+    font-family: inherit;
+  }
+  button {
+    margin-left: 10px;
+    background: #f2f4f7;
+    border: 1px solid currentColor;
+    color: #4ca5f2;
+    cursor: pointer;
+  }
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 1em 0;
+    width: 100%;
+    font-size: 1em;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 0.2em 0.4em;
+  }
+  td {
+      text-align: left;
+      vertical-align: top;
+  } 
+  th {
+    text-align: center;
+    vertical-align: middle;
+    font-weight: bold;
+    background: #f5f5f5;
+  }
+  table caption {
+    font-weight: bold;
+    margin-top: 0.5em;
+  }
+  img {
+    vertical-align: text-bottom;
+    max-width: 100%;
+  }
+  figure {
+    display: inline-flex;
+    flex-direction: column;
+    margin: 1.5em 0;
+    padding: 0;
+  }
+  figure figcaption {
+    font-size: 0.9em;
+  }
+  .multi-toggle {
+    --track-width: 50px;
+    --track-height: 22px;
+    --knob-size: 16px;
+    --knob-offset: calc((var(--track-height) - var(--knob-size)) / 2);
+    --knob-range: calc(var(--track-width) - var(--knob-size) - var(--knob-offset) * 2);
+    --knob-progress: 0;
+  }
+  .multi-toggle-switchbody {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    width: var(--track-width);
+    height: var(--track-height);
+  }
+  .multi-toggle-checkbox {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .multi-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    background-color: #a3a9b3;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transition: 0.2s;
+    border-radius: var(--track-height);
+  }
+  .multi-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: var(--knob-size);
+    width: var(--knob-size);
+    left: var(--knob-offset);
+    bottom: var(--knob-offset);
+    background-color: white;
+    transition: 0.2s;
+    border-radius: 50%;
+  }
+  .multi-toggle-slider::before {
+    transform: translateX(calc(var(--knob-range) * var(--knob-progress)));
+  }
+  .multi-toggle-label-left,
+  .multi-toggle-label-right {
+    display: inline-block;
+    font-size: 0.9em;
+    vertical-align: middle;
+  }
+  .multi-toggle-label-left {
+    margin-right: 0.7em;
+  }
+  .multi-toggle-label-right {
+    margin-left: 0.7em;
+  }
+  .show-html .html-view,
+  .show-md .md-view,
+  .show-raw .raw-view {
+    display: block;
+  }
+  .show-html .md-view,
+  .show-html .raw-view,
+  .show-md .html-view,
+  .show-md .raw-view,
+  .show-raw .html-view,
+  .show-raw .md-view {
+    display: none;
+  }
+  .html-view h1 {
+    margin-top: 0;
+  }
+`;
 
 function toHtml(node) {
   if (!node || shouldIgnore(node)) return null;
@@ -130,6 +311,8 @@ function shouldIgnore(node) {
       return true;
     }
 
+    if (node.classList.contains('snippet-result')) return true; // ignore snippet results
+
     return false;
   }
 
@@ -216,6 +399,10 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
   switch (node.tagName) {
     case 'DIV': {
       result = glueChildren(node, 'flat', 'normal');
+      if (node.classList.contains('snippet')) {
+        result = result.replace(/\n*$/, '\n\n');
+        result = `<!-- begin snippet: -->\n\n${result}<!-- end snippet -->\n\n`;
+      }
       break;
     }
 
@@ -340,14 +527,54 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
     }
 
     case 'PRE': {
-      //const langClass = Array.from(node.classList).find(cls => cls.startsWith('lang-'));
-      //const lang = langClass ? langClass.slice(5) : '';
       result = glueChildren(node, 'flat', 'pre');
-      result = result.endsWith('\n\n') ? result.slice(0, -1) : result;
-      result = result.endsWith('\n') ? result : result + '\n';
-      result = '```' + '\n' + result + '```\n\n';
+      result = result.replace(/\n*$/, '\n');
+      
+      const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
+      if (
+        lang
+        && ['js', 'css', 'html'].includes(lang)
+        && node.classList.contains(`snippet-code-${lang}`)
+      ) {
+        result = `<!-- language: lang-${lang} -->\n\n${result}\n`;
+      } else {
+        result = `\`\`\`\n${result}\n\`\`\`\n\n`;
+      }
       break;
     }
+
+    case 'PRE2': {
+      console.log('toMd: PRE node');
+      console.log('PRE className:', node.className);
+
+      // Step 1: Extract code content
+      result = glueChildren(node, 'flat', 'pre');
+
+      // Normalize line endings
+      result = result.endsWith('\n\n') ? result.slice(0, -1) : result;
+      result = result.endsWith('\n') ? result : result + '\n';
+
+      // Step 2: Indent all lines by 4 spaces (SO snippet requires this)
+      result = result.split('\n').map(line => '    ' + line).join('\n');
+
+      // Step 3: Check for snippet language
+      const snippetLangs = ['js', 'css', 'html'];
+      for (const lang of snippetLangs) {
+        if (
+          node.classList.contains(`lang-${lang}`) &&
+          node.classList.contains(`snippet-code-${lang}`)
+        ) {
+          result = `<!-- language: lang-${lang} -->\n\n${result}`;
+          break;
+        }
+      }
+
+      // Step 4: Append extra newline (so that <!-- end snippet --> isn’t glued to code)
+      result += '\n';
+
+      break;
+    }
+
 
     case 'CODE': {
       const fence = node.parentNode.tagName === 'PRE'? '' : node.textContent.includes('`') ? '``' : '`';
@@ -359,10 +586,13 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
       result = glueChildren(node, 'block', 'normal', olStart, quoteDepth + 1);
       //log(`toMd: blockquote content before formatting: "${result}"`);
       //log(`toMd.blockquote: quoteDepth=${quoteDepth}`);
-      const bqPrefix = result.match(new RegExp('^\\n*'))[0];
+      const isSpoiler = node.classList.contains('spoiler');
+      const marker = isSpoiler ? '>!' : '>';
+      const bqPrefix = result.match(/^\n*/)[0];
       const bqSuffix = result.match(/\n*$/)[0];
+
       result = result.slice(bqPrefix.length, result.length - bqSuffix.length);
-      result = result.split('\n').map(line => '> ' + line).join('\n');
+      result = result.split('\n').map(line => `${marker} ${line}`).join('\n');
       result = bqPrefix + result + bqSuffix;
       break;
     }
@@ -480,6 +710,23 @@ function toMd(node, wsMode = 'normal', olStart = 1, quoteDepth = 0, lastChar = '
   return result;
 }
 
+function scrapeFallbackName(userNode) {
+  const span = userNode.querySelector(':scope > span[itemprop="name"]');
+  let name = span ? span.textContent.trim() : '';
+
+  // fallback to text content if still no name
+  if (!name) {
+    for (const node of userNode.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        name = node.textContent.trim();
+        if (name) break;
+      }
+    }
+  }
+
+  return { name, userId: -1, username: '' };
+}
+
 function scrapeUserInfo(userNode) {
   const name = userNode?.textContent.trim() ?? '';
   const href = userNode?.getAttribute('href');
@@ -492,12 +739,14 @@ function scrapeUserInfo(userNode) {
 
 function scrapePostContributor(signatureNode) {
   const timestamp = signatureNode.querySelector('.relativetime')?.getAttribute('title')?.split(',')[0].trim() ?? '';
-  const userNode = signatureNode.querySelector('.user-details a');
   const isOwner = signatureNode.classList.contains('owner'); // OP of the entire post
   const contributorType = signatureNode.querySelector('.user-details')?.getAttribute('itemprop') === 'author' ? 'author' : 'editor';
-  const { name, userId, username } = scrapeUserInfo(userNode);
+  const userNode = signatureNode.querySelector('.user-details a');
+  const userInfo = userNode
+    ? scrapeUserInfo(userNode)
+    : scrapeFallbackName(signatureNode.querySelector('.user-details'));
 
-  return { contributorType, isOwner, timestamp, name, userId, username };
+  return { contributorType, isOwner, timestamp, ...userInfo };
 }
 
 function scrapeCommentContributor(commentItem) {
@@ -509,7 +758,7 @@ function scrapeCommentContributor(commentItem) {
 }
 
 function scrapePostVote(postLayout) {
-  const voteNode = postLayout.querySelector('div.vote-cell div[itemprop="upvoteCount"]');
+  const voteNode = postLayout.querySelector('div.votecell div[itemprop="upvoteCount"]');
   const vote = voteNode?.dataset?.value ?? voteNode?.textContent ?? '';
   const n = parseInt(vote.trim(), 10);
 
@@ -517,7 +766,7 @@ function scrapePostVote(postLayout) {
 }
 
 function scrapeCommentVote(commentItem) {
-  const scoreNode = commentItem.querySelector('div.comment-score span.cool');
+  const scoreNode = commentItem.querySelector('div.comment-score span');
   const vote = scoreNode?.textContent ?? '';
   const n = parseInt(vote.trim(), 10);
 
@@ -847,22 +1096,34 @@ function buildPosts(data, doc) {
   return div;
 }
 
-function buildToggleSwitch({ checked = false, onToggle = null } = {}) {
-  const input = h('input', {
-    type: 'checkbox',
-    class: 'se-toggle-input',
-    'aria-label': 'Toggle view mode',
-  });
-  if (checked) input.checked = true;
-
-  if (typeof onToggle === 'function') {
-    input.addEventListener('change', () => onToggle(input.checked));
+function buildMultiToggleSwitch({ initState = 0, onToggle, labels = ['a', 'b'], labelSide = 'right' } = {}) {
+  if (!Array.isArray(labels) || labels.length === 0) {
+    throw new Error('multi-toggle requires at least one label');
   }
+  const checkbox = h('input', { type: 'checkbox', class: 'multi-toggle-checkbox', 'aria-label': 'Toggle view mode' });
+  const slider = h('span', { class: 'multi-toggle-slider' });
+  const switchBody = h('label', { class: 'multi-toggle-switchbody' }, checkbox, slider);
+  const stateLabel = h('span', { class: `multi-toggle-label-${labelSide}` }, labels[initState]);
+  const wrapper = labelSide === 'left'
+    ? h('div', { class: 'multi-toggle' }, stateLabel, switchBody)
+    : h('div', { class: 'multi-toggle' }, switchBody, stateLabel);
 
-  const slider = h('span', { class: 'se-toggle-slider se-toggle-round' });
-  const label = h('label', { class: 'se-toggle-switch' }, input, slider);
+  const setState = (newState) => {
+    state = newState;
+    const knobProgress = labels.length === 1 ? 0 : newState / (labels.length - 1);
+    wrapper.style.setProperty('--knob-progress', `${knobProgress}`);
+    stateLabel.textContent = labels[newState];
+    onToggle?.(newState);
+  };
 
-  return label;
+  let state = initState;
+  setState(state);
+
+  checkbox.addEventListener('change', () => {
+    setState((state + 1) % labels.length);
+  });
+
+  return wrapper;
 }
 
 function runBookmarklet(root = document) {
@@ -880,125 +1141,7 @@ function runBookmarklet(root = document) {
   const doc = window.open('', '_blank', '').document;
   doc.title = 'Bookmarklet';
   const style = doc.createElement('style');
-  style.textContent = `
-    body {
-      background: white;
-      color: black;
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      font-size: 15px;
-      line-height: 1.4;
-      padding: 20px;
-      margin: 0;
-    }
-    h1, h2, h3, h4, h5, h6 {
-      font-weight: 600;
-      margin: 1em 0 0.25em 0;
-    }
-    p, ul, ol, blockquote, pre {
-      margin: 0.5em 0;
-    }
-    a {
-      color: black;
-      text-decoration: underline;
-    }
-    b, strong {
-      font-weight: 600;
-    }
-    ul, ol {
-      padding-left: 1.4em;
-      margin: 0.3em 0;
-    }
-    ul li {
-      margin: 0.2em 0;
-      color: #333;
-    }
-    ul li::marker {
-      color: #777;
-      font-size: 0.8em;
-    }
-    blockquote {
-      border-left: 2px solid #999;
-      margin: 0.5em 0;
-      padding-left: 0.8em;
-      color: #333;
-    }
-    pre, code {
-      font-family: "SFMono-Regular", Consolas, Menlo, monospace;
-      background: #eee;
-      padding: 0.2em 0.4em;
-      border-radius: 3px;
-      overflow-x: auto;
-    }
-    pre code {
-      background: none;
-      padding: 0;
-      border-radius: 0;
-    }
-    textarea {
-      font-family: inherit;
-    }
-    button {
-      margin-left: 10px;
-      background: #f2f4f7;
-      border: 1px solid currentColor;
-      color: #4ca5f2;
-      cursor: pointer;
-    }
-    .se-toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 40px;
-      height: 22px;
-    }
-    .se-toggle-input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .se-toggle-slider {
-      position: absolute;
-      cursor: pointer;
-      background-color: #a3a9b3;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      transition: 0.2s;
-    }
-    .se-toggle-slider:before {
-      position: absolute;
-      content: "";
-      height: 16px;
-      width: 16px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: 0.2s;
-    }
-    .se-toggle-input:checked + .se-toggle-slider:before {
-      transform: translateX(18px);
-    }
-    .se-toggle-round {
-      border-radius: 22px;
-    }
-    .se-toggle-round:before {
-      border-radius: 50%;
-    }
-    .view-toggle-container {
-      display: flex;
-      align-items: center;
-      gap: 0.5em;
-      margin-top: 1em;
-    }
-    .view-label {
-      font-size: 0.9em;
-      opacity: 0.9;
-    }
-    .md-view { display: none; }
-    .html-view { display: block; }
-    .show-md .md-view { display: block; }
-    .show-md .html-view { display: none; }
-  `.trim();
+  style.textContent = STYLE_MAIN;
   doc.head.appendChild(style);
 
   const header = h('div', {
@@ -1013,19 +1156,28 @@ function runBookmarklet(root = document) {
   doc.body.appendChild(header);
 
   if (data.questionLink) {
-    doc.body.appendChild(data.questionLink);
+    const qLinkContainer = h('div', { style: 'margin: 0.7em 0;' }, data.questionLink);
+    doc.body.appendChild(qLinkContainer);
   }
 
-  const toggle = buildToggleSwitch({
-    checked: false,
-    onToggle: () => {
-      const isMd = doc.body.classList.toggle('show-md');
-      log('Toggling view:', isMd ? 'Markdown' : 'HTML');
+  const toggle = buildMultiToggleSwitch({
+    initState: 0,
+    onToggle: (state) => {
+      if (state === 0) {
+        doc.body.classList.remove('show-md', 'show-raw');
+        doc.body.classList.add('show-html');
+      } else if (state === 1) {
+        doc.body.classList.remove('show-html', 'show-raw');
+        doc.body.classList.add('show-md');
+      } else if (state === 2) {
+        doc.body.classList.remove('show-html', 'show-md');
+        doc.body.classList.add('show-raw');
+      }
     },
+    labels: ['View', 'View', 'View'],
+    labelSide: 'left',
   });
-  const toggleLabel = h('span', { class: 'view-label' }, 'View');
-  const toggleContainer = h('div', { class: 'view-toggle-container' }, toggleLabel, toggle);
-  doc.body.appendChild(toggleContainer);
+  doc.body.appendChild(toggle);
 
   const posts = buildPosts(data, doc);
   doc.body.appendChild(posts);
@@ -1058,6 +1210,6 @@ function log(...args) {
   }
 }
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toHtml, toMd };
+  module.exports = { toHtml, toMd, scrapePostContributor };
 }
 /* @debug-end */

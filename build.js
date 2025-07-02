@@ -12,7 +12,7 @@ const shouldUpdateBookmarklet = true;
 
 (async () => {
   createExampleJs();
-  const scraperJs = fs.readFileSync('src/stackexchange_scraper.js', 'utf8');
+  const scraperJs = fs.readFileSync('src/scraper.js', 'utf8');
   const srcCode = cleanTheCodeForSharing(scraperJs);
   const bookmarkletUrl = await buildMinifiedCode(srcCode);
   buildUnminifiedCode(bookmarkletUrl, srcCode);

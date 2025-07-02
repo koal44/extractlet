@@ -12,7 +12,7 @@
   "watch": {
     "build": {
       "patterns": [
-        "src/stackexchange_scraper.js",
+        "src/scraper.js",
         "test/test.htm",
         "build.js"
       ]

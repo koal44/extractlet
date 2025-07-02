@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { toHtml, toMd } = require('../src/scraper.js');
+const { toHtml, toMd, scrapePostContributor } = require('../src/scraper.js');
 const { JSDOM } = require('jsdom');
 
 const dom = new JSDOM();
@@ -1436,4 +1436,258 @@ test('toMd_table_with_block_cell', () => {
 
   const result = toMd(el(html)).trim();
   assert.strictEqual(result, expected);
+});
+
+test('toHtml_preserves_spoiler_blockquote', () => {
+  const html = `
+    <div class="s-prose py16 js-md-preview">
+      <blockquote class="spoiler" data-spoiler="Reveal spoiler">
+        <p> don't spoil me!!</p>
+      </blockquote>
+    </div>`.trim();
+
+  const result = toHtml(el(html));
+  const expected = `
+    <div>
+      <blockquote data-spoiler="Reveal spoiler">
+        <p> don't spoil me!!</p>
+      </blockquote>
+    </div>`.trim();
+
+  assertNodeEqual(result, expected);
+});
+
+test('toMd_converts_spoiler_blockquote_to_markdown', () => {
+  const html = `
+    <div>
+      <blockquote class="spoiler" data-spoiler="Reveal spoiler">
+        <p> don't spoil me!!</p>
+      </blockquote>
+    </div>`.trim();
+
+  const result = toMd(el(html));
+  const expected = '>! don\'t spoil me!!';
+
+  assert.strictEqual(result.trim(), expected.trim());
+});
+
+test('toHtml_snippets', () => {
+  const html = `<div><p>check this out!</p>
+<p><div class="snippet"><div class="snippet-code"><pre class="prettyprint-override lang-js snippet-code-js"><code>document.getElementById('btn').addEventListener('click', () =&gt; {
+  const box = document.getElementById('greeting');
+  box.textContent = 'You clicked the button!';
+  box.style.backgroundColor = '#c0ffc0';
+});</code></pre><pre class="prettyprint-override lang-css snippet-code-css"><code>.box {
+  padding: 10px;
+  background-color: lightblue;
+  border: 1px solid #888;
+  font-family: sans-serif;
+  margin-bottom: 10px;
+}</code></pre><pre class="prettyprint-override lang-html snippet-code-html"><code>&lt;div id="greeting" class="box"&gt;Hello, world!&lt;/div&gt;
+&lt;button id="btn"&gt;Change Greeting&lt;/button&gt;</code></pre><div class="snippet-result"><div class="snippet-ctas d-flex ai-center"><div class="d-flex gs4"><button type="button" class="s-btn s-btn__filled flex--item"><svg aria-hidden="true" class="svg-icon iconPlay" width="17" height="18" viewBox="0 0 17 18"><path d="M3 2.87a1 1 0 0 1 1.55-.83l9.2 6.13a1 1 0 0 1 0 1.66l-9.2 6.13A1 1 0 0 1 3 15.13z"></path></svg><span> Run code snippet</span></button><button type="button" class="s-btn s-btn__outlined flex--item js-edit-snippet" style="">Edit code snippet</button></div><div class="d-flex ml-auto gs4"><button type="button" class="s-btn flex--item js-show-hide-results" style="display: none;"><svg aria-hidden="true" class="svg-icon iconEyeOff" width="18" height="18" viewBox="0 0 18 18"><path d="m5.02 9.44-2.22 2.2C1.63 10.25 1 9 1 9s3-6 8.06-6q1.13.01 2.12.38L9.5 5.03 9 5a4 4 0 0 0-3.98 4.44m2.03 3.05A4 4 0 0 0 13 9q-.01-1.1-.54-2l-1.51 1.54q.05.22.05.46a2 2 0 0 1-2.44 1.95zm7.11-7.22A15 15 0 0 1 17 9s-3 6-7.94 6c-1.31 0-2.48-.4-3.5-1l-1.97 2L2 14.41 14.59 2 16 3.41z"></path></svg><span> Hide Results</span></button><button type="button" class="s-btn flex--item copySnippet" style="display: none;"><svg aria-hidden="true" class="svg-icon iconCopy" width="17" height="18" viewBox="0 0 17 18"><path d="M5 6c0-1.09.91-2 2-2h4.5L15 7.5V15c0 1.09-.91 2-2 2H7c-1.09 0-2-.91-2-2zm6-1.25V8h3.25z"></path><path d="M10 1a2 2 0 0 1 2 2H6a2 2 0 0 0-2 2v9a2 2 0 0 1-2-2V4a3 3 0 0 1 3-3z" opacity=".4"></path></svg><span> Copy</span></button><button type="button" class="s-btn flex--item snippet-expand-link popout-code"><svg aria-hidden="true" class="svg-icon iconShareSm" width="14" height="14" viewBox="0 0 14 14"><path d="M5 1H3a2 2 0 0 0-2 2v8c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V9h-2v2H3V3h2zm2 0h6v6h-2V4.5L6.5 9 5 7.5 9.5 3H7z"></path></svg><span> Expand</span></button></div></div><div class="snippet-result-code" style="display: none;"><iframe name="sif96" sandbox="allow-forms allow-modals allow-scripts" class="snippet-box-edit snippet-box-result" frameborder="0"></iframe></div></div></div></div></p>
+<p></p>
+</div>`;
+
+  const result = toHtml(el(html));
+  const expected =`
+<div>
+  <p>check this out!</p>
+  <p></p>
+    <div>
+      <div>
+        <pre><code>document.getElementById('btn').addEventListener('click', () =&gt; {
+  const box = document.getElementById('greeting');
+  box.textContent = 'You clicked the button!';
+  box.style.backgroundColor = '#c0ffc0';
+});</code></pre>
+        <pre><code>.box {
+  padding: 10px;
+  background-color: lightblue;
+  border: 1px solid #888;
+  font-family: sans-serif;
+  margin-bottom: 10px;
+}</code></pre>
+        <pre><code>&lt;div id="greeting" class="box"&gt;Hello, world!&lt;/div&gt;
+&lt;button id="btn"&gt;Change Greeting&lt;/button&gt;</code></pre>
+      </div>
+    </div>
+  <p></p>
+  <p></p>
+</div>`;
+
+  assertNodeEqual(result, expected);
+});
+
+test('toMd_snippets', () => {
+  const html = `<div><p>check this out!</p>
+<p><div class="snippet"><div class="snippet-code"><pre class="prettyprint-override lang-js snippet-code-js"><code>document.getElementById('btn').addEventListener('click', () =&gt; {
+  const box = document.getElementById('greeting');
+  box.textContent = 'You clicked the button!';
+  box.style.backgroundColor = '#c0ffc0';
+});</code></pre><pre class="prettyprint-override lang-css snippet-code-css"><code>.box {
+  padding: 10px;
+  background-color: lightblue;
+  border: 1px solid #888;
+  font-family: sans-serif;
+  margin-bottom: 10px;
+}</code></pre><pre class="prettyprint-override lang-html snippet-code-html"><code>&lt;div id="greeting" class="box"&gt;Hello, world!&lt;/div&gt;
+&lt;button id="btn"&gt;Change Greeting&lt;/button&gt;</code></pre><div class="snippet-result"><div class="snippet-ctas d-flex ai-center"><div class="d-flex gs4"><button type="button" class="s-btn s-btn__filled flex--item"><svg aria-hidden="true" class="svg-icon iconPlay" width="17" height="18" viewBox="0 0 17 18"><path d="M3 2.87a1 1 0 0 1 1.55-.83l9.2 6.13a1 1 0 0 1 0 1.66l-9.2 6.13A1 1 0 0 1 3 15.13z"></path></svg><span> Run code snippet</span></button><button type="button" class="s-btn s-btn__outlined flex--item js-edit-snippet" style="">Edit code snippet</button></div><div class="d-flex ml-auto gs4"><button type="button" class="s-btn flex--item js-show-hide-results" style="display: none;"><svg aria-hidden="true" class="svg-icon iconEyeOff" width="18" height="18" viewBox="0 0 18 18"><path d="m5.02 9.44-2.22 2.2C1.63 10.25 1 9 1 9s3-6 8.06-6q1.13.01 2.12.38L9.5 5.03 9 5a4 4 0 0 0-3.98 4.44m2.03 3.05A4 4 0 0 0 13 9q-.01-1.1-.54-2l-1.51 1.54q.05.22.05.46a2 2 0 0 1-2.44 1.95zm7.11-7.22A15 15 0 0 1 17 9s-3 6-7.94 6c-1.31 0-2.48-.4-3.5-1l-1.97 2L2 14.41 14.59 2 16 3.41z"></path></svg><span> Hide Results</span></button><button type="button" class="s-btn flex--item copySnippet" style="display: none;"><svg aria-hidden="true" class="svg-icon iconCopy" width="17" height="18" viewBox="0 0 17 18"><path d="M5 6c0-1.09.91-2 2-2h4.5L15 7.5V15c0 1.09-.91 2-2 2H7c-1.09 0-2-.91-2-2zm6-1.25V8h3.25z"></path><path d="M10 1a2 2 0 0 1 2 2H6a2 2 0 0 0-2 2v9a2 2 0 0 1-2-2V4a3 3 0 0 1 3-3z" opacity=".4"></path></svg><span> Copy</span></button><button type="button" class="s-btn flex--item snippet-expand-link popout-code"><svg aria-hidden="true" class="svg-icon iconShareSm" width="14" height="14" viewBox="0 0 14 14"><path d="M5 1H3a2 2 0 0 0-2 2v8c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V9h-2v2H3V3h2zm2 0h6v6h-2V4.5L6.5 9 5 7.5 9.5 3H7z"></path></svg><span> Expand</span></button></div></div><div class="snippet-result-code" style="display: none;"><iframe name="sif96" sandbox="allow-forms allow-modals allow-scripts" class="snippet-box-edit snippet-box-result" frameborder="0"></iframe></div></div></div></div></p>
+<p></p>
+</div>`;
+
+  const result = toMd(el(html));
+  const expected =`
+check this out!
+
+<!-- begin snippet: -->
+
+<!-- language: lang-js -->
+
+document.getElementById('btn').addEventListener('click', () => {
+  const box = document.getElementById('greeting');
+  box.textContent = 'You clicked the button!';
+  box.style.backgroundColor = '#c0ffc0';
+});
+
+<!-- language: lang-css -->
+
+.box {
+  padding: 10px;
+  background-color: lightblue;
+  border: 1px solid #888;
+  font-family: sans-serif;
+  margin-bottom: 10px;
+}
+
+<!-- language: lang-html -->
+
+<div id="greeting" class="box">Hello, world!</div>
+<button id="btn">Change Greeting</button>
+
+<!-- end snippet -->`;
+
+  assert.strictEqual(result.trim(), expected.trim());
+});
+
+test('toMd_js_snippet', () => {
+  const html = `<div class="s-prose py16 js-md-preview"><p>jstime, baby!</p>
+<p><div class="snippet"><div class="snippet-code"><pre class="prettyprint-override lang-js snippet-code-js"><code>const x = 2;
+const y = 3**2;
+console.log(y);</code></pre><div class="snippet-result"><div class="snippet-ctas d-flex ai-center"><div class="d-flex gs4"><button type="button" class="s-btn s-btn__filled flex--item"><svg aria-hidden="true" class="svg-icon iconPlay" width="17" height="18" viewBox="0 0 17 18"><path d="M3 2.87a1 1 0 0 1 1.55-.83l9.2 6.13a1 1 0 0 1 0 1.66l-9.2 6.13A1 1 0 0 1 3 15.13z"></path></svg><span> Run code snippet</span></button><button type="button" class="s-btn s-btn__outlined flex--item js-edit-snippet" style="">Edit code snippet</button></div><div class="d-flex ml-auto gs4"><button type="button" class="s-btn flex--item js-show-hide-results" style=""><svg aria-hidden="true" class="svg-icon iconEyeOff" width="18" height="18" viewBox="0 0 18 18"><path d="m5.02 9.44-2.22 2.2C1.63 10.25 1 9 1 9s3-6 8.06-6q1.13.01 2.12.38L9.5 5.03 9 5a4 4 0 0 0-3.98 4.44m2.03 3.05A4 4 0 0 0 13 9q-.01-1.1-.54-2l-1.51 1.54q.05.22.05.46a2 2 0 0 1-2.44 1.95zm7.11-7.22A15 15 0 0 1 17 9s-3 6-7.94 6c-1.31 0-2.48-.4-3.5-1l-1.97 2L2 14.41 14.59 2 16 3.41z"></path></svg><span> Hide results</span></button><button type="button" class="s-btn flex--item copySnippet" style="display: none;"><svg aria-hidden="true" class="svg-icon iconCopy" width="17" height="18" viewBox="0 0 17 18"><path d="M5 6c0-1.09.91-2 2-2h4.5L15 7.5V15c0 1.09-.91 2-2 2H7c-1.09 0-2-.91-2-2zm6-1.25V8h3.25z"></path><path d="M10 1a2 2 0 0 1 2 2H6a2 2 0 0 0-2 2v9a2 2 0 0 1-2-2V4a3 3 0 0 1 3-3z" opacity=".4"></path></svg><span> Copy</span></button><button type="button" class="s-btn flex--item snippet-expand-link popout-code"><svg aria-hidden="true" class="svg-icon iconShareSm" width="14" height="14" viewBox="0 0 14 14"><path d="M5 1H3a2 2 0 0 0-2 2v8c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V9h-2v2H3V3h2zm2 0h6v6h-2V4.5L6.5 9 5 7.5 9.5 3H7z"></path></svg><span> Expand</span></button></div></div><div class="snippet-result-code" style=""><iframe name="sif41" sandbox="allow-forms allow-modals allow-scripts" class="snippet-box-edit snippet-box-result" frameborder="0"></iframe></div></div></div></div></p>
+<p></p>
+</div>`;
+
+  const result = toMd(el(html));
+  const expected = `
+jstime, baby!
+
+<!-- begin snippet: -->
+
+<!-- language: lang-js -->
+
+const x = 2;
+const y = 3**2;
+console.log(y);
+
+<!-- end snippet -->`.trim();
+  assert.strictEqual(result, expected);
+});
+
+test('toHtml_js_snippet', () => {
+  const html = `<div class="s-prose py16 js-md-preview"><p>jstime, baby!</p>
+<p><div class="snippet"><div class="snippet-code"><pre class="prettyprint-override lang-js snippet-code-js"><code>const x = 2;
+const y = 3**2;
+console.log(y);</code></pre><div class="snippet-result"><div class="snippet-ctas d-flex ai-center"><div class="d-flex gs4"><button type="button" class="s-btn s-btn__filled flex--item"><svg aria-hidden="true" class="svg-icon iconPlay" width="17" height="18" viewBox="0 0 17 18"><path d="M3 2.87a1 1 0 0 1 1.55-.83l9.2 6.13a1 1 0 0 1 0 1.66l-9.2 6.13A1 1 0 0 1 3 15.13z"></path></svg><span> Run code snippet</span></button><button type="button" class="s-btn s-btn__outlined flex--item js-edit-snippet" style="">Edit code snippet</button></div><div class="d-flex ml-auto gs4"><button type="button" class="s-btn flex--item js-show-hide-results" style=""><svg aria-hidden="true" class="svg-icon iconEyeOff" width="18" height="18" viewBox="0 0 18 18"><path d="m5.02 9.44-2.22 2.2C1.63 10.25 1 9 1 9s3-6 8.06-6q1.13.01 2.12.38L9.5 5.03 9 5a4 4 0 0 0-3.98 4.44m2.03 3.05A4 4 0 0 0 13 9q-.01-1.1-.54-2l-1.51 1.54q.05.22.05.46a2 2 0 0 1-2.44 1.95zm7.11-7.22A15 15 0 0 1 17 9s-3 6-7.94 6c-1.31 0-2.48-.4-3.5-1l-1.97 2L2 14.41 14.59 2 16 3.41z"></path></svg><span> Hide results</span></button><button type="button" class="s-btn flex--item copySnippet" style="display: none;"><svg aria-hidden="true" class="svg-icon iconCopy" width="17" height="18" viewBox="0 0 17 18"><path d="M5 6c0-1.09.91-2 2-2h4.5L15 7.5V15c0 1.09-.91 2-2 2H7c-1.09 0-2-.91-2-2zm6-1.25V8h3.25z"></path><path d="M10 1a2 2 0 0 1 2 2H6a2 2 0 0 0-2 2v9a2 2 0 0 1-2-2V4a3 3 0 0 1 3-3z" opacity=".4"></path></svg><span> Copy</span></button><button type="button" class="s-btn flex--item snippet-expand-link popout-code"><svg aria-hidden="true" class="svg-icon iconShareSm" width="14" height="14" viewBox="0 0 14 14"><path d="M5 1H3a2 2 0 0 0-2 2v8c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V9h-2v2H3V3h2zm2 0h6v6h-2V4.5L6.5 9 5 7.5 9.5 3H7z"></path></svg><span> Expand</span></button></div></div><div class="snippet-result-code" style=""><iframe name="sif41" sandbox="allow-forms allow-modals allow-scripts" class="snippet-box-edit snippet-box-result" frameborder="0"></iframe></div></div></div></div></p>
+<p></p>
+</div>`;
+
+  const result = toHtml(el(html));
+
+  // note that 'expected' here corrects malformed <div> inside <p>
+  const expected = `
+<div>
+  <p>jstime, baby!</p>
+  <p></p>
+    <div>
+      <div>
+        <pre>
+          <code>const x = 2;
+const y = 3**2;
+console.log(y);
+          </code>
+        </pre>
+      </div>
+    </div>
+  <p></p>
+  <p></p>
+</div>`.trim();
+  assertNodeEqual(result, expected);
+});
+
+test('scrapePostContributor_basic_editor', () => {
+  const html = `<div class="post-signature flex--item">
+<div class="user-info user-hover ">
+    <div class="d-flex ">
+        <div class="user-action-time fl-grow1">
+            <a href="/posts/216464/revisions" title="show all edits to this post" class="js-gps-track" data-gps-track="post.click({ item: 4, priv: -1, post_type: 1 })">edited <span title="2014-01-16 21:40:44Z" class="relativetime">Jan 16, 2014 at 21:40</span></a>
+        </div>
+        
+    </div>
+    <div class="user-gravatar32">
+        <a href="/users/21960/ale"><div class="gravatar-wrapper-32"><img src="https://www.gravatar.com/avatar/38fcb5fae943973f193524a8d597a65f?s=64&amp;d=identicon&amp;r=PG" alt="ale's user avatar" width="32" height="32" class="bar-sm"></div></a>
+    </div>
+    <div class="user-details">
+        <a href="/users/21960/ale" dir="auto">ale</a>
+        <div class="-flair">
+            <span class="reputation-score" title="reputation score 25,032" dir="ltr">25k</span><span title="7 gold badges" aria-hidden="true"><span class="badge1"></span><span class="badgecount">7</span></span><span class="v-visible-sr">7 gold badges</span><span title="77 silver badges" aria-hidden="true"><span class="badge2"></span><span class="badgecount">77</span></span><span class="v-visible-sr">77 silver badges</span><span title="124 bronze badges" aria-hidden="true"><span class="badge3"></span><span class="badgecount">124</span></span><span class="v-visible-sr">124 bronze badges</span>
+        </div>
+    </div>
+</div>
+                </div>`;
+
+  const node = el(html);
+  const result = scrapePostContributor(node);
+  const expected = {
+    contributorType: 'editor',
+    isOwner: false,
+    timestamp: '2014-01-16 21:40:44Z',
+    name: 'ale',
+    userId: 21960,
+    username: 'ale',
+  };
+  assert.deepStrictEqual(result, expected);
+});
+
+test('scrapePostContributor_basic_editor', () => {
+  const html = `<div class="post-signature owner flex--item">
+                <div class="user-info ">
+    <div class="d-flex ">
+        <div class="user-action-time fl-grow1">
+            asked <span title="2014-01-16 20:53:40Z" class="relativetime">Jan 16, 2014 at 20:53</span>
+        </div>
+        
+    </div>
+    <div class="user-gravatar32">
+        <span class="anonymous-gravatar"></span>
+    </div>
+    <div class="user-details" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+        StinkyTofu<span class="d-none" itemprop="name">StinkyTofu</span>
+        <div class="-flair">
+            
+        </div>
+    </div>
+</div>
+            </div>`;
+
+  const node = el(html);
+  const result = scrapePostContributor(node);
+  const expected = {
+    contributorType: 'author',
+    isOwner: true,
+    timestamp: '2014-01-16 20:53:40Z',
+    name: 'StinkyTofu',
+    userId: -1,
+    username: '',
+  };
+  assert.deepStrictEqual(result, expected);
 });
