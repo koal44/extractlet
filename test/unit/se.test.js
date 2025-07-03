@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert'; 
-import { toHtml, toMd, scrapePostContributor } from '../src/scraper.js';
+import { toHtml, toMd, scrapePostContributor } from '../../src/se.js';
 import { JSDOM } from 'jsdom';
 
 const dom = new JSDOM();

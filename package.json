@@ -1,35 +1,41 @@
 {
-  "name": "stackexchange-bookmarklet",
+  "name": "extractlet",
+  "runnerupName": "copymark",
   "version": "1.0.0",
-  "description": "StackExchange Q&A bookmarklet scraper",
+  "description": "A simple bookmarklet for sharing Wiki and StackExchange posts with your AI assistant using Markdown or Wikitext.",
   "gistUrl": "https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d",
   "main": "build.js",
   "scripts": {
     "build": "node build.js",
-    "test": "node --env-file=.env --test --test-reporter=spec test/*.test.js",
+    "test": "node --env-file=.env --test --test-reporter=spec test/unit/*.test.js",
     "watch": "npm-watch"
   },
   "watch": {
     "build": {
       "patterns": [
-        "src/scraper.js",
-        "test/test.htm",
+        "src/*.js",
         "build.js"
       ]
     },
     "test": {
       "patterns": [
-        "test/*.test.js"
+        "test/unit/*.test.js"
       ]
     }
   },
   "keywords": [
-    "stackexchange",
     "bookmarklet",
-    "scraper",
-    "javascript",
+    "gpt-friendly",
+    "share-with-ai",
+    "stackexchange",
+    "stackoverflow",
+    "mediawiki",
+    "wikipedia",
+    "markdown",
+    "wikitext",
     "latex",
-    "MathJax"
+    "mathjax",
+    "web-scraping"
   ],
   "author": "koal44",
   "license": "MIT",
@@ -38,10 +44,12 @@
     "@eslint/js": "^9.29.0",
     "better-sqlite3": "^12.1.1",
     "eslint": "^9.29.0",
+    "glob": "^11.0.3",
     "globals": "^16.2.0",
     "js-string-escape": "^1.0.1",
     "jsdom": "^26.1.0",
     "npm-watch": "^0.13.0",
+    "prettier": "^3.6.2",
     "terser": "^5.42.0"
   }
 }

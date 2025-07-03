@@ -1,7 +1,4 @@
 node_modules/
 dist/
-test/*_html_string.js
-test/scratchpad.js
-test/scratchpad.html
-test/example_files.js
-test/*.generated.js
+test/scratchpad.*
+**/gen/

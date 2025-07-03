@@ -3,66 +3,141 @@ import path from 'node:path';
 import { minify } from 'terser';
 import jsStringEscape from 'js-string-escape';
 import Database from 'better-sqlite3';
+import { glob } from 'glob';
 
-const gistUrl = 'https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d';
-const bookmarkTitle = 'stackexchange-scraper';
-const testPath = 'test';
-const distPath = 'dist';
-const srcPath = 'src';
 const shouldUpdateBookmarklet = true;
+
+const wikiMeta = {
+  title: 'Wiki Sharing Bookmarklet',
+  description: 'Extract wiki pages into plain Markdown or Wikitext, preserving math, code, and other doument structure. Useful for archiving or sharing with GPT.',
+  site: 'wiki',
+  srcFiles: [
+    'src/utils.js',
+    'src/wiki.js',
+  ],
+  minName: 'wiki-bookmarklet.min.js',
+  unminName: 'wiki-bookmarklet.js',
+  gistUrl: null,
+  bookmarkTitle: 'wiki-scraper',
+};
+
+const seMeta = {
+  title: 'StackExchange Sharing Bookmarklet',
+  description: 'Extract Stack Exchange posts into plain Markdown, preserving math, code, and other document structure. Useful for archiving or sharing with GPT.',
+  site: 'Stack Exchange',
+  srcFiles: [
+    'src/utils.js',
+    'src/se.js',
+  ],
+  minName: 'se-bookmarklet.min.js',
+  unminName: 'se-bookmarklet.js',
+  gistUrl: 'https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d',
+  bookmarkTitle: 'stackexchange-scraper',
+};
 
 (async () => {
   createExampleJs();
-  const scraperJs = fs.readFileSync('src/scraper.js', 'utf8');
-  const srcCode = cleanTheCodeForSharing(scraperJs);
-  const bookmarkletUrl = await buildMinifiedCode(srcCode);
-  buildUnminifiedCode(bookmarkletUrl, srcCode);
-  if (shouldUpdateBookmarklet) {
-    updateBookmarkletInFirefox(bookmarkletUrl);
-  }
   generateVanillaSourceFiles();
+  const sites = [wikiMeta, seMeta];
+  for (const meta of sites) {
+    const srcCode = meta.srcFiles.map(f => fs.readFileSync(f, 'utf8')).join('\n');
+    const cleanedCode = cleanTheCodeForSharing(srcCode);
+    const bookmarkletUrl = await buildMinifiedCode(meta, cleanedCode);
+    buildUnminifiedCode(meta, bookmarkletUrl, cleanedCode);
+    if (shouldUpdateBookmarklet) {
+      updateBookmarkletInFirefox(meta, bookmarkletUrl);
+    }
+  }
   console.log('Build process completed successfully.');
 })();
 
-function createExampleJs() {
-  const htmlSuffix = '.htm';
-  const outputSuffix = '_html_string.js';
-
-  if (!fs.existsSync(testPath)) fs.mkdirSync(testPath);
-  const files = fs.readdirSync(testPath);
-  const jsExampleFiles = [];
-
-  for (const file of files.filter(f => f.endsWith(htmlSuffix))) {
-    const base = path.basename(file, htmlSuffix); // 'example1'
-    const input = path.join(testPath, file);
-    const output = path.join(testPath, `${base}${outputSuffix}`);
-    const varName = `${base}Html`;
-
-    const html = fs.readFileSync(input, 'utf8');
-    const escaped = jsStringEscape(html);
-    const jsContent = `var ${varName} = "${escaped}";\n`; // use var or window[constName]
-
-    fs.writeFileSync(output, jsContent);
-    jsExampleFiles.push(`${base}${outputSuffix}`);
-    console.log(`Built ${output}`);
+function toCamelCase(str) {
+  return str
+    .replace(/[-_.]+(.)?/g, (_, ch) => ch ? ch.toUpperCase() : '')
+    .replace(/^[A-Z]/, ch => ch.toLowerCase());
 }
 
-  const jsExamplesFilesString = `const exampleFiles = ${JSON.stringify(jsExampleFiles, null, 4)};`;
-  const examplePath = path.join(testPath, 'example_files.js');
-  fs.writeFileSync(examplePath, jsExamplesFilesString);
-  console.log(`Built ${examplePath}`);
+function createExampleJs() {
+  const htmlSuffix = '.htm';
+  const rawSuffix = '.raw';
+  const outputSuffix = '_string.js';
+  const outputRawSuffix = '_raw_string.js';
+  const pattern = 'test/browser/**/examples/*.htm';
+  const exampleManifest = glob.sync(pattern);
+
+  // Group files by site (e.g. 'wiki', 'se')
+  const filesBySite = {};
+  for (const file of exampleManifest) {
+    const norm = file.replace(/\\/g, '/');
+    const match = norm.match(/test\/browser\/([^/]+)\/examples\/([^/]+)\.htm$/);
+    if (!match) throw new Error(`Malformed path: ${file}`);
+    const [, site] = match;
+    if (!filesBySite[site]) filesBySite[site] = [];
+    filesBySite[site].push(file);
+  }
+
+  // Process each group
+  for (const site in filesBySite) {
+    const jsExampleManifest = [];
+
+    for (const input of filesBySite[site]) {
+      const baseName = path.basename(input, htmlSuffix);        // e.g. 'se-math-limits'
+      
+      const htmlFileName = `${baseName}${outputSuffix}`;        // e.g. 'se-math-limits_string.js'
+      const genDir = `test/browser/${site}/gen`;                // fixed location
+      const outputPath = `${genDir}/${htmlFileName}`;           // full output path
+      const htmlVar = toCamelCase(baseName) + 'String';     // e.g. seMathLimitsString
+      const htmlInfo = { htmlVar, htmlFileName };
+
+      if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
+
+      const html = fs.readFileSync(input, 'utf8');
+      const escaped = jsStringEscape(html);
+      const jsContent = `var ${htmlVar} = "${escaped}";\n`;  // use var or window[constName]
+
+      fs.writeFileSync(outputPath, jsContent);
+      console.log(`Built ${outputPath}`);
+
+      // If there's a corresponding .raw file, process it too
+      let rawInfo;
+      const rawPath = input.replace(htmlSuffix, rawSuffix);
+      if (fs.existsSync(rawPath)) {
+        const rawFileName = `${baseName}${outputRawSuffix}`;  // e.g. 'wiki-enwiki-tensor_raw_string.js'
+        const rawOutputPath = `${genDir}/${rawFileName}`;
+        const rawVar = toCamelCase(baseName) + 'RawString'; // e.g. wikiEnwikiTensorRawString
+        rawInfo = { rawVar, rawFileName };
+
+        const raw = fs.readFileSync(rawPath, 'utf8');
+        const escapedRaw = jsStringEscape(raw);
+        const rawJsContent = `var ${rawVar} = "${escapedRaw}";\n`; // use var or window[constName]
+
+        fs.writeFileSync(rawOutputPath, rawJsContent);
+        console.log(`Built ${rawOutputPath}`);
+      }
+
+      jsExampleManifest.push({ ...htmlInfo, ...rawInfo });
+    }
+
+    jsExampleManifest.sort((a, b) => a.htmlVar.localeCompare(b.htmlVar));
+
+    const indexContent = `const exampleManifest = ${JSON.stringify(jsExampleManifest, null, 2)};\n`;
+    const indexPath = `test/browser/${site}/gen/_example_manifest.js`;
+    fs.writeFileSync(indexPath, indexContent);
+    console.log(`Built ${indexPath}`);
+  }
 }
 
 function cleanTheCodeForSharing(srcCode) {
   // Remove debug functions and console.log() statements
   return srcCode
     .replace(/\/\* @debug-start \*\/[\s\S]*?\/\* @debug-end \*\//g, '')
+    .replace(/\/\* @export-start \*\/[\s\S]*?\/\* @export-end \*\//g, '')
     .split('\n')
     .filter(line => !/^\s*(\/\/\s*)?(console\.)?log\(/.test(line))
     .join('\n');
 }
 
-async function buildMinifiedCode(srcCode) {
+async function buildMinifiedCode(meta, srcCode) {
   const minified = await minify(srcCode, {
     compress: { global_defs: { DEBUG: false }, dead_code: true },
     mangle: false,
@@ -79,25 +154,25 @@ async function buildMinifiedCode(srcCode) {
   // Wrap the minified code in bookmarklet wrapper again
   const bookmarkletMin = `javascript:(function(){${minified.code};runBookmarklet();})();`;
 
-  if (!fs.existsSync(distPath)) fs.mkdirSync(distPath);
-  fs.writeFileSync(`${distPath}/bookmarklet.min.js`, bookmarkletMin);
+  if (!fs.existsSync('dist')) fs.mkdirSync('dist');
+  const outPath = path.join('dist', meta.minName);
+  fs.writeFileSync(outPath, bookmarkletMin);
   console.log('Minified bookmarklet built successfully.');
 
   return bookmarkletMin;
 }
 
 // build bookmarklet.min.js and bookmarklet.js
-function buildUnminifiedCode(minifiedCode, srcCode) {
+function buildUnminifiedCode(meta, minifiedCode, srcCode) {
   const bookmarklet = `
 /*
-${gistUrl}
-
-Stack Exchange Q&A Scraper Bookmarklet
-View and copy readable StackExchange posts including original LaTeX code.
+${meta.gistUrl ? meta.gistUrl + '\n\n' : ''}
+Title: ${meta.title}
+Description: ${meta.description}
 
 Author: koal44
 License: MIT
-Usage: Save the Minified Code as a bookmark, then visit any StackExchange page and click it.
+Usage: Save the Minified Code as a bookmark, then visit any ${meta.site} page and click it.
 
 --- Minified Code ---
 (Paste the following line as your bookmark URL)
@@ -110,7 +185,8 @@ runBookmarklet();
 
 })();`;
 
-  fs.writeFileSync(`${distPath}/bookmarklet.js`, bookmarklet);
+  const outPath = path.join('dist', meta.unminName);
+  fs.writeFileSync(outPath, bookmarklet);
   console.log('Bookmarklet built successfully.');
 }
 
@@ -142,7 +218,7 @@ function computeUrlHash(url) {
 }
 
 // This part requires sqlite3 package to access Firefox's SQLite
-function updateBookmarkletInFirefox(bookmarkUrl) {
+function updateBookmarkletInFirefox(meta, bookmarkUrl) {
   // Locate Firefox profile path
   const appData = process.env.APPDATA;
   const profilesPath = path.join(appData, 'Mozilla', 'Firefox', 'Profiles');
@@ -164,13 +240,13 @@ function updateBookmarkletInFirefox(bookmarkUrl) {
     FROM moz_bookmarks b
     JOIN moz_places p ON b.fk = p.id
     WHERE b.title = ?
-  `).safeIntegers().get(bookmarkTitle);
+  `).safeIntegers().get(meta.bookmarkTitle);
 
-  if (!bookmark) throw new Error(`Bookmark '${bookmarkTitle}' not found in Firefox bookmarks.`);
+  if (!bookmark) throw new Error(`Bookmark '${meta.bookmarkTitle}' not found in Firefox bookmarks.`);
   const hash = computeUrlHash(bookmark.url || '');
   // sanity check that computedUrlHash matches Firefox's algorithm
   if (hash !== bookmark.url_hash) {
-    throw new Error(`Computed hash (${hash}) does not match stored hash (${bookmark.url_hash}) for bookmark '${bookmarkTitle}'.`);
+    throw new Error(`Computed hash (${hash}) does not match stored hash (${bookmark.url_hash}) for bookmark '${meta.bookmarkTitle}'.`);
   }
   // Update the bookmark with the new URL
   const updateStmt = db.prepare(`
@@ -182,9 +258,9 @@ function updateBookmarkletInFirefox(bookmarkUrl) {
   db.transaction(() => {
     const info = updateStmt.run(bookmarkUrl, computeUrlHash(bookmarkUrl), bookmark.fk);
     if (info.changes === 1) {
-      console.log(`Updated bookmark: '${bookmarkTitle}'`);
+      console.log(`Updated bookmark: '${meta.bookmarkTitle}'`);
     } else if (info.changes === 0) {
-      console.warn(`Bookmark '${bookmarkTitle}' was already up to date.`);
+      console.warn(`Bookmark '${meta.bookmarkTitle}' was already up to date.`);
     } else {
       throw new Error(`Unexpected number of changes: ${info.changes}`);
     }
@@ -194,14 +270,18 @@ function updateBookmarkletInFirefox(bookmarkUrl) {
   db.close();
 }
 
+// test.html can't source modules, only vanilla JS
 function generateVanillaSourceFiles() {
-  const srcFiles = fs.readdirSync(srcPath).filter(file => file.endsWith('.js'));
-  const debugPattern = /\/\* @debug-start \*\/[\s\S]*?\/\* @debug-end \*\//g;
+  const debugPattern = /\/\* @export-start \*\/[\s\S]*?\/\* @export-end \*\//g;
+  const genDir = path.join('test', 'browser', 'gen');
+  if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
+
+  const srcFiles = fs.readdirSync('src').filter(f => f.endsWith('.js'));
+
   for (const file of srcFiles) {
-    const filePath = path.join(srcPath, file);
-    let content = fs.readFileSync(filePath, 'utf8');
-    content = content.replace(debugPattern, ''); // Remove debug sections
-    const outputPath = path.join(testPath, file.replace(/\.js$/, '.generated.js'));
+    const filePath = path.join('src', file);
+    const content = fs.readFileSync(filePath, 'utf8').replace(debugPattern, '');
+    const outputPath = path.join(genDir, `_${file}`);
     fs.writeFileSync(outputPath, content);
     console.log(`Generated ${outputPath}`);
   }

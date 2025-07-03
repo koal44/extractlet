@@ -1176,6 +1176,8 @@ function log(...args) {
     console.log(out);
   }
 }
-// if (typeof module !== 'undefined' && module.exports) { }
-export { toHtml, toMd, scrapePostContributor, runBookmarklet };
 /* @debug-end */
+
+/* @export-start */
+export { toHtml, toMd, scrapePostContributor, runBookmarklet };
+/* @export-end */

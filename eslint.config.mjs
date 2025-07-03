@@ -55,6 +55,6 @@ export default defineConfig([
     },
   },
   {
-    ignores: ['dist/**'],
+    ignores: ['dist/**', '**/gen/**'],
   },
 ]);
