@@ -4,52 +4,101 @@ import { minify } from 'terser';
 import jsStringEscape from 'js-string-escape';
 import Database from 'better-sqlite3';
 import { glob } from 'glob';
+import { rollup } from 'rollup';
 
 const shouldUpdateBookmarklet = true;
+
+const extractletMeta = {
+  title: 'Knowledge-site Sharing Bookmarklet',
+  description: 'Extract wiki/stackexchange pages into plain Markdown or Wikitext, preserving math, code, and other doument structure. Useful for archiving or sharing with GPT.',
+  site: 'extractlet',
+  bundle: {
+    input: 'src/extractlet.js',
+    file: 'dist/extractlet.bundle.js',
+    name: 'extractlet',
+  },
+  minName: 'extractlet-bookmarklet.min.js',
+  unminName: 'extractlet-bookmarklet.js',
+  gistUrl: null,
+  bookmarkTitle: 'extractlet',
+  domRefComments: [],
+};
 
 const wikiMeta = {
   title: 'Wiki Sharing Bookmarklet',
   description: 'Extract wiki pages into plain Markdown or Wikitext, preserving math, code, and other doument structure. Useful for archiving or sharing with GPT.',
   site: 'wiki',
-  srcFiles: [
-    'src/utils.js',
-    'src/wiki.js',
-  ],
+  bundle: {
+    input: 'src/wiki.index.js',
+    file: 'dist/wiki.bundle.js',
+    name: 'wiki',
+  },
   minName: 'wiki-bookmarklet.min.js',
   unminName: 'wiki-bookmarklet.js',
   gistUrl: null,
-  bookmarkTitle: 'wiki-scraper',
+  bookmarkTitle: 'wiki-extractlet',
+  domRefComment: '',
 };
 
 const seMeta = {
   title: 'StackExchange Sharing Bookmarklet',
   description: 'Extract Stack Exchange posts into plain Markdown, preserving math, code, and other document structure. Useful for archiving or sharing with GPT.',
   site: 'Stack Exchange',
-  srcFiles: [
-    'src/utils.js',
-    'src/se.js',
-  ],
+  bundle: {
+    input: 'src/se.index.js',
+    file: 'dist/se.bundle.js',
+    name: 'se',
+  },
   minName: 'se-bookmarklet.min.js',
   unminName: 'se-bookmarklet.js',
   gistUrl: 'https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d',
-  bookmarkTitle: 'stackexchange-scraper',
+  bookmarkTitle: 'se-extractlet',
+  domRefComment: '',
 };
+
+const siteMetas = [wikiMeta, seMeta, extractletMeta];
 
 (async () => {
   createExampleJs();
-  generateVanillaSourceFiles();
-  const sites = [wikiMeta, seMeta];
-  for (const meta of sites) {
-    const srcCode = meta.srcFiles.map(f => fs.readFileSync(f, 'utf8')).join('\n');
-    const cleanedCode = cleanTheCodeForSharing(srcCode);
-    const bookmarkletUrl = await buildMinifiedCode(meta, cleanedCode);
-    buildUnminifiedCode(meta, bookmarkletUrl, cleanedCode);
+  for (const meta of siteMetas) {
+    await bundleSource(meta);
+    let srcCode = fs.readFileSync(meta.bundle.file, 'utf8');
+    srcCode = extractDomRef(srcCode, meta);
+    srcCode = cleanTheCodeForSharing(srcCode);
+    const bookmarkletUrl = await buildMinifiedCode(meta, srcCode);
+    buildUnminifiedCode(meta, bookmarkletUrl, srcCode);
     if (shouldUpdateBookmarklet) {
       updateBookmarkletInFirefox(meta, bookmarkletUrl);
     }
   }
   console.log('Build process completed successfully.');
 })();
+
+async function bundleSource(meta) {
+  const { input, file, name } = meta.bundle;
+  const bundle = await rollup({
+    input,
+    output: { file, format: 'iife', sourcemap: true, name },
+    plugins: [],
+  });
+  await bundle.write({ file, format: 'iife', sourcemap: true, name });
+  console.log(`Bundled ${file}`);
+}
+
+function extractDomRef(srcCode, siteMeta) {
+  const domRefRegex = /\/\*\*[\s\S]*?DOM Reference[\s\S]*?\*\//gm;
+  const matches = srcCode.match(domRefRegex);
+
+  if (matches && matches.length > 0) {
+    siteMeta.domRefComment = matches.join('\n\n');
+    const newSrcCode = srcCode.replace(domRefRegex, '');
+    console.log(`Extracted DOM reference comment for ${siteMeta.site}.`);
+    return newSrcCode;
+  } else {
+    console.warn(`No DOM reference comment found for ${siteMeta.site}.`);
+    return srcCode;
+  }
+}
 
 function toCamelCase(str) {
   return str
@@ -81,19 +130,19 @@ function createExampleJs() {
     const jsExampleManifest = [];
 
     for (const input of filesBySite[site]) {
-      const baseName = path.basename(input, htmlSuffix);        // e.g. 'se-math-limits'
+      const baseName = path.basename(input, htmlSuffix);  // e.g. 'se-math-limits'
       
-      const htmlFileName = `${baseName}${outputSuffix}`;        // e.g. 'se-math-limits_string.js'
-      const genDir = `test/browser/${site}/gen`;                // fixed location
-      const outputPath = `${genDir}/${htmlFileName}`;           // full output path
-      const htmlVar = toCamelCase(baseName) + 'String';     // e.g. seMathLimitsString
+      const htmlFileName = `${baseName}${outputSuffix}`;  // e.g. 'se-math-limits_string.js'
+      const genDir = `test/browser/${site}/gen`;          // fixed location
+      const outputPath = `${genDir}/${htmlFileName}`;     // full output path
+      const htmlVar = toCamelCase(baseName) + 'String';   // e.g. seMathLimitsString
       const htmlInfo = { htmlVar, htmlFileName };
 
       if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
 
       const html = fs.readFileSync(input, 'utf8');
       const escaped = jsStringEscape(html);
-      const jsContent = `var ${htmlVar} = "${escaped}";\n`;  // use var or window[constName]
+      const jsContent = `window["${htmlVar}"] = "${escaped}";\n`;
 
       fs.writeFileSync(outputPath, jsContent);
       console.log(`Built ${outputPath}`);
@@ -104,12 +153,12 @@ function createExampleJs() {
       if (fs.existsSync(rawPath)) {
         const rawFileName = `${baseName}${outputRawSuffix}`;  // e.g. 'wiki-enwiki-tensor_raw_string.js'
         const rawOutputPath = `${genDir}/${rawFileName}`;
-        const rawVar = toCamelCase(baseName) + 'RawString'; // e.g. wikiEnwikiTensorRawString
+        const rawVar = toCamelCase(baseName) + 'RawString';   // e.g. wikiEnwikiTensorRawString
         rawInfo = { rawVar, rawFileName };
 
         const raw = fs.readFileSync(rawPath, 'utf8');
         const escapedRaw = jsStringEscape(raw);
-        const rawJsContent = `var ${rawVar} = "${escapedRaw}";\n`; // use var or window[constName]
+        const rawJsContent = `window["${rawVar}"] = "${escapedRaw}";\n`;
 
         fs.writeFileSync(rawOutputPath, rawJsContent);
         console.log(`Built ${rawOutputPath}`);
@@ -130,8 +179,11 @@ function createExampleJs() {
 function cleanTheCodeForSharing(srcCode) {
   // Remove debug functions and console.log() statements
   return srcCode
-    .replace(/\/\* @debug-start \*\/[\s\S]*?\/\* @debug-end \*\//g, '')
-    .replace(/\/\* @export-start \*\/[\s\S]*?\/\* @export-end \*\//g, '')
+    // .replace(/\/\* @debug-start \*\/[\s\S]*?\/\* @debug-end \*\//g, '')
+    // .replace(/\/\* @module-start \*\/[\s\S]*?\/\* @module-end \*\//g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/^[ \t]+$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
     .split('\n')
     .filter(line => !/^\s*(\/\/\s*)?(console\.)?log\(/.test(line))
     .join('\n');
@@ -152,7 +204,7 @@ async function buildMinifiedCode(meta, srcCode) {
   });
 
   // Wrap the minified code in bookmarklet wrapper again
-  const bookmarkletMin = `javascript:(function(){${minified.code};runBookmarklet();})();`;
+  const bookmarkletMin = `javascript:(function(){${minified.code};${meta.bundle.name}.runBookmarklet();})();`;
 
   if (!fs.existsSync('dist')) fs.mkdirSync('dist');
   const outPath = path.join('dist', meta.minName);
@@ -166,7 +218,7 @@ async function buildMinifiedCode(meta, srcCode) {
 function buildUnminifiedCode(meta, minifiedCode, srcCode) {
   const bookmarklet = `
 /*
-${meta.gistUrl ? meta.gistUrl + '\n\n' : ''}
+${meta.gistUrl ? meta.gistUrl + '\n' : ''}
 Title: ${meta.title}
 Description: ${meta.description}
 
@@ -178,12 +230,12 @@ Usage: Save the Minified Code as a bookmark, then visit any ${meta.site} page an
 (Paste the following line as your bookmark URL)
 ${minifiedCode}
 */
-
+${meta.domRefComment ? '\n' + meta.domRefComment + '\n' : ''}
 javascript:(function() {
 ${srcCode}
-runBookmarklet();
+${meta.bundle.name}.runBookmarklet();
 
-})();`;
+})();`.trim();
 
   const outPath = path.join('dist', meta.unminName);
   fs.writeFileSync(outPath, bookmarklet);
@@ -268,21 +320,4 @@ function updateBookmarkletInFirefox(meta, bookmarkUrl) {
   })();
 
   db.close();
-}
-
-// test.html can't source modules, only vanilla JS
-function generateVanillaSourceFiles() {
-  const debugPattern = /\/\* @export-start \*\/[\s\S]*?\/\* @export-end \*\//g;
-  const genDir = path.join('test', 'browser', 'gen');
-  if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
-
-  const srcFiles = fs.readdirSync('src').filter(f => f.endsWith('.js'));
-
-  for (const file of srcFiles) {
-    const filePath = path.join('src', file);
-    const content = fs.readFileSync(filePath, 'utf8').replace(debugPattern, '');
-    const outputPath = path.join(genDir, `_${file}`);
-    fs.writeFileSync(outputPath, content);
-    console.log(`Generated ${outputPath}`);
-  }
 }

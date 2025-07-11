@@ -1,6 +1,7 @@
 import { test } from 'node:test';
-import * as assert from 'node:assert'; 
-import { toHtml, toMd, scrapePostContributor } from '../../src/se.js';
+import { strictEqual, deepStrictEqual } from 'node:assert';
+import { toMdCtx as seToMdCtx, toHtmlCtx as seToHtmlCtx, scrapePostContributor } from '../../src/se.js';
+import { toHtml, toMd } from '../../src/core.js';
 import { JSDOM } from 'jsdom';
 
 const dom = new JSDOM();
@@ -16,7 +17,7 @@ function assertNodeEqual(a, b) {
   const aHtml = (a?.outerHTML || a?.textContent || String(a)).replace(/\s+/g, '');
   const bHtml = (b?.outerHTML || b?.textContent || String(b)).replace(/\s+/g, '');
 
-  assert.strictEqual(aHtml, bHtml);
+  strictEqual(aHtml, bHtml);
 }
 
 test('toHtml_test1', () => {
@@ -44,7 +45,7 @@ test('toHtml_test1', () => {
       <script type="math/tex" id="MathJax-Element-3">(1,1)</script> tensor.
     </p>
   </div>`.trim();
-  const result = toHtml(el(html));
+  const result = toHtml(el(html), seToHtmlCtx);
   const expected = el(`
     <div>
       <p>
@@ -104,7 +105,7 @@ test('toMd_collapse_linebreaks', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'This is a test.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_trim_after_anchor', () => {
@@ -116,7 +117,7 @@ test('toMd_trim_after_anchor', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'See [this](example.com)';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_no_double_space', () => {
@@ -130,7 +131,7 @@ test('toMd_no_double_space', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Hello [big cat](cat.com) world.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_mathjax_script', () => {
@@ -144,7 +145,7 @@ test('toMd_mathjax_script', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Result: (x+y)^2 is the formula.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_trailing_whitespace_node', () => {
@@ -155,15 +156,14 @@ test('toMd_trailing_whitespace_node', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Done.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
-
 
 test('toMd_single_p', () => {
   const html = '<div><p>Hello world</p></div>';
   const result = toMd(el(html));
   const expected = 'Hello world';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_div_wraps_two_ps', () => {
@@ -174,7 +174,7 @@ test('toMd_div_wraps_two_ps', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Hello\n\nWorld';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_nested_divs_with_p', () => {
@@ -189,7 +189,7 @@ test('toMd_nested_divs_with_p', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Hello\n\nWorld';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_deeply_nested_divs_collapse_spacing', () => {
@@ -205,7 +205,7 @@ test('toMd_deeply_nested_divs_collapse_spacing', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Hello';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_deeply_nested_divs_collapse_spacing2', () => {
@@ -228,7 +228,7 @@ test('toMd_deeply_nested_divs_collapse_spacing2', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Hello\n\nBye';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_empty_divs_do_not_add_spacing', () => {
@@ -241,28 +241,28 @@ test('toMd_empty_divs_do_not_add_spacing', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Hello\n\nWorld';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_div_with_inline_span_text', () => {
   const html = '<div><span>Hello</span>, <em>world</em>!</div>';
   const result = toMd(el(html));
   const expected = 'Hello, *world*!';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_div_with_empty_inline_should_not_count', () => {
   const html = '<div><span> </span></div>';
   const result = toMd(el(html));
   const expected = '';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_p_and_inline_span_spacing', () => {
   const html = '<div><p>Hello</p><span>World</span></div>';
   const result = toMd(el(html));
   const expected = 'Hello\n\nWorld';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_div_text_p_text', () => {
@@ -274,7 +274,7 @@ test('toMd_div_text_p_text', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'intro\n\nHello\n\noutro';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_messy_spacing_collapse', () => {
@@ -286,7 +286,7 @@ test('toMd_messy_spacing_collapse', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Hello\n\nWorld';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_span_does_not_add_break', () => {
@@ -297,14 +297,14 @@ test('toMd_span_does_not_add_break', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'HelloWorld'; // no \n
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_p_with_spans_inline', () => {
   const html = '<p><span>Hello</span><span> world</span></p>';
   const result = toMd(el(html));
   const expected = 'Hello world';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_p_with_spans_inline2', () => {
@@ -318,7 +318,7 @@ test('toMd_p_with_spans_inline2', () => {
   </p>`;
   const result = toMd(el(html));
   const expected = 'Hello world';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_spans_between_ps', () => {
@@ -329,7 +329,7 @@ test('toMd_spans_between_ps', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Hello\n\n--\n\nWorld';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_p_span_p_combo', () => {
@@ -339,7 +339,7 @@ test('toMd_p_span_p_combo', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Hello\n\nWorld';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_p_with_inline_span_then_p', () => {
@@ -349,7 +349,7 @@ test('toMd_p_with_inline_span_then_p', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'This is inline text.\n\nSecond paragraph.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_mixed_text_span_p_text', () => {
@@ -362,158 +362,158 @@ test('toMd_mixed_text_span_p_text', () => {
     </div>`;
   const result = toMd(el(html));
   const expected = 'Intro -inline-\n\nHello\n\nagain';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_em_simple', () => {
   const html = '<p>This is <em>important</em> text.</p>';
   const result = toMd(el(html));
   const expected = 'This is *important* text.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_em_nested_div', () => {
   const html = '<div><p><em>Hello</em> world</p></div>';
   const result = toMd(el(html));
   const expected = '*Hello* world';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_b_simple', () => {
   const html = '<p>This is <b>bold</b> text.</p>';
   const result = toMd(el(html));
   const expected = 'This is **bold** text.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_b_nested_div', () => {
   const html = '<div><p><b>Hello</b> world</p></div>';
   const result = toMd(el(html));
   const expected = '**Hello** world';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_em_and_bold', () => {
   const html = '<p>This is <b><em>very important</em></b> text.</p>';
   const result = toMd(el(html));
   const expected = 'This is ***very important*** text.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_br_inside_paragraph', () => {
   const html = '<p>Hello<br/>world</p>';
   const result = toMd(el(html));
   const expected = 'Hello  \nworld';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_anchor_simple', () => {
   const html = '<p>Visit <a href="https://example.com">our site</a> today.</p>';
   const result = toMd(el(html));
   const expected = 'Visit [our site](https://example.com/) today.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_anchor_nested_em', () => {
   const html = '<a href="https://example.com"><em>important link</em></a>';
   const result = toMd(el(html));
   const expected = '[*important link*](https://example.com/)';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_a_inline_full_url', () => {
   const html = '<a href="https://example.com">Click here</a>';
   const result = toMd(el(html));
   const expected = '[Click here](https://example.com/)';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_a_inline_relative_url', () => {
   const html = '<a href="/questions/1234">See question</a>';
   const result = toMd(el(html));
   const expected = '[See question](/questions/1234)';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_a_with_empty_href_is_unlinked', () => {
   const html = '<a href="">No link</a>';
   const result = toMd(el(html));
   const expected = 'No link'; // Don't treat as markdown link
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_a_name_anchor_only', () => {
   const html = '<a name="section1"></a>';
   const result = toMd(el(html));
   const expected = ''; // No renderable content
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_naked_url_text', () => {
   const html = '<div>https://example.com</div>';
   const result = toMd(el(html));
   const expected = 'https://example.com';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_a_with_bold_child', () => {
   const html = '<a href="https://example.com"><b>Link</b></a>';
   const result = toMd(el(html));
   const expected = '[**Link**](https://example.com/)';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_h1_simple', () => {
   const html = '<div><h1>Introduction</h1></div>';
   const result = toMd(el(html));
   const expected = '# Introduction';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_h2_with_inline', () => {
   const html = '<div><h2>Usage <em>details</em></h2></div>';
   const result = toMd(el(html));
   const expected = '## Usage *details*';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_h3_with_bold', () => {
   const html = '<div><h3>Important <b>note</b></h3></div>';
   const result = toMd(el(html));
   const expected = '### Important **note**';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_hr_simple', () => {
   const html = '<div>before<hr/>after</div>';
   const result = toMd(el(html));
   const expected = 'before\n\n---\n\nafter';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_ul_simple', () => {
   const html = '<ul><li>Item 1</li><li>Item 2</li></ul>';
   const result = toMd(el(html));
   const expected = '- Item 1\n- Item 2';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_ol_simple', () => {
   const html = '<ol><li>First</li><li>Second</li></ol>';
   const result = toMd(el(html));
   const expected = '1. First\n2. Second';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_double_spaced_list', () => {
   const html = '<div><ul><li><p>Item 1</p></li><li><p>Item 2</p></li></ul></div>';
   const result = toMd(el(html));
   const expected = '- Item 1\n\n- Item 2';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_list_with_two_paragraphs', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><ul>
+  const html = `<div><ul>
 <li>
 <p>Para 1</p>
 <p>Para 2</p>
@@ -525,7 +525,7 @@ test('toMd_list_with_two_paragraphs', () => {
 `- Para 1
 
   Para 2`;
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_deep_list_with_paragraphs', () => {
@@ -553,7 +553,7 @@ test('toMd_deep_list_with_paragraphs', () => {
 
     Li2 Para2
 `.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_nest_list_with_variable_bullet_length', () => {
@@ -589,7 +589,7 @@ test('toMd_nest_list_with_variable_bullet_length', () => {
 10. Item 10 Para1
 
     Item 10 Para2`.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_nested_list', () => {
@@ -610,7 +610,7 @@ test('toMd_nested_list', () => {
 - Indented 0 spaces.
   - indented 2 or more spaces.
 - 0 spaces again.`.trim();
-    assert.strictEqual(result, expected);
+    strictEqual(result, expected);
 });
 
 test('toMd_nested_list_wild', () => {
@@ -649,28 +649,28 @@ test('toMd_nested_list_wild', () => {
     - f
   - g
 - h`;
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_code_fenced_basic', () => {
   const html = '<div><pre><code>printf("%d\\n", 42);</code></pre></div>';
   const result = toMd(el(html));
   const expected = '```\nprintf("%d\\n", 42);\n```';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_inline_code_basic', () => {
   const html = '<p>The <code>$</code> character is a shortcut for <code>window.jQuery</code>.</p>';
   const result = toMd(el(html));
   const expected = 'The `$` character is a shortcut for `window.jQuery`.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_inline_code_with_backtick', () => {
   const html = '<p>The name <code>Tuple`2</code> is valid.</p>';
   const result = toMd(el(html));
   const expected = 'The name ``Tuple`2`` is valid.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 
@@ -678,7 +678,7 @@ test('toMd_pre_with_trailing_newline', () => {
   const html = '<div><pre>line1\nline2\n</pre></div>';
   const result = toMd(el(html));
   const expected = '```\nline1\nline2\n```';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_h1_p_pre_code_and_inline_code_mix', () => {
@@ -703,9 +703,8 @@ def hello():
 \`\`\`
 
 bar \`function bye() { console.log("bye-bye!") }\` baz`;
-    assert.strictEqual(result, expected);
+    strictEqual(result, expected);
 });
-
 
 test('toMd_complex_mixed_markup_case', () => {
   const html = `<div><h1>Header One</h1>
@@ -743,11 +742,11 @@ Another paragraph here with a [link](https://example.com/).
 ### Header Three
 
 Final paragraph.`;
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_StackOverflow_example_code_blocks', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><h2>Code and Preformatted Text</h2>
+  const html = `<div><h2>Code and Preformatted Text</h2>
 <p>Indent four spaces to create an escaped <code>&lt;pre&gt; &lt;code&gt;</code> block:</p>
 <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title function_">printf</span>(<span class="hljs-string">"%d\n"</span>, <span class="hljs-number">42</span>);  <span class="hljs-comment">/- what was the
                         question again? -/</span>
@@ -823,7 +822,7 @@ Like code blocks, code spans will be displayed in a monospaced font. Markdown an
 If your code itself contains backticks, you may have to use multiple backticks as delimiters:
 
 The name \`\`Tuple\`2\`\` is a valid .NET type name.`;
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_pre_1', () => {
@@ -836,11 +835,11 @@ test('toMd_pre_1', () => {
 printf("%d\n", 42);  /- what was the
                         question again? -/
 \`\`\``;
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_pre_2', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title function_">alert</span>(<span class="hljs-literal">false</span>);
+  const html = `<div><pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title function_">alert</span>(<span class="hljs-literal">false</span>);
 </code></pre>
 <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title function_">alert</span>(<span class="hljs-literal">true</span>);
 </code></pre>
@@ -855,11 +854,11 @@ alert(false);
 alert(true);
 \`\`\`
 `.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_pre_3', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><hr>
+  const html = `<div><hr>
 <h2>Code Spans</h2>
 </div>`;
   const result = toMd(el(html));
@@ -867,11 +866,11 @@ test('toMd_pre_3', () => {
 `---
 
 ## Code Spans`;
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_simple_blockquotes', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><blockquote>
+  const html = `<div><blockquote>
 <p>The syntax is based on the way email programs
 usually do quotations. You don't need to hard-wrap
 the paragraphs in your blockquotes, but it looks much nicer if you do.  Depends how lazy you feel.</p>
@@ -880,11 +879,11 @@ the paragraphs in your blockquotes, but it looks much nicer if you do.  Depends 
   const result = toMd(el(html));
   const expected =
 '> The syntax is based on the way email programs usually do quotations. You don\'t need to hard-wrap the paragraphs in your blockquotes, but it looks much nicer if you do. Depends how lazy you feel.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_spaced_blockquote', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><blockquote>
+  const html = `<div><blockquote>
 <p>The <code>&gt;</code> on the blank lines is required
 to create a single blockquote.</p>
 <p>If you leave out the extra <code>&gt;</code>
@@ -894,14 +893,15 @@ two distinct blockquotes.</p>
 </div>`;
   const result = toMd(el(html));
   const expected =
-`> The \`>\` on the blank lines is required to create a single blockquote.
+`
+> The \`>\` on the blank lines is required to create a single blockquote.
 > 
-> If you leave out the extra \`>\` you will end up with two distinct blockquotes.`;
-  assert.strictEqual(result, expected);
+> If you leave out the extra \`>\` you will end up with two distinct blockquotes.`.trim();
+  strictEqual(result, expected);
 });
 
 test('toMd_blockquotes_within_blockquotes', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><blockquote>
+  const html = `<div><blockquote>
 <p>A standard blockquote is indented</p>
 <blockquote>
 <p>A nested blockquote is indented more</p>
@@ -915,16 +915,17 @@ test('toMd_blockquotes_within_blockquotes', () => {
 </div>`;
   const result = toMd(el(html));
   const expected =
-`> A standard blockquote is indented
+`
+> A standard blockquote is indented
 > 
 > > A nested blockquote is indented more
 > > 
-> > > > You can nest to any depth.`;
-  assert.strictEqual(result, expected);
+> > > > You can nest to any depth.`.trim();
+  strictEqual(result, expected);
 });
 
 test('toMd_lists_in_a_blockquote', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><blockquote>
+  const html = `<div><blockquote>
 <ul>
 <li>A list in a blockquote</li>
 <li>With a &gt; and space in front of it
@@ -937,14 +938,15 @@ test('toMd_lists_in_a_blockquote', () => {
 </div>`;
   const result = toMd(el(html));
   const expected =
-`> - A list in a blockquote
+`
+> - A list in a blockquote
 > - With a > and space in front of it
->   - A sublist`;
-  assert.strictEqual(result, expected);
+>   - A sublist`.trim();
+  strictEqual(result, expected);
 });
 
 test('toMd_preformatted_text_in_a_blockquote', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><blockquote>
+  const html = `<div><blockquote>
 <p>Intro</p>
 <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title class_">Indent</span> five spaces total.  <span class="hljs-title class_">The</span> first
 one is part <span class="hljs-keyword">of</span> the blockquote designator.
@@ -954,25 +956,26 @@ one is part <span class="hljs-keyword">of</span> the blockquote designator.
 </div>`;
   const result = toMd(el(html));
   const expected =
-`> Intro
+`
+> Intro
 > 
 > \`\`\`
 > Indent five spaces total.  The first
 > one is part of the blockquote designator.
 > \`\`\`
 > 
-> Outro`;
-  assert.strictEqual(result, expected);
+> Outro`.trim();
+  strictEqual(result, expected);
 });
 
 test('toMd_blockquote_with_anchor', () => {
-    const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><blockquote>
+    const html = `<div><blockquote>
 <p>Check out <a href="https://example.com">this link</a> with <strong>bold</strong> and <code>code</code>.</p>
 </blockquote>
 </div>`;
   const result = toMd(el(html));
   const expected = '> Check out [this link](https://example.com/) with **bold** and `code`.';
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_blockquote_with_list', () => {
@@ -991,11 +994,11 @@ test('toMd_blockquote_with_list', () => {
 > 
 > - One
 > - Two`.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_blockquote_with_header', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><blockquote>
+  const html = `<div><blockquote>
 <h2>Important</h2>
 <p>Pay attention to this header.</p>
 </blockquote>
@@ -1005,11 +1008,11 @@ test('toMd_blockquote_with_header', () => {
 > ## Important
 > 
 > Pay attention to this header.`.trim();
-    assert.strictEqual(result, expected);
+    strictEqual(result, expected);
 });
 
 test('toMd_blockquote_with_code_block', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><blockquote>
+  const html = `<div><blockquote>
 <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-keyword">const</span> x = <span class="hljs-number">42</span>;
 </code></pre>
 </blockquote>
@@ -1020,11 +1023,11 @@ test('toMd_blockquote_with_code_block', () => {
 > const x = 42;
 > \`\`\`
 `.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_blockquote_with_nested_blockquote', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><blockquote>
+  const html = `<div><blockquote>
 <p>Here's what they said:</p>
 <blockquote>
 <p>It was great!</p>
@@ -1036,7 +1039,7 @@ test('toMd_blockquote_with_nested_blockquote', () => {
 > Here's what they said:
 > 
 > > It was great!`.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_blockquote_with_ruler', () => {
@@ -1053,11 +1056,11 @@ test('toMd_blockquote_with_ruler', () => {
 > ---
 > 
 > After`.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_list_advanced', () => {
-  const html = `<div id="wmd-preview-40593632" class="s-prose mb16 wmd-preview js-wmd-preview"><ol>
+  const html = `<div><ol>
 <li>
 <p>Lists in a list item:</p>
 <ul>
@@ -1118,10 +1121,8 @@ indent the &gt;'s four spaces.</p>
     That's four spaces for the list
     and four to trigger the code block.
    \`\`\``.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
-
-
 
 test('toMd_stackoverflow_help_style', () => {
   const html = `<div><h1>StackOverflow Advanced List Example</h1>
@@ -1185,10 +1186,8 @@ test('toMd_stackoverflow_help_style', () => {
    \`\`\`
 `.trim();
 
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
-
-
 
 test('toMd_ordered_list_with_start', () => {
   const html = `<div><ol start="4">
@@ -1200,7 +1199,7 @@ test('toMd_ordered_list_with_start', () => {
   const expected = `
 4. Starting at four, baby!
 5. List item`.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_nested_ols_should_respect_independent_start_values', () => {
@@ -1224,7 +1223,7 @@ test('toMd_nested_ols_should_respect_independent_start_values', () => {
     4. Inner item 2
 11. Outer item 2`.trim();
 
-  assert.strictEqual(result.trim(), expected);
+  strictEqual(result.trim(), expected);
 });
 
 test('toMd_nested_ols_without_start_should_default_correctly', () => {
@@ -1245,16 +1244,16 @@ test('toMd_nested_ols_without_start_should_default_correctly', () => {
    1. Inner item a
    2. Inner item b`.trim();
 
-  assert.strictEqual(result.trim(), expected);
+  strictEqual(result.trim(), expected);
 });
 
 test('toMd_simple_img', () => {
-  const html = `<div id="wmd-preview" class="s-prose mb16 wmd-preview js-wmd-preview"><p><img src="https://i.sstatic.net/fzsVsZw6.png" alt="wikilogo"></p>
+  const html = `<div><p><img src="https://i.sstatic.net/fzsVsZw6.png" alt="wikilogo"></p>
 </div>`;
   const result = toMd(el(html));
   const expected = '![wikilogo](https://i.sstatic.net/fzsVsZw6.png)';
 
-  assert.strictEqual(result.trim(), expected);
+  strictEqual(result.trim(), expected);
 });
 
 test('toMd_imgs_combined_dump', () => {
@@ -1269,7 +1268,7 @@ test('toMd_imgs_combined_dump', () => {
 
   const expected = '![wikilogo](https://i.sstatic.net/fzsVsZw6.png)![wikilogo](https://i.sstatic.net/fzsVsZw6.png "Wikipedia Logo")![](https://i.sstatic.net/fzsVsZw6.png)![](https://i.sstatic.net/fzsVsZw6.png)![wiki logo](https://i.sstatic.net/fzsVsZw6.png "logo for wiki")[](https://example.com/)';
   const result = toMd(el(html)).trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_img_inline_with_text', () => {
@@ -1283,7 +1282,7 @@ here's an inline image: ![wikilogo](https://i.sstatic.net/fzsVsZw6.png). it's a 
 `.trim();
 
   const result = toMd(el(html)).trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_inline_html_kbd', () => {
@@ -1291,7 +1290,7 @@ test('toMd_inline_html_kbd', () => {
   const expected = 'To reboot your computer, press <kbd>ctrl</kbd>+<kbd>alt</kbd>+<kbd>del</kbd>.';
 
   const result = toMd(el(html)).trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_kbd_with_styling', () => {
@@ -1299,7 +1298,7 @@ test('toMd_kbd_with_styling', () => {
   const expected = 'To reboot your computer, press <kbd>**ctrl**</kbd>+*<kbd>alt</kbd>*+<kbd>**del**</kbd>.';
 
   const result = toMd(el(html)).trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_sub_sup', () => {
@@ -1308,7 +1307,7 @@ test('toMd_sub_sup', () => {
   const expected = 'H<sub>2</sub>O, and E = mc<sup>2</sup>';
 
   const result = toMd(el(html)).trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_table_simple', () => {
@@ -1344,7 +1343,7 @@ test('toMd_table_simple', () => {
 `.trim();
 
   const result = toMd(el(html)).trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd_table_complex', () => {
@@ -1394,7 +1393,7 @@ test('toMd_table_complex', () => {
 `.trim();
 
   const result = toMd(el(html)).trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
   // console.log(el(html).querySelector('code').textContent.split(''));
   // const str = 'a\\b';      // A string with a single backslash between 'a' and 'b'
   // console.log(str);        // prints: a\b
@@ -1435,7 +1434,7 @@ test('toMd_table_with_block_cell', () => {
 `.trim();
 
   const result = toMd(el(html)).trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toHtml_preserves_spoiler_blockquote', () => {
@@ -1465,10 +1464,10 @@ test('toMd_converts_spoiler_blockquote_to_markdown', () => {
       </blockquote>
     </div>`.trim();
 
-  const result = toMd(el(html));
+  const result = toMd(el(html), seToMdCtx);
   const expected = '>! don\'t spoil me!!';
 
-  assert.strictEqual(result.trim(), expected.trim());
+  strictEqual(result.trim(), expected.trim());
 });
 
 test('toHtml_snippets', () => {
@@ -1488,7 +1487,7 @@ test('toHtml_snippets', () => {
 <p></p>
 </div>`;
 
-  const result = toHtml(el(html));
+  const result = toHtml(el(html), seToHtmlCtx);
   const expected =`
 <div>
   <p>check this out!</p>
@@ -1535,7 +1534,7 @@ test('toMd_snippets', () => {
 <p></p>
 </div>`;
 
-  const result = toMd(el(html));
+  const result = toMd(el(html), seToMdCtx);
   const expected =`
 check this out!
 
@@ -1566,7 +1565,7 @@ document.getElementById('btn').addEventListener('click', () => {
 
 <!-- end snippet -->`;
 
-  assert.strictEqual(result.trim(), expected.trim());
+  strictEqual(result.trim(), expected.trim());
 });
 
 test('toMd_js_snippet', () => {
@@ -1577,7 +1576,7 @@ console.log(y);</code></pre><div class="snippet-result"><div class="snippet-ctas
 <p></p>
 </div>`;
 
-  const result = toMd(el(html));
+  const result = toMd(el(html), seToMdCtx);
   const expected = `
 jstime, baby!
 
@@ -1590,7 +1589,7 @@ const y = 3**2;
 console.log(y);
 
 <!-- end snippet -->`.trim();
-  assert.strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toHtml_js_snippet', () => {
@@ -1601,7 +1600,7 @@ console.log(y);</code></pre><div class="snippet-result"><div class="snippet-ctas
 <p></p>
 </div>`;
 
-  const result = toHtml(el(html));
+  const result = toHtml(el(html), seToHtmlCtx);
 
   // note that 'expected' here corrects malformed <div> inside <p>
   const expected = `
@@ -1655,7 +1654,7 @@ test('scrapePostContributor_basic_editor', () => {
     userId: 21960,
     username: 'ale',
   };
-  assert.deepStrictEqual(result, expected);
+  deepStrictEqual(result, expected);
 });
 
 test('scrapePostContributor_basic_editor', () => {
@@ -1689,5 +1688,5 @@ test('scrapePostContributor_basic_editor', () => {
     userId: -1,
     username: '',
   };
-  assert.deepStrictEqual(result, expected);
+  deepStrictEqual(result, expected);
 });

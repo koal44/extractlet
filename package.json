@@ -1,6 +1,5 @@
 {
   "name": "extractlet",
-  "runnerupName": "copymark",
   "version": "1.0.0",
   "description": "A simple bookmarklet for sharing Wiki and StackExchange posts with your AI assistant using Markdown or Wikitext.",
   "gistUrl": "https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d",
@@ -50,6 +49,10 @@
     "jsdom": "^26.1.0",
     "npm-watch": "^0.13.0",
     "prettier": "^3.6.2",
+    "rollup": "^4.44.1",
     "terser": "^5.42.0"
+  },
+  "dependencies": {
+    "npm": "^11.4.2"
   }
 }
