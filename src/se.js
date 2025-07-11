@@ -30,10 +30,10 @@
 
 // eslint-disable-next-line no-unused-vars
 import { log, h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss } from './utils.js';
-import { baseCss, toHtml, toMd } from './core.js';
+import { baseCss, toHtml as _toHtml, toMd as _toMd } from './core.js';
 
-function shouldIgnore(node) {
-  if (!node) throw new Error('shouldIgnore called with null or undefined node');
+function shouldSkip(node) {
+  if (!node) throw new Error('shouldSkip called with null or undefined node');
   if (node.nodeType === Node.TEXT_NODE) return false; // Text nodes are never ignored
 
   if (node.nodeType === Node.ELEMENT_NODE) {
@@ -101,18 +101,30 @@ const toMdHandlers = {
   },
 };
 
-export const toMdCtx = {
-  shouldIgnore,
-  handlers: toMdHandlers,
-};
+function toHtmlElemHandler(node, ctx) {
+  if (shouldSkip(node)) return { skip: true };
+  if (node.nodeType !== Node.ELEMENT_NODE) throw new Error('toHtmlElemHandler called with non-element node'); // shouldn't happen
 
-export const toHtmlCtx = {
-  shouldIgnore,
-};
+  // display the original MathJax LaTeX content
+  if (node.tagName === 'SCRIPT') { // non-MathJax scripts have already been filtered out
+    const math = document.createElement('math');
+    math.textContent = node.textContent;
+    return { node: math };
+  }
+
+  return { skip: false, node: null };
+}
+
+export function toMd(node) {
+  return _toMd(node, { shouldSkip, handlers: toMdHandlers });
+}
+
+export function toHtml(node) {
+  return _toHtml(node, { elementHandler: toHtmlElemHandler });
+}
 
 function scrapeFallbackName(userNode) {
-  const span = userNode.querySelector(':scope > span[itemprop="name"]');
-  let name = span ? span.textContent.trim() : '';
+  let name = userNode.querySelector(':scope > span[itemprop="name"]')?.textContent.trim() || '';
 
   // fallback to text content if still no name
   if (!name) {
@@ -180,8 +192,8 @@ function scrapePosts(root) {
   postLayouts.forEach(postLayout => {
     // Extract post body
     const postBodyNode = postLayout.querySelector('.s-prose');
-    const bodyHtml = postBodyNode ? toHtml(postBodyNode, toHtmlCtx) : null;
-    const bodyMd = postBodyNode ? toMd(postBodyNode, toMdCtx) : '';
+    const bodyHtml = postBodyNode ? toHtml(postBodyNode) : null;
+    const bodyMd = postBodyNode ? toMd(postBodyNode) : '';
 
     // Extract contributors
     const signatureNodes = postLayout.querySelectorAll('.post-signature');
@@ -195,8 +207,8 @@ function scrapePosts(root) {
     const commentNodes = postLayout.querySelectorAll('ul.comments-list li');
     const comments = Array.from(commentNodes).map(li => {
       const bodySpan = li.querySelector('div.comment-body > span.comment-copy');
-      const bodyHtml = toHtml(bodySpan, toHtmlCtx);
-      const bodyMd = toMd(bodySpan, toMdCtx);
+      const bodyHtml = toHtml(bodySpan);
+      const bodyMd = toMd(bodySpan);
       const contributors = [scrapeCommentContributor(li)];
       const vote = scrapeCommentVote(li);
       return { bodyHtml, bodyMd, contributors, vote };
@@ -211,7 +223,7 @@ function scrapePosts(root) {
 
 function scrapePermaLink(root) {
   const qLink = root.querySelector('#question-header a.question-hyperlink');
-  return toHtml(qLink, toHtmlCtx);
+  return toHtml(qLink);
 }
 
 function buildCopyButton(doc, pageData, postIdx = -1) {

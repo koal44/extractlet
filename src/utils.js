@@ -1,27 +1,50 @@
 export function log(...args) {
   const DEBUG = typeof process !== 'undefined' && process.env.DEBUG === 'true';
-  const LOG_JSONIFY_STRINGS = false;
-  const LOG_ESCAPE_WS = false;
-  const LOG_INDENT = 2;
+  const JSONIFY_STRINGS = true;
+  const ESCAPE_WS = false;
+  const INDENT = 2;
+  const VERBOSE_NODES = true;
+
   if (!DEBUG) return;
+
+  function nodeSummary(node) {
+    if (!node) return String(node);
+    switch (node.nodeType) {
+      case Node.ELEMENT_NODE:
+        return ['<', node.tagName.toLowerCase(), node.id ? `#${node.id}` : '',
+          node.className ? '.' + String(node.className).trim().replace(/\s+/g, '.') : '', '>'
+        ].join('');
+      case Node.TEXT_NODE:
+        return `#text "${node.textContent?.slice(0, 40) ?? ''}"`;
+      case Node.COMMENT_NODE:
+        return `<!-- ${node.textContent?.slice(0, 40) ?? ''} -->`;
+      default:
+        return `[${node.nodeName} type=${node.nodeType}]`;
+    }
+  }
 
   for (const arg of args) {
     let out;
+
     if (typeof arg === 'string') {
-      out = LOG_JSONIFY_STRINGS ? JSON.stringify(arg).slice(1, -1) : arg;
+      out = JSONIFY_STRINGS ? JSON.stringify(arg).slice(1, -1) : arg;
+    } else if (arg && typeof arg === 'object' && typeof arg.nodeType === 'number') {
+      out = VERBOSE_NODES && arg.outerHTML ? arg.outerHTML : nodeSummary(arg);
     } else {
       try {
-        out = JSON.stringify(arg, null, LOG_INDENT);
+        out = JSON.stringify(arg, null, INDENT);
       } catch (err) {
         out = `[Unserializable object: ${err.message}]`;
       }
     }
-    if (LOG_ESCAPE_WS) {
+
+    if (ESCAPE_WS && typeof out === 'string') {
       out = out.replace(/\n/g, '\\n').replace(/\t/g, '\\t');
-    } 
+    }
     console.log(out);
   }
 }
+
 
 export function h(tag, attrs = {}, ...children) {
   let node;

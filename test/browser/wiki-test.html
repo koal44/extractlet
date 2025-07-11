@@ -62,12 +62,29 @@
       iframe.contentWindow.document.write(html);
       iframe.contentWindow.document.close();
       doc = iframe.contentWindow.document;
+      setBaseUrl(doc);
 
       if (example.rawVar && window[example.rawVar]) {
         //iframe.contentWindow['exampleRaw'] = window[example.rawVar];
         window['exampleRaw'] = window[example.rawVar];
       }
       document.getElementById('bookmarkletButton').disabled = false;
+    }
+
+    function setBaseUrl(doc) {
+      const head = doc.head || doc.getElementsByTagName('head')[0];
+      if (!head) throw new Error('No head element found in the iframe document.');
+
+      // don't set base if it already exists
+      if (head.querySelector('base')) return;
+
+      const canonicalLink = head.querySelector('link[rel="canonical"]');
+      if (!canonicalLink) throw new Error('No canonical link found in the iframe document.');
+      const url = new URL('.', canonicalLink.href);
+
+      const base = doc.createElement('base');
+      base.href = url.href;
+      doc.head.appendChild(base);
     }
   </script>
 </head>

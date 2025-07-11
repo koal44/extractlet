@@ -21,10 +21,10 @@
  */
 
 import { log, h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, escapeRegExp } from './utils.js';
-import { baseCss, toHtml, toMd } from './core.js';
+import { baseCss, toHtml as _toHtml, toMd as _toMd } from './core.js';
 
-export function shouldIgnore(node) {
-  if (!node) throw new Error('shouldIgnore called with null or undefined node');
+function shouldSkip(node) {
+  if (!node) throw new Error('shouldSkip called with null or undefined node');
   if (node.nodeType === Node.TEXT_NODE) return false; // Text nodes are never ignored
 
   if (node.nodeType === Node.ELEMENT_NODE) {
@@ -40,10 +40,20 @@ export function shouldIgnore(node) {
 
 const toMdHandlers = {};
 
-const toMdCtx = {
-  shouldIgnore,
-  toMdHandlers,
-};
+function toHtmlElemHandler(node, ctx) {
+  if (shouldSkip(node)) return { skip: true };
+  if (node.nodeType !== Node.ELEMENT_NODE) throw new Error('toHtmlElemHandler called with non-element node'); // shouldn't happen
+
+  return { skip: false, node: null };
+}
+
+export function toMd(node) {
+  return _toMd(node, { shouldSkip, handlers: toMdHandlers });
+}
+
+export function toHtml(node) {
+  return _toHtml(node, { elementHandler: toHtmlElemHandler });
+}
 
 class WikiNode {
   constructor(title, level, section) {
@@ -87,10 +97,10 @@ class WikiNode {
         if (!parentNode) { throw new Error(`Impossible. No parent found for section "${title}" at level ${level}`); }
         parentNode.addChild(currentNode);
       } else {
-        const htmlFrag = toHtml(htmlNode, { shouldIgnore });
+        const htmlFrag = toHtml(htmlNode);
         if (htmlFrag) {
-          currentNode.html.appendChild(toHtml(htmlNode, { shouldIgnore }));
-          currentNode.md += toMd(htmlNode, toMdCtx);
+          currentNode.html.appendChild(toHtml(htmlNode));
+          currentNode.md += toMd(htmlNode);
         }
       }
     }
@@ -243,6 +253,9 @@ html {
   --color-base: #202122;
   font-family: sans-serif;
   line-height: 1.625;
+}
+img {
+  vertical-align: middle;
 }
 .top-bar {
   <!-- display: flex; -->

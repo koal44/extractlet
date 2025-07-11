@@ -109,11 +109,8 @@ figure figcaption {
 `;
 
 export function toHtml(node, opts = {}) {
-  const {
-    shouldIgnore = () => false,
-  } = opts;
-
-  if (!node || shouldIgnore(node)) return null;
+  if (!node || !node.nodeType) return null;
+  const { elementHandler } = opts;
 
   if (node.nodeType === Node.TEXT_NODE) {
     return document.createTextNode(node.textContent);
@@ -123,13 +120,12 @@ export function toHtml(node, opts = {}) {
     return null;
   }
 
-  // display the original MathJax LaTeX content
-  if (node.tagName === 'SCRIPT') { // non-MathJax scripts have already been filtered out
-    const math = document.createElement('math');
-    math.textContent = node.textContent;
-    return math;
-  }
+  // handle site-specific elements
+  const result = elementHandler?.(node, opts);
+  if (result?.skip) return null;
+  if (result?.node) return result.node;
 
+  // --- default handling for HTML elements ---
   const clone = document.createElement(node.tagName.toLowerCase());
 
   const allowedStyles = ['display', 'clear']; // img styles for widhth/height???
@@ -199,10 +195,10 @@ export function toMd(node, ctx = {}) {
     quoteDepth = 0,
     lastChar = '',
     isRoot = true,
-    shouldIgnore = () => false,
+    shouldSkip = () => false,
   } = ctx;
 
-  if (!node || shouldIgnore(node) || node.nodeType !== Node.ELEMENT_NODE) return '';
+  if (!node || shouldSkip(node) || node.nodeType !== Node.ELEMENT_NODE) return '';
 
   function glueChildren(n, glueMode, ws = 'normal', { os = olStart, qd = quoteDepth, lc = lastChar } = {}) {
     const prevLc = lc;
