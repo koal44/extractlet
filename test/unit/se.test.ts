@@ -31,13 +31,13 @@ test('toHtml_test1', () => {
     </p>
   </div>`.trim();
   const result = toHtml(el(html));
-  const expected = el(`
+  const expected = `
     <div>
       <p>
         <a href="http://en.wikipedia.org/wiki/Tensor">Wikipedia</a> says that a linear transformation is a
         <math>(1,1)</math> tensor.
       </p>
-    </div>`);
+    </div>`;
   assertNodeEqual(result, expected);
 });
 

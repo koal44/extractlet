@@ -28,20 +28,19 @@
  * 
  */
 
-// eslint-disable-next-line no-unused-vars
-import { log, h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss } from './utils.js';
-import { baseCss, toHtml as _toHtml, toMd as _toMd } from './core.js';
+import { h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript } from './utils.js';
+import { baseCss, toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdHandler } from './core.js';
 
-function shouldSkip(node) {
+function shouldSkip(node: Node|null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
-  if (node.nodeType === Node.TEXT_NODE) return false; // Text nodes are never ignored
+  if (isText(node)) return false; // Text nodes are never skipped
 
-  if (node.nodeType === Node.ELEMENT_NODE) {
+  if (isElement(node)) {
     const id = node.id || '';
     const className = node.className || '';
     const aType = node.getAttribute('type') || '';
 
-    if (node.tagName === 'SCRIPT') {
+    if (isScript(node)) {
       const isLateX = /MathJax/.test(id) || aType.startsWith('math/tex');
       if (isLateX) return false;
       return true; 
@@ -59,7 +58,7 @@ function shouldSkip(node) {
   return true;
 }
 
-const toMdHandlers = {
+const toMdHandlers: Record<string, ToMdHandler> = {
   DIV(node, ctx, glueChildren) {
     let result;
     result = glueChildren(node, 'flat', 'normal');
@@ -88,11 +87,11 @@ const toMdHandlers = {
   },
   BLOCKQUOTE(node, ctx, glueChildren) {
     let result;
-    result = glueChildren(node, 'block', 'normal', { qd: ctx.quoteDepth + 1 });
+    result = glueChildren(node, 'block', 'normal', { qd: (ctx.quoteDepth ?? 0) + 1 });
     const isSpoiler = node.classList.contains('spoiler');
     const marker = isSpoiler ? '>!' : '>';
-    const bqPrefix = result.match(new RegExp('^\\n*'))[0];
-    const bqSuffix = result.match(/\n*$/)[0];
+    const bqPrefix = result.match(new RegExp('^\\n*'))?.[0] ?? '';
+    const bqSuffix = result.match(/\n*$/)?.[0] ?? '';
 
     result = result.slice(bqPrefix.length, result.length - bqSuffix.length);
     result = result.split('\n').map(line => `${marker} ${line}`).join('\n');
@@ -101,36 +100,36 @@ const toMdHandlers = {
   },
 };
 
-function toHtmlElemHandler(node, ctx) {
+function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
   if (shouldSkip(node)) return { skip: true };
-  if (node.nodeType !== Node.ELEMENT_NODE) throw new Error('toHtmlElemHandler called with non-element node'); // shouldn't happen
+  if (!isElement(node)) throw new Error('toHtmlElemHandler called with non-element node');
 
   // display the original MathJax LaTeX content
-  if (node.tagName === 'SCRIPT') { // non-MathJax scripts have already been filtered out
+  if (isScript(node)) { // non-MathJax scripts have already been filtered out
     const math = document.createElement('math');
     math.textContent = node.textContent;
     return { node: math };
   }
 
-  return { skip: false, node: null };
+  return {};
 }
 
-export function toMd(node) {
+export function toMd(node: Node|null) {
   return _toMd(node, { shouldSkip, handlers: toMdHandlers });
 }
 
-export function toHtml(node) {
+export function toHtml(node: Node|null) {
   return _toHtml(node, { elementHandler: toHtmlElemHandler });
 }
 
-function scrapeFallbackName(userNode) {
-  let name = userNode.querySelector(':scope > span[itemprop="name"]')?.textContent.trim() || '';
+function scrapeFallbackName(userNode:Element|null) {
+  let name = userNode?.querySelector(':scope > span[itemprop="name"]')?.textContent?.trim() ?? '';
 
   // fallback to text content if still no name
-  if (!name) {
+  if (!name && userNode) {
     for (const node of userNode.childNodes) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        name = node.textContent.trim();
+      if (isText(node)) {
+        name = node.textContent!.trim();
         if (name) break;
       }
     }
@@ -139,8 +138,8 @@ function scrapeFallbackName(userNode) {
   return { name, userId: -1, username: '' };
 }
 
-function scrapeUserInfo(userNode) {
-  const name = userNode?.textContent.trim() ?? '';
+function scrapeUserInfo(userNode:Element|null) {
+  const name = userNode?.textContent?.trim() ?? '';
   const href = userNode?.getAttribute('href');
   const match = href?.match(/\/users\/(\d+)/);
   const userId = match ? parseInt(match[1], 10) : -1;
@@ -149,19 +148,19 @@ function scrapeUserInfo(userNode) {
   return { name, userId, username };
 }
 
-export function scrapePostContributor(signatureNode) {
-  const timestamp = signatureNode.querySelector('.relativetime')?.getAttribute('title')?.split(',')[0].trim() ?? '';
-  const isOwner = signatureNode.classList.contains('owner'); // OP of the entire post
-  const contributorType = signatureNode.querySelector('.user-details')?.getAttribute('itemprop') === 'author' ? 'author' : 'editor';
-  const userNode = signatureNode.querySelector('.user-details a');
+export function scrapePostContributor(signatureNode:Element|null): Contributor {
+  const timestamp = signatureNode?.querySelector('.relativetime')?.getAttribute('title')?.split(',')[0].trim() ?? '';
+  const isOwner = signatureNode?.classList.contains('owner') ?? false; // OP of the entire post
+  const contributorType = signatureNode?.querySelector('.user-details')?.getAttribute('itemprop') === 'author' ? 'author' : 'editor';
+  const userNode = signatureNode?.querySelector('.user-details a');
   const userInfo = userNode
     ? scrapeUserInfo(userNode)
-    : scrapeFallbackName(signatureNode.querySelector('.user-details'));
+    : scrapeFallbackName(signatureNode?.querySelector('.user-details') ?? null);
 
   return { contributorType, isOwner, timestamp, ...userInfo };
 }
 
-function scrapeCommentContributor(commentItem) {
+function scrapeCommentContributor(commentItem:Element): Contributor {
   const timestamp = commentItem.querySelector('.relativetime-clean')?.getAttribute('title')?.split(',')[0].trim() ?? '';
   const userNode = commentItem.querySelector('a.comment-user');
   const { name, userId, username } = scrapeUserInfo(userNode);
@@ -169,15 +168,15 @@ function scrapeCommentContributor(commentItem) {
   return { contributorType: 'commenter', isOwner: false, timestamp, name, userId, username };
 }
 
-function scrapePostVote(postLayout) {
-  const voteNode = postLayout.querySelector('div.votecell div[itemprop="upvoteCount"]');
+function scrapePostVote(postLayout:Element) {
+  const voteNode = postLayout.querySelector('div.votecell div[itemprop="upvoteCount"]') as HTMLDivElement | null;
   const vote = voteNode?.dataset?.value ?? voteNode?.textContent ?? '';
   const n = parseInt(vote.trim(), 10);
 
   return Number.isFinite(n) ? n : 0;
 }
 
-function scrapeCommentVote(commentItem) {
+function scrapeCommentVote(commentItem:Element) {
   const scoreNode = commentItem.querySelector('div.comment-score span');
   const vote = scoreNode?.textContent ?? '';
   const n = parseInt(vote.trim(), 10);
@@ -185,9 +184,33 @@ function scrapeCommentVote(commentItem) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function scrapePosts(root) {
+type Contributor = {
+  contributorType: 'author'|'editor'|'commenter';
+  isOwner: boolean;
+  timestamp: string;
+  name: string;
+  userId: number;
+  username: string;
+}
+
+type Comment = {
+  bodyHtml: Node | null;
+  bodyMd: string;
+  contributors: Contributor[];
+  vote: number;
+}
+
+type Post = {
+  bodyHtml: Node | null;
+  bodyMd: string;
+  contributors: Contributor[];
+  comments: Comment[];
+  vote: number;
+}
+
+function scrapePosts(root:Document): Post[] {
   const postLayouts = root.querySelectorAll('.post-layout');
-  const posts = [];
+  const posts:Post[] = [];
 
   postLayouts.forEach(postLayout => {
     // Extract post body
@@ -221,12 +244,18 @@ function scrapePosts(root) {
   return posts;
 }
 
-function scrapePermaLink(root) {
+function scrapePermaLink(root:Document): HTMLAnchorElement|null {
   const qLink = root.querySelector('#question-header a.question-hyperlink');
-  return toHtml(qLink);
+  const clone = toHtml(qLink);
+  return isAnchor(clone) ? clone : null;
 }
 
-function buildCopyButton(doc, pageData, postIdx = -1) {
+type PageData = {
+  permaLink: HTMLAnchorElement|null;
+  posts: Post[];
+}
+
+function buildCopyButton(doc:Document, pageData:PageData, postIdx = -1) {
   const responseTxt =
     postIdx === -1 ? 'Copied All!' :
     postIdx ===  0 ? 'Copied Question!' :
@@ -244,8 +273,8 @@ function buildCopyButton(doc, pageData, postIdx = -1) {
 
     if (pageData.permaLink) {
       copyArr.push(
-        `Title: ${pageData.permaLink.textContent.trim()}`,
-        `URL:   ${pageData.permaLink.getAttribute('href')}\n`);
+        `Title: ${pageData.permaLink?.textContent?.trim()}`,
+        `URL:   ${pageData.permaLink?.getAttribute('href')}\n`);
     }
   }
 
@@ -272,7 +301,7 @@ function buildCopyButton(doc, pageData, postIdx = -1) {
   return createCopyButton(doc, copyTxt, responseTxt);
 }
 
-function buildContribsAndVotes(contributors, voteCount) {
+function buildContribsAndVotes(contributors:Contributor[], voteCount:number): string {
   if (!contributors || contributors.length === 0) return '';
 
   // Sort once, newest first
@@ -280,7 +309,7 @@ function buildContribsAndVotes(contributors, voteCount) {
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
-  const selected = [];
+  const selected:Contributor[] = [];
 
   // Find most recent owner (if any), and treat as author
   const owner = contribsSorted.find(c => c.isOwner);
@@ -337,8 +366,8 @@ function buildContribsAndVotes(contributors, voteCount) {
   return `[[ ${contribsText} | ${voteText} ]]`;
 }
 
-function buildPosts(data, doc) {
-  const div = h('div', { class: 'posts' });
+function buildPosts(data:PageData, doc:Document): HTMLElement {
+  const div = h('div', { class: 'posts' }) as HTMLDivElement;
   data.posts.forEach(function(post, idx) {
     const postNode = h('div', { class: 'post' });
     div.appendChild(postNode);
@@ -355,14 +384,15 @@ function buildPosts(data, doc) {
   return div;
 }
 
-function buildPostView(post, viewMode) {
-  const modes = {
+function buildPostView(post:Post, viewMode:'html'|'md'): HTMLDivElement {
+  const modes:Record<'html'|'md', { key:'bodyHtml'|'bodyMd'; class:string }> = {
     html: { key: 'bodyHtml', class: 'html-view' },
     md:   { key: 'bodyMd',   class: 'md-view'   },
   };
-  const mode = modes[viewMode] ?? (() => { throw new Error(`Invalid viewMode: ${viewMode}`); })();
+  const mode = modes[viewMode];
 
-  const bodyDiv = h('div', { class: 'post-body' }, post[mode.key]);
+  const postBody = post[mode.key] ?? '';
+  const bodyDiv = h('div', { class: 'post-body' }, postBody);
   const postContribs = buildContribsAndVotes(post.contributors, post.vote);
   const postContribsDiv = h('div', { class: 'post-contribs' }, `${postContribs}`);
 
@@ -371,14 +401,14 @@ function buildPostView(post, viewMode) {
     const commentHeading = h('h4', { class: 'comment-heading' }, `Comment ${commentIdx + 1}`);
     const commentContrib = buildContribsAndVotes(comment.contributors, comment.vote);
     const commentContribSpan = h('span', { class: 'comment-contrib' }, ` ${commentContrib}`);
-    const commentBody = comment[mode.key];
+    const commentBody = comment[mode.key] ?? '';
     const commentBodyDiv = h('div', { class: 'comment-body' }, commentBody, commentContribSpan);
 
     commentsDiv.appendChild(commentHeading);
     commentsDiv.appendChild(commentBodyDiv);
   });
 
-  return h('div', { class: mode.class }, bodyDiv, postContribsDiv, commentsDiv);
+  return h('div', { class: mode.class }, bodyDiv, postContribsDiv, commentsDiv) as HTMLDivElement;
 }
 
 const seCss = /* css */ `

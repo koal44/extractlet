@@ -20,10 +20,16 @@
  * 
  */
 
-import { log, h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, escapeRegExp } from './utils.js';
-import { baseCss, toHtml as _toHtml, toMd as _toMd } from './core.js';
+import { log, h, injectCss, createMultiToggle, multiToggleCss, escapeRegExp, isElement, isDiv, isHeading } from './utils.js';
+import { baseCss, toHtml as _toHtml, toMd as _toMd, ToMdHandler, ToHtmlOptions } from './core.js';
 
-function shouldSkip(node) {
+declare global {
+  interface Window {
+    exampleRaw?: string;
+  }
+}
+
+function shouldSkip(node: Node|null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
   if (node.nodeType === Node.TEXT_NODE) return false; // Text nodes are never ignored
 
@@ -38,39 +44,47 @@ function shouldSkip(node) {
   return true;
 }
 
-const toMdHandlers = {};
+const toMdHandlers: Record<string, ToMdHandler> = {}
 
-function toHtmlElemHandler(node, ctx) {
+function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
   if (shouldSkip(node)) return { skip: true };
   if (node.nodeType !== Node.ELEMENT_NODE) throw new Error('toHtmlElemHandler called with non-element node'); // shouldn't happen
 
-  return { skip: false, node: null };
+  return {};
 }
 
-export function toMd(node) {
+export function toMd(node: Node|null) {
   return _toMd(node, { shouldSkip, handlers: toMdHandlers });
 }
 
-export function toHtml(node) {
+export function toHtml(node: Node|null) {
   return _toHtml(node, { elementHandler: toHtmlElemHandler });
 }
 
 class WikiNode {
-  constructor(title, level, section) {
+  title: string; // Title of this section
+  level: number; // 1 = <h1>, 2 = <h2>, etc.
+  section: number; // Section number, starting from 1
+  html: HTMLDivElement; // HTML content of this section
+  md: string; // Markdown content of this section
+  raw: string; // Raw text content of this section
+  children: WikiNode[]; // Child sections
+
+  constructor(title:string, level:number, section:number) {
     this.title = title;
-    this.level = level; // 2 = <h2>, 3 = <h3>, etc.
+    this.level = level;
     this.section = section;
-    this.html = h('div', { class: 'wiki-node' });
+    this.html = h('div', { class: 'wiki-node' }) as HTMLDivElement;
     this.md = '';
     this.raw = '';
     this.children = [];
   }
 
-  static buildFromHTML(root) {
+  static buildFromHTML(root:Document): WikiNode {
     if (!root || !root.querySelector) {
       throw new Error('Invalid root element provided for WikiNode.buildFromHTML');
     }
-    const title = root.querySelector('h1#firstHeading > span')?.textContent.trim() || '';
+    const title = root.querySelector('h1#firstHeading > span')?.textContent?.trim() ?? '';
     if (!title) {
       throw new Error('No title found in the provided root element');
     }
@@ -78,11 +92,12 @@ class WikiNode {
     let curSection = 0;
     let currentNode = rootNode;
 
-    for (const htmlNode of root.querySelector('div#mw-content-text > div').childNodes) {
+    for (const htmlNode of root.querySelector('div#mw-content-text > div')?.childNodes ?? []) {
+      if (!isElement(htmlNode)) continue;
       const firstChild = htmlNode.children?.[0];
-      if (htmlNode.tagName === 'DIV' && /^H[2-6]$/.test(firstChild?.tagName)) {
+      if (isDiv(htmlNode) && isHeading(firstChild)) {
         const level = parseInt(firstChild.tagName[1]);
-        const title = firstChild.textContent.trim();
+        const title = firstChild.textContent?.trim() ?? '';
         curSection++;
         currentNode = new WikiNode(title, level, curSection);
 
@@ -99,7 +114,7 @@ class WikiNode {
       } else {
         const htmlFrag = toHtml(htmlNode);
         if (htmlFrag) {
-          currentNode.html.appendChild(toHtml(htmlNode));
+          currentNode.html.appendChild(htmlFrag);
           currentNode.md += toMd(htmlNode);
         }
       }
@@ -107,33 +122,33 @@ class WikiNode {
     return rootNode;
   }
   
-  addChild(section) {
+  addChild(section:WikiNode) {
     this.children.push(section);
   }
 
-  *[Symbol.iterator]() {
+  *[Symbol.iterator](): Generator<WikiNode, void, unknown> {
     yield this;
     for (const child of this.children) {
       yield* child;
     }
   }
 
-  find(fn) {
+  find(fn: (node: WikiNode) => boolean): WikiNode | null {
     for (const node of this) {
       if (fn(node)) return node;
     }
     return null;
   }
 
-  getNodeBySection(section) {
+  getNodeBySection(section:number) {
     return this.find(n => n.section === section);
   }
 
-  getNodeByTitle(title) {
+  getNodeByTitle(title:string) {
     return this.find(n => n.title === title);
   }
 
-  getLastNodeByLevel(level) {
+  getLastNodeByLevel(level:number): WikiNode|null {
     if (this.level === level) return this;
     for (let i = this.children.length - 1; i >= 0; i--) {
       const found = this.children[i].getLastNodeByLevel(level);
@@ -180,7 +195,7 @@ class WikiNode {
     return out;
   }
 
-  populateRaw(rawText) {
+  populateRaw(rawText:string): void {
     const marker = '='.repeat(this.level);
     const title = this.title.trim();
 
@@ -211,14 +226,14 @@ class WikiNode {
 
 }
 
-function getBaseAndRawUrl(root) {
-  const baseUrl = root.querySelector('link[rel="canonical"]')?.href || '';
+function getBaseAndRawUrl(root:Document): { baseUrl: string; rawUrl: string } {
+  const baseLink = root.querySelector('link[rel="canonical"]') as HTMLLinkElement|null
+  const baseUrl = baseLink?.href ?? '';
 
-  const altLink = root.querySelector('link[rel="alternate"][type="application/x-wiki"]');
+  const altLink = root.querySelector('link[rel="alternate"][type="application/x-wiki"]') as HTMLLinkElement|null;
   let rawUrl = altLink?.href.includes('action=edit')
     ? altLink.href.replace(/action=edit$/, 'action=raw')
     : '';
-  
   if (!rawUrl) {
     const baseTitle = baseUrl.match(/\/wiki\/([^#?]+)/)?.[1] || '';
     const baseDomain = baseUrl.match(/^https?:\/\/[^/]+/)?.[0] || 'https://en.wikipedia.org';
@@ -230,7 +245,8 @@ function getBaseAndRawUrl(root) {
   return { baseUrl, rawUrl };
 }
 
-async function fetchRawPage(rawUrl) {
+
+async function fetchRawPage(rawUrl: string): Promise<string> {
   // override for local testing
   if (location.protocol === 'file:' && typeof window['exampleRaw'] === 'string') {
     log('[fetchRawPage] Using local override for exampleRaw');

@@ -5,21 +5,25 @@
   "gistUrl": "https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d",
   "main": "build.js",
   "scripts": {
-    "build": "node build.js",
-    "test": "node --env-file=.env --test --test-reporter=spec test/unit/*.test.js",
+    "build": "tsx build.ts",
+    "single-test": "tsx --env-file=.env --test --test-reporter=spec --test-name-pattern=toHtml_spacing_challenges test/unit/core.test.ts",
+    "test": "tsx --env-file=.env --test --test-reporter=spec test/unit/*.test.ts",
     "watch": "npm-watch"
   },
   "watch": {
     "build": {
       "patterns": [
-        "src/*.js",
-        "build.js"
-      ]
+        "src/*.ts",
+        "build.ts"
+      ],
+      "extensions": "ts"
     },
     "test": {
       "patterns": [
-        "test/unit/*.test.js"
-      ]
+        "test/unit/*.test.ts",
+        "test/unit/test-utils.ts"
+      ],
+      "extensions": "ts"
     }
   },
   "keywords": [
@@ -40,9 +44,14 @@
   "license": "MIT",
   "type": "module",
   "devDependencies": {
-    "@eslint/js": "^9.29.0",
+    "@eslint/js": "^9.31.0",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/js-string-escape": "^1.0.3",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^24.0.13",
     "better-sqlite3": "^12.1.1",
-    "eslint": "^9.29.0",
+    "eslint": "^9.31.0",
     "glob": "^11.0.3",
     "globals": "^16.2.0",
     "js-string-escape": "^1.0.1",
@@ -50,7 +59,11 @@
     "npm-watch": "^0.13.0",
     "prettier": "^3.6.2",
     "rollup": "^4.44.1",
-    "terser": "^5.42.0"
+    "terser": "^5.42.0",
+    "tslib": "^2.8.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0"
   },
   "dependencies": {
     "npm": "^11.4.2"
