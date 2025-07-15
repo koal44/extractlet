@@ -7,37 +7,37 @@ setupDom();
 
 test('toHtml_test1', () => {
   const html = `
-  <div class="s-prose js-post-body" itemprop="text">
-    <p>
-      <a href="http://en.wikipedia.org/wiki/Tensor">Wikipedia</a> says that a linear transformation is a 
-      <span class="MathJax_Preview"></span>
-      <span class="MathJax" id="MathJax-Element-3-Frame">
-        <nobr aria-hidden="true">
-          <span class="math" id="MathJax-Span-10">
+    <div class="s-prose js-post-body" itemprop="text">
+      <p>
+        <a href="http://en.wikipedia.org/wiki/Tensor">Wikipedia</a> says that a linear transformation is a 
+        <span class="MathJax_Preview"></span>
+        <span class="MathJax" id="MathJax-Element-3-Frame">
+          <nobr aria-hidden="true">
+            <span class="math" id="MathJax-Span-10">
+            </span>
+          </nobr>
+          <span class="MJX_Assistive_MathML" role="presentation">
+            <math
+            xmlns="http://www.w3.org/1998/Math/MathML">
+            <mo stretchy="false">(</mo>
+            <mn>1</mn>
+            <mo>,</mo>
+            <mn>1</mn>
+            <mo stretchy="false">)</mo>
+            </math>
           </span>
-        </nobr>
-        <span class="MJX_Assistive_MathML" role="presentation">
-          <math
-          xmlns="http://www.w3.org/1998/Math/MathML">
-          <mo stretchy="false">(</mo>
-          <mn>1</mn>
-          <mo>,</mo>
-          <mn>1</mn>
-          <mo stretchy="false">)</mo>
-          </math>
         </span>
-      </span>
-      <script type="math/tex" id="MathJax-Element-3">(1,1)</script> tensor.
-    </p>
-  </div>`.trim();
+        <script type="math/tex" id="MathJax-Element-3">(1,1)</script> tensor.
+      </p>
+    </div>`.trim();
   const result = toHtml(el(html));
   const expected = `
     <div>
       <p>
-        <a href="http://en.wikipedia.org/wiki/Tensor">Wikipedia</a> says that a linear transformation is a
+        <a href="http://en.wikipedia.org/wiki/Tensor">Wikipedia</a> says that a linear transformation is a \n        \n        
         <math>(1,1)</math> tensor.
       </p>
-    </div>`;
+    </div>`.trim();
   assertNodeEqual(result, expected);
 });
 
@@ -49,9 +49,16 @@ test('toHtml_mathjax_script', () => {
         <script type="math/tex">(x+y)^2</script>
         is the formula.
       </p>
-    </div>`;
+    </div>`.trim();
   const result = toHtml(el(html));
-  const expected = '<div><p>Result: <math>(x+y)^2</math> is the formula.</p></div>';
+  const expected = `
+    <div>
+      <p>
+        Result:
+        <math>(x+y)^2</math>
+        is the formula.
+      </p>
+    </div>`.trim();
   assertNodeEqual(result, expected);
 });
 
@@ -70,28 +77,48 @@ test('toMd_converts_spoiler_blockquote_to_markdown', () => {
 });
 
 test('toHtml_snippets', () => {
-  const html = `<div><p>check this out!</p>
-<p><div class="snippet"><div class="snippet-code"><pre class="prettyprint-override lang-js snippet-code-js"><code>document.getElementById('btn').addEventListener('click', () =&gt; {
+  const html = `
+<div>
+  <p>check this out!</p>
+  <p>
+    <div class="snippet">
+      <div class="snippet-code">
+        <pre class="prettyprint-override lang-js snippet-code-js"><code>document.getElementById('btn').addEventListener('click', () =&gt; {
   const box = document.getElementById('greeting');
   box.textContent = 'You clicked the button!';
   box.style.backgroundColor = '#c0ffc0';
-});</code></pre><pre class="prettyprint-override lang-css snippet-code-css"><code>.box {
+});</code></pre>
+        <pre class="prettyprint-override lang-css snippet-code-css"><code>.box {
   padding: 10px;
   background-color: lightblue;
   border: 1px solid #888;
   font-family: sans-serif;
   margin-bottom: 10px;
-}</code></pre><pre class="prettyprint-override lang-html snippet-code-html"><code>&lt;div id="greeting" class="box"&gt;Hello, world!&lt;/div&gt;
-&lt;button id="btn"&gt;Change Greeting&lt;/button&gt;</code></pre><div class="snippet-result"><div class="snippet-ctas d-flex ai-center"><div class="d-flex gs4"><button type="button" class="s-btn s-btn__filled flex--item"><svg aria-hidden="true" class="svg-icon iconPlay" width="17" height="18" viewBox="0 0 17 18"><path d="M3 2.87a1 1 0 0 1 1.55-.83l9.2 6.13a1 1 0 0 1 0 1.66l-9.2 6.13A1 1 0 0 1 3 15.13z"></path></svg><span> Run code snippet</span></button><button type="button" class="s-btn s-btn__outlined flex--item js-edit-snippet" style="">Edit code snippet</button></div><div class="d-flex ml-auto gs4"><button type="button" class="s-btn flex--item js-show-hide-results" style="display: none;"><svg aria-hidden="true" class="svg-icon iconEyeOff" width="18" height="18" viewBox="0 0 18 18"><path d="m5.02 9.44-2.22 2.2C1.63 10.25 1 9 1 9s3-6 8.06-6q1.13.01 2.12.38L9.5 5.03 9 5a4 4 0 0 0-3.98 4.44m2.03 3.05A4 4 0 0 0 13 9q-.01-1.1-.54-2l-1.51 1.54q.05.22.05.46a2 2 0 0 1-2.44 1.95zm7.11-7.22A15 15 0 0 1 17 9s-3 6-7.94 6c-1.31 0-2.48-.4-3.5-1l-1.97 2L2 14.41 14.59 2 16 3.41z"></path></svg><span> Hide Results</span></button><button type="button" class="s-btn flex--item copySnippet" style="display: none;"><svg aria-hidden="true" class="svg-icon iconCopy" width="17" height="18" viewBox="0 0 17 18"><path d="M5 6c0-1.09.91-2 2-2h4.5L15 7.5V15c0 1.09-.91 2-2 2H7c-1.09 0-2-.91-2-2zm6-1.25V8h3.25z"></path><path d="M10 1a2 2 0 0 1 2 2H6a2 2 0 0 0-2 2v9a2 2 0 0 1-2-2V4a3 3 0 0 1 3-3z" opacity=".4"></path></svg><span> Copy</span></button><button type="button" class="s-btn flex--item snippet-expand-link popout-code"><svg aria-hidden="true" class="svg-icon iconShareSm" width="14" height="14" viewBox="0 0 14 14"><path d="M5 1H3a2 2 0 0 0-2 2v8c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V9h-2v2H3V3h2zm2 0h6v6h-2V4.5L6.5 9 5 7.5 9.5 3H7z"></path></svg><span> Expand</span></button></div></div><div class="snippet-result-code" style="display: none;"><iframe name="sif96" sandbox="allow-forms allow-modals allow-scripts" class="snippet-box-edit snippet-box-result" frameborder="0"></iframe></div></div></div></div></p>
-<p></p>
+}</code></pre>
+        <pre class="prettyprint-override lang-html snippet-code-html"><code>&lt;div id="greeting" class="box"&gt;Hello, world!&lt;/div&gt;
+&lt;button id="btn"&gt;Change Greeting&lt;/button&gt;</code></pre>
+        <div class="snippet-result">
+          <div class="snippet-ctas d-flex ai-center">
+            <div class="d-flex gs4"><button type="button" class="s-btn s-btn__filled flex--item"><svg aria-hidden="true" class="svg-icon iconPlay" width="17" height="18" viewBox="0 0 17 18"><path d="M3 2.87a1 15.13z"></path></svg><span> Run code snippet</span></button><button type="button" class="s-btn s-btn__outlined flex--item js-edit-snippet" style="">Edit code snippet</button>
+            </div>
+            <div class="d-flex ml-auto gs4"><button type="button" class="s-btn flex--item js-show-hide-results" style="display: none;"><svg aria-hidden="true" class="svg-icon iconEyeOff" width="18" height="18" viewBox="0 0 18 18"><path d="m5.02 16 3.41z"></path></svg><span> Hide Results</span></button><button type="button" class="s-btn flex--item copySnippet" style="display: none;"><svg aria-hidden="true" class="svg-icon iconCopy" width="17" height="18" viewBox="0 0 17 18"><path d="M5 6c0-1.25V8h3.25z"></path><path d="M10 1a2-3z" opacity=".4"></path></svg><span> Copy</span></button><button type="button" class="s-btn flex--item snippet-expand-link popout-code"><svg aria-hidden="true" class="svg-icon iconShareSm" width="14" height="14" viewBox="0 0 14 14"><path d="M5 3H7z"></path></svg><span> Expand</span></button>
+            </div>
+          </div>
+          <div class="snippet-result-code" style="display: none;"><iframe name="sif96" sandbox="allow-forms allow-modals allow-scripts" class="snippet-box-edit snippet-box-result" frameborder="0"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </p>
+  <p></p>
 </div>`;
 
-  const result = toHtml(el(html));
+  const actual = toHtml(el(html));
   const expected =`
 <div>
   <p>check this out!</p>
-  <p></p>
-    <div>
+  <p>
+    </p><div>
       <div>
         <pre><code>document.getElementById('btn').addEventListener('click', () =&gt; {
   const box = document.getElementById('greeting');
@@ -107,13 +134,14 @@ test('toHtml_snippets', () => {
 }</code></pre>
         <pre><code>&lt;div id="greeting" class="box"&gt;Hello, world!&lt;/div&gt;
 &lt;button id="btn"&gt;Change Greeting&lt;/button&gt;</code></pre>
+        
       </div>
     </div>
   <p></p>
   <p></p>
-</div>`;
+</div>`.trim();
 
-  assertNodeEqual(result, expected);
+  assertNodeEqual(actual, expected);
 });
 
 test('toMd_snippets', () => {
@@ -192,12 +220,32 @@ console.log(y);
 });
 
 test('toHtml_js_snippet', () => {
-  const html = `<div class="s-prose py16 js-md-preview"><p>jstime, baby!</p>
-<p><div class="snippet"><div class="snippet-code"><pre class="prettyprint-override lang-js snippet-code-js"><code>const x = 2;
+  const html = `
+<div class="s-prose py16 js-md-preview">
+  <p>jstime, baby!</p>
+  <p>
+    <div class="snippet">
+      <div class="snippet-code">
+        <pre class="prettyprint-override lang-js snippet-code-js"><code>
+const x = 2;
 const y = 3**2;
-console.log(y);</code></pre><div class="snippet-result"><div class="snippet-ctas d-flex ai-center"><div class="d-flex gs4"><button type="button" class="s-btn s-btn__filled flex--item"><svg aria-hidden="true" class="svg-icon iconPlay" width="17" height="18" viewBox="0 0 17 18"><path d="M3 2.87a1 1 0 0 1 1.55-.83l9.2 6.13a1 1 0 0 1 0 1.66l-9.2 6.13A1 1 0 0 1 3 15.13z"></path></svg><span> Run code snippet</span></button><button type="button" class="s-btn s-btn__outlined flex--item js-edit-snippet" style="">Edit code snippet</button></div><div class="d-flex ml-auto gs4"><button type="button" class="s-btn flex--item js-show-hide-results" style=""><svg aria-hidden="true" class="svg-icon iconEyeOff" width="18" height="18" viewBox="0 0 18 18"><path d="m5.02 9.44-2.22 2.2C1.63 10.25 1 9 1 9s3-6 8.06-6q1.13.01 2.12.38L9.5 5.03 9 5a4 4 0 0 0-3.98 4.44m2.03 3.05A4 4 0 0 0 13 9q-.01-1.1-.54-2l-1.51 1.54q.05.22.05.46a2 2 0 0 1-2.44 1.95zm7.11-7.22A15 15 0 0 1 17 9s-3 6-7.94 6c-1.31 0-2.48-.4-3.5-1l-1.97 2L2 14.41 14.59 2 16 3.41z"></path></svg><span> Hide results</span></button><button type="button" class="s-btn flex--item copySnippet" style="display: none;"><svg aria-hidden="true" class="svg-icon iconCopy" width="17" height="18" viewBox="0 0 17 18"><path d="M5 6c0-1.09.91-2 2-2h4.5L15 7.5V15c0 1.09-.91 2-2 2H7c-1.09 0-2-.91-2-2zm6-1.25V8h3.25z"></path><path d="M10 1a2 2 0 0 1 2 2H6a2 2 0 0 0-2 2v9a2 2 0 0 1-2-2V4a3 3 0 0 1 3-3z" opacity=".4"></path></svg><span> Copy</span></button><button type="button" class="s-btn flex--item snippet-expand-link popout-code"><svg aria-hidden="true" class="svg-icon iconShareSm" width="14" height="14" viewBox="0 0 14 14"><path d="M5 1H3a2 2 0 0 0-2 2v8c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V9h-2v2H3V3h2zm2 0h6v6h-2V4.5L6.5 9 5 7.5 9.5 3H7z"></path></svg><span> Expand</span></button></div></div><div class="snippet-result-code" style=""><iframe name="sif41" sandbox="allow-forms allow-modals allow-scripts" class="snippet-box-edit snippet-box-result" frameborder="0"></iframe></div></div></div></div></p>
-<p></p>
-</div>`;
+console.log(y);
+        </code></pre>
+        <div class="snippet-result">
+          <div class="snippet-ctas d-flex ai-center">
+            <div class="d-flex gs4"><button type="button" class="s-btn s-btn__filled flex--item"><svg aria-hidden="true" class="svg-icon iconPlay" width="17" height="18" viewBox="0 0 17 18"><path d="M3 15.13z"></path></svg><span> Run code snippet</span></button><button type="button" class="s-btn s-btn__outlined flex--item js-edit-snippet" style="">Edit code snippet</button>
+            </div>
+            <div class="d-flex ml-auto gs4"><button type="button" class="s-btn flex--item js-show-hide-results" style=""><svg aria-hidden="true" class="svg-icon iconEyeOff" width="18" height="18" viewBox="0 0 18 18"><path d="m5.02 3.41z"></path></svg><span> Hide results</span></button><button type="button" class="s-btn flex--item copySnippet" style="display: none;"><svg aria-hidden="true" class="svg-icon iconCopy" width="17" height="18" viewBox="0 1.25V8h3.25z"></path><path d="M10 1a2-3z" opacity=".4"></path></svg><span> Copy</span></button><button type="button" class="s-btn flex--item snippet-expand-link popout-code"><svg aria-hidden="true" class="svg-icon iconShareSm" width="14" height="14" viewBox="0 0 14 14"><path d="M5 3H7z"></path></svg><span> Expand</span></button>
+            </div>
+          </div>
+          <div class="snippet-result-code" style=""><iframe name="sif41" sandbox="allow-forms allow-modals allow-scripts" class="snippet-box-edit snippet-box-result" frameborder="0"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </p>
+  <p></p>
+</div>`.trim();
 
   const result = toHtml(el(html));
 
@@ -205,15 +253,15 @@ console.log(y);</code></pre><div class="snippet-result"><div class="snippet-ctas
   const expected = `
 <div>
   <p>jstime, baby!</p>
-  <p></p>
-    <div>
+  <p>
+    </p><div>
       <div>
-        <pre>
-          <code>const x = 2;
+        <pre><code>
+const x = 2;
 const y = 3**2;
 console.log(y);
-          </code>
-        </pre>
+        </code></pre>
+        
       </div>
     </div>
   <p></p>

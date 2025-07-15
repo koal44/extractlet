@@ -111,5 +111,5 @@
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
   //"include": ["src/**/*", "test/**/*.js", "test/unit/core.test.ts", "test/unit/se.test.ts", "test/unit/wiki.test.ts", "test/unit/test-utils.ts"],
-  "exclude": ["node_modules", "dist", "**/gen/**"]
+  "exclude": ["node_modules", "dist", "**/gen/**", "test/scratchpad.ts"]
 }

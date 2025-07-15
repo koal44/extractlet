@@ -1,6 +1,6 @@
 import { JSDOM } from 'jsdom';
 import { strictEqual } from 'node:assert';
-import { isElement, isNode } from '../../src/utils';
+import { escapeHtml, isElement, isHTMLElement, isNode, isText } from '../../src/utils';
 
 export function setupDom() {
   const dom = new JSDOM();
@@ -20,21 +20,58 @@ export function setupDom() {
 // This ensures tests will fail if src code relies on instanceof checks.
 export function el(html: string, selector = 'body > *'): Element | null {
   // document.body.innerHTML = html;
-  const dom = new JSDOM(html);;
+  // return document.querySelector(selector);
+
+  const dom = new JSDOM(html);
   return dom.window.document.querySelector(selector);
 }
 
-export function assertNodeEqual(a:Node|string|null, b:Node|string|null) {
-  function html(x:Node|string|null): string {
-    if (x === null || x === undefined) return '';
-    if (typeof x === 'string') return x;
-    if (isElement(x)) return x.outerHTML;
-    if (isNode(x)) return x.textContent || '';
-    return String(x);
+export function assertNodeEqual(actual:Node|string|null, expected:Node|string|null) {
+  const actualHtml = htmlify(actual); //.replace(/\s+/g, '');
+  const expectedHtml = htmlify(expected); //.replace(/\s+/g, '');
+
+  strictEqual(actualHtml, expectedHtml);
+}
+
+export function htmlify(el: Node|string|null|undefined): string {
+  if (el === null || el === undefined) return '';
+  if (typeof el === 'string') return el;
+  if (isElement(el)) {
+    const tag = el.tagName.toLowerCase();
+    const attrs: string[] = [];
+    const sorted = [...el.attributes].sort((a, b) => a.name.localeCompare(b.name));
+    for (const { name, value } of sorted) {
+      let val = value;
+
+      switch (name) {
+        case 'class':
+          if (el.classList.length > 0) {
+            val = [...el.classList].sort().join(' ');
+          }
+          break;
+        case 'style':
+          if (isHTMLElement(el) && el.style.length > 0) {
+            val = Array.from(el.style)
+              .sort()
+              .map(k => `${k}: ${el.style.getPropertyValue(k)};`)
+              .join(' ');
+          }
+          break;
+        default:
+          val = value;
+      }
+
+      attrs.push(`${name}="${val}"`);
+    }
+    const attrString = attrs.length ? ' ' + attrs.join(' ') : '';
+    const children = [...el.childNodes].map(child => htmlify(child)).join('');
+    return `<${tag}${attrString}>${children}</${tag}>`;
   }
-
-  const aHtml = html(a).replace(/\s+/g, '');
-  const bHtml = html(b).replace(/\s+/g, '');
-
-  strictEqual(aHtml, bHtml);
+  if (isText(el)) {
+    return escapeHtml(el.textContent || '');
+  }
+  if (isNode(el)) {
+    return escapeHtml(el.textContent || '');
+  }
+  return String(el);
 }

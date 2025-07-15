@@ -31,6 +31,35 @@
 import { h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript } from './utils.js';
 import { baseCss, toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdHandler } from './core.js';
 
+type Contributor = {
+  contributorType: 'author'|'editor'|'commenter';
+  isOwner: boolean;
+  timestamp: string;
+  name: string;
+  userId: number;
+  username: string;
+}
+
+type Comment = {
+  bodyHtml: Node | null;
+  bodyMd: string;
+  contributors: Contributor[];
+  vote: number;
+}
+
+type Post = {
+  bodyHtml: Node | null;
+  bodyMd: string;
+  contributors: Contributor[];
+  comments: Comment[];
+  vote: number;
+}
+
+type PageData = {
+  permaLink: HTMLAnchorElement|null;
+  posts: Post[];
+}
+
 function shouldSkip(node: Node|null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
   if (isText(node)) return false; // Text nodes are never skipped
@@ -184,30 +213,6 @@ function scrapeCommentVote(commentItem:Element) {
   return Number.isFinite(n) ? n : 0;
 }
 
-type Contributor = {
-  contributorType: 'author'|'editor'|'commenter';
-  isOwner: boolean;
-  timestamp: string;
-  name: string;
-  userId: number;
-  username: string;
-}
-
-type Comment = {
-  bodyHtml: Node | null;
-  bodyMd: string;
-  contributors: Contributor[];
-  vote: number;
-}
-
-type Post = {
-  bodyHtml: Node | null;
-  bodyMd: string;
-  contributors: Contributor[];
-  comments: Comment[];
-  vote: number;
-}
-
 function scrapePosts(root:Document): Post[] {
   const postLayouts = root.querySelectorAll('.post-layout');
   const posts:Post[] = [];
@@ -248,11 +253,6 @@ function scrapePermaLink(root:Document): HTMLAnchorElement|null {
   const qLink = root.querySelector('#question-header a.question-hyperlink');
   const clone = toHtml(qLink);
   return isAnchor(clone) ? clone : null;
-}
-
-type PageData = {
-  permaLink: HTMLAnchorElement|null;
-  posts: Post[];
 }
 
 function buildCopyButton(doc:Document, pageData:PageData, postIdx = -1) {
@@ -483,7 +483,7 @@ export function runBookmarklet(root = document) {
   const permaLink = scrapePermaLink(root);
   const pageData = { permaLink, posts };
 
-  const win = window.open('', '_blank', '');
+  const win = window.open('', 'extractlet_se', '');
   if (!win) {
     alert('Failed to open new window. Please allow pop-ups for this site.');
     return;

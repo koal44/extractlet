@@ -4,13 +4,14 @@
 
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import noOnlyTests from 'eslint-plugin-no-only-tests';
 
 export default tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.recommended,
   {
     files: ['**/*.ts'],
-    plugins: { '@typescript-eslint': tseslint.plugin },
+    plugins: { '@typescript-eslint': tseslint.plugin, 'no-only-tests': noOnlyTests },
     rules: {
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
@@ -22,7 +23,7 @@ export default tseslint.config(
       ],
       'no-explicit-any': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
-      
+      'no-only-tests/no-only-tests': 'error'
     }
   },
   {

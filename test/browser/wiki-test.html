@@ -80,7 +80,8 @@
 
       const canonicalLink = head.querySelector('link[rel="canonical"]');
       if (!canonicalLink) throw new Error('No canonical link found in the iframe document.');
-      const url = new URL('.', canonicalLink.href);
+      //const url = new URL('.', canonicalLink.href);
+      const url = new URL(canonicalLink.href);
 
       const base = doc.createElement('base');
       base.href = url.href;

@@ -5,10 +5,17 @@
   "gistUrl": "https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d",
   "main": "build.js",
   "scripts": {
-    "build": "tsx build.ts",
-    "single-test": "tsx --env-file=.env --test --test-reporter=spec --test-name-pattern=toHtml_spacing_challenges test/unit/core.test.ts",
+    "build": "tsx --env-file=.env build.ts",
     "test": "tsx --env-file=.env --test --test-reporter=spec test/unit/*.test.ts",
-    "watch": "npm-watch"
+    "test:file": "tsx --env-file=.env --test --test-reporter=spec",
+    "test:only": "tsx --env-file=.env --test --test-reporter=spec --test-only test/unit/*.test.ts",
+    "build:and:test": "npm run build && npm run test",
+    "build:and:test:only": "npm run build && npm run test:only",
+    "watch:b": "npm-watch build",
+    "watch:t": "npm-watch test",
+    "watch:to": "npm-watch test:only",
+    "watch:bt": "npm-watch build:and:test",
+    "watch:bto": "npm-watch build:and:test:only"
   },
   "watch": {
     "build": {
@@ -16,6 +23,7 @@
         "src/*.ts",
         "build.ts"
       ],
+      "quiet": true,
       "extensions": "ts"
     },
     "test": {
@@ -23,6 +31,35 @@
         "test/unit/*.test.ts",
         "test/unit/test-utils.ts"
       ],
+      "quiet": true,
+      "extensions": "ts"
+    },
+    "test:only": {
+      "patterns": [
+        "test/unit/*.test.ts",
+        "test/unit/test-utils.ts"
+      ],
+      "quiet": true,
+      "extensions": "ts"
+    },
+    "build:and:test": {
+      "patterns": [
+        "src/*.ts",
+        "build.ts",
+        "test/unit/*.test.ts",
+        "test/unit/test-utils.ts"
+      ],
+      "quiet": true,
+      "extensions": "ts"
+    },
+    "build:and:test:only": {
+      "patterns": [
+        "src/*.ts",
+        "build.ts",
+        "test/unit/*.test.ts",
+        "test/unit/test-utils.ts"
+      ],
+      "quiet": true,
       "extensions": "ts"
     }
   },
@@ -52,6 +89,7 @@
     "@types/node": "^24.0.13",
     "better-sqlite3": "^12.1.1",
     "eslint": "^9.31.0",
+    "eslint-plugin-no-only-tests": "^3.3.0",
     "glob": "^11.0.3",
     "globals": "^16.2.0",
     "js-string-escape": "^1.0.1",

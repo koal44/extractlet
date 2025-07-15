@@ -20,7 +20,7 @@
  * 
  */
 
-import { log, h, injectCss, createMultiToggle, multiToggleCss, escapeRegExp, isElement, isDiv, isHeading } from './utils.js';
+import { log, h, injectCss, createMultiToggle, multiToggleCss, escapeRegExp, isElement, isDiv, isHeading, isSpan, isText, isListItem } from './utils.js';
 import { baseCss, toHtml as _toHtml, toMd as _toMd, ToMdHandler, ToHtmlOptions } from './core.js';
 
 declare global {
@@ -31,9 +31,9 @@ declare global {
 
 function shouldSkip(node: Node|null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
-  if (node.nodeType === Node.TEXT_NODE) return false; // Text nodes are never ignored
+  if (isText(node)) return false; // Text nodes are never ignored
 
-  if (node.nodeType === Node.ELEMENT_NODE) {
+  if (isElement(node)) {
     // const id = node.id || '';
     // const className = node.className || '';
     // const aType = node.getAttribute('type') || '';
@@ -46,19 +46,46 @@ function shouldSkip(node: Node|null): boolean {
 
 const toMdHandlers: Record<string, ToMdHandler> = {}
 
-function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
+function toHtmlElemHandler(node:Element, ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
   if (shouldSkip(node)) return { skip: true };
   if (node.nodeType !== Node.ELEMENT_NODE) throw new Error('toHtmlElemHandler called with non-element node'); // shouldn't happen
 
-  return {};
+  const skip = false;
+  let clone;
+
+  if (isSpan(node)) {
+    if (node.classList.contains('mwe-math-element')) {
+      const img = node.querySelector('img.mwe-math-fallback-image-inline') as HTMLImageElement|null;
+      if (!img) return { skip: true };
+      clone = toHtml(img) as HTMLImageElement;
+      clone.style.verticalAlign = img.style.verticalAlign;
+      return { node: clone}
+    }
+    if (node.classList.contains('mvar') || node.classList.contains('texhtml')) {
+      const keepStyles = node.classList.contains('texhtml')
+        ? new Set(['display', 'margin-bottom', 'vertical-align', 'line-height', 'font-size', 'text-align', 'white-space'])
+        : ctx.keepStyles;
+      clone = toHtml(node, {...ctx, skipHandler: true, keepStyles}) as HTMLSpanElement;
+      if (node.classList.contains('mvar')) clone.classList.add('mvar');
+      if (node.classList.contains('texhtml')) clone.classList.add('texhtml');
+      return { node: clone };
+    }
+  }
+
+  if (isListItem(node) && node.id.startsWith('cite_note-')) {
+    clone = toHtml(node, {...ctx, skipHandler: true}) as HTMLLIElement;
+    clone.id = node.id; // preserve the ID for references
+  }
+
+  return { skip, node: clone };
 }
 
-export function toMd(node: Node|null) {
+export function toMd(node: Node|null): string {
   return _toMd(node, { shouldSkip, handlers: toMdHandlers });
 }
 
-export function toHtml(node: Node|null) {
-  return _toHtml(node, { elementHandler: toHtmlElemHandler });
+export function toHtml(node: Node|null, opts: ToHtmlOptions = {}): Node|null {
+  return _toHtml(node, {...opts, elementHandler: toHtmlElemHandler });
 }
 
 class WikiNode {
@@ -245,7 +272,6 @@ function getBaseAndRawUrl(root:Document): { baseUrl: string; rawUrl: string } {
   return { baseUrl, rawUrl };
 }
 
-
 async function fetchRawPage(rawUrl: string): Promise<string> {
   // override for local testing
   if (location.protocol === 'file:' && typeof window['exampleRaw'] === 'string') {
@@ -300,6 +326,17 @@ img {
 .html-view h1 {
   margin-top: 0;
 }
+span.mvar {
+  font-style: italic;
+}
+span.texhtml {
+  font-family: "Nimbus Roman No9 L","Times New Roman",Times,serif;
+  font-size: 118%;
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-kerning: none;
+  white-space: nowrap;
+}
 `;
 
 export async function runBookmarklet(root = document) {
@@ -309,7 +346,7 @@ export async function runBookmarklet(root = document) {
     return;
   }
 
-  const win = window.open('', '_blank', '');
+  const win = window.open('', 'extractlet_wiki', '');
   if (!win) {
     alert('Failed to open new window. Please allow popups for this site.');
     return;

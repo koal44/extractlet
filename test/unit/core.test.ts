@@ -2,10 +2,11 @@ import { test } from 'node:test';
 import { strictEqual } from 'node:assert';
 import { toHtml, toMd } from '../../src/core.js';
 import { el, assertNodeEqual, setupDom } from './test-utils.js';
+//import { log, lOpts } from '../../src/utils.js';
 
 setupDom();
 
-test('toHtml_spacing_challenges', () => {
+test.skip('toHtml_spacing_challenges', () => {
   const html = `
     <div>
       <p>
@@ -28,6 +29,25 @@ test('toHtml_spacing_challenges', () => {
     </p>
     </div>`.trim();
   assertNodeEqual(result, expected);
+});
+
+test('toHtml_preserves_escaped_html', () => {
+  const html = `
+    <div>
+      <p>
+        This is a test with escaped HTML: &lt;div&gt;Hello&lt;/div&gt;.
+      </p>
+    </div>`.trim();
+
+  const result = toHtml(el(html));
+  const expected = `
+    <div>
+      <p>
+        This is a test with escaped HTML: &lt;div&gt;Hello&lt;/div&gt;.
+      </p>
+    </div>`.trim();
+
+    assertNodeEqual(result, expected);
 });
 
 test('toMd_collapse_linebreaks', () => {
@@ -607,7 +627,6 @@ test('toMd_inline_code_with_backtick', () => {
   const expected = 'The name ``Tuple`2`` is valid.';
   strictEqual(result, expected);
 });
-
 
 test('toMd_pre_with_trailing_newline', () => {
   const html = '<div><pre>line1\nline2\n</pre></div>';

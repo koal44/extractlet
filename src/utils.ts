@@ -1,12 +1,16 @@
+type LogOptions = {
+  isDebug?: boolean;
+  indent?: number;
+  escapeWhitespace?: boolean;
+  jsonifyStrings?: boolean;
+  verboseNodes?: boolean;
+}
+
+export const lOpts: LogOptions =
+  { isDebug: true, indent: 2, escapeWhitespace: true, jsonifyStrings: true, verboseNodes: true };
+
 export function log(...args: unknown[]): void {
   const LogOptsKeys = ['isDebug', 'indent', 'escapeWhitespace', 'jsonifyStrings', 'verboseNodes'];
-  type LogOptions = {
-    isDebug?: boolean;
-    indent?: number;
-    escapeWhitespace?: boolean;
-    jsonifyStrings?: boolean;
-    verboseNodes?: boolean;
-  }
   const lastArg = args[args.length - 1];
   let opts: LogOptions = {};
   if (
@@ -105,6 +109,15 @@ export function escapeRegExp(pattern: string): string {
   return pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+export function escapeHtml(html: string): string {
+  return html
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // .replace(/"/g, '&quot;')
+    // .replace(/'/g, '&#39;');
+}
+
 export function injectCss(
   css: string,
   { id = undefined, doc = document }: { id?: string; doc?: Document; } = {}
@@ -130,8 +143,6 @@ export function createMultiToggle({ initState = 0, onToggle = undefined, labels 
   const wrapper = labelSide === 'left'
     ? h('div', { class: 'multi-toggle' }, stateLabel, switchBody)
     : h('div', { class: 'multi-toggle' }, switchBody, stateLabel);
-
-
 
   const setState = (newState: number): void => {
     state = newState;
@@ -307,6 +318,20 @@ export function createCopyButton(
 
   return h('div', { class: 'copybutton' }, button, response) as HTMLDivElement;
 }
+
+// Bad idea. css parsing is complex and if doing inline styles,
+// then just use elem.style.someStyleProp
+// 
+// export function parseStyle(css: string): Record<string, string> {
+//   const obj: Record<string, string> = {};
+//   for (const rule of css.split(';')) {
+//     if (!rule.trim()) continue;
+//     const [key, value] = rule.split(':').map(s => s.trim());
+//     if (!key || value === undefined) continue;
+//     obj[key] = value;
+//   }
+//   return obj;
+// }
 
 export function isNode(x: any): x is Node {
   return !!x && typeof x === 'object' && typeof x.nodeType === 'number' && typeof x.nodeName === 'string';

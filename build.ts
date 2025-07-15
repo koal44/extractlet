@@ -21,6 +21,14 @@ type SiteMeta = {
   domRefComment?: string;
 };
 
+type BookmarkRow = {
+  id: number;
+  title: string;
+  fk: number;
+  url: string;
+  url_hash: bigint;
+};
+
 const siteMetas = [
   {
     title: 'Knowledge-site Sharing Bookmarklet',
@@ -213,7 +221,7 @@ async function buildMinifiedCode(meta: SiteMeta, srcCode: string): Promise<strin
   if (!fs.existsSync('dist')) fs.mkdirSync('dist');
   const outPath = path.join('dist', meta.minName);
   fs.writeFileSync(outPath, bookmarkletMin);
-  console.log('Minified bookmarklet built successfully.');
+  console.log(`Minified bookmarklet for ${meta.site} built successfully.`);
 
   return bookmarkletMin;
 }
@@ -243,7 +251,7 @@ ${meta.bundle.name}.runBookmarklet();
 
   const outPath = path.join('dist', meta.unminName);
   fs.writeFileSync(outPath, bookmarklet);
-  console.log('Bookmarklet built successfully.');
+  console.log(`Bookmarklet for ${meta.site} built successfully.`);
 }
 
 // Function to compute the URL hash as per Firefox's algorithm
@@ -274,7 +282,7 @@ function computeUrlHash(url: string): bigint {
 }
 
 function updateBookmarkletInFirefox(meta: SiteMeta, bookmarkUrl: string) {
-  if ( typeof process === 'undefined' || process.env.ENABLE_BOOKMARK_UPDATE !== 'true') {
+  if (typeof process === 'undefined' || process.env?.ENABLE_BOOKMARK_UPDATE !== 'true') {
     return;
   }
 
@@ -283,7 +291,7 @@ function updateBookmarkletInFirefox(meta: SiteMeta, bookmarkUrl: string) {
     return;
   };
 
-  const appData = process.env.APPDATA;
+  const appData = process.env?.APPDATA;
   if (!appData) return bail('APPDATA not set — skipping.');
 
   const profilesPath = path.join(appData, 'Mozilla', 'Firefox', 'Profiles');
@@ -300,13 +308,6 @@ function updateBookmarkletInFirefox(meta: SiteMeta, bookmarkUrl: string) {
   if (!fs.existsSync(dbPath)) return bail('places.sqlite not found.');
   // console.log(`${updateBookmarkletInFirefox.name}: Found database at ${dbPath}`);
 
-  type BookmarkRow = {
-    id: number;
-    title: string;
-    fk: number;
-    url: string;
-    url_hash: BigInt;
-  };
   let db: Database.Database | undefined;
   try {
     db = new Database(dbPath);
@@ -315,7 +316,7 @@ function updateBookmarkletInFirefox(meta: SiteMeta, bookmarkUrl: string) {
         SELECT b.id, b.title, b.fk, p.url, p.url_hash
         FROM moz_bookmarks b
         JOIN moz_places p ON b.fk = p.id
-        WHERE b.title = ?
+        WHERE b.title = :title
       `).safeIntegers().get({title: meta.bookmarkTitle});
 
     if (!bookmark) return bail(`Bookmark '${meta.bookmarkTitle}' not found.`);

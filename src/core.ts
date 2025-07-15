@@ -1,4 +1,27 @@
-import { isElement, isImage, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isUList, log } from './utils.js';
+import { isElement, isHTMLElement, isImage, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isUList, log } from './utils.js';
+
+export type ToHtmlOptions = {
+  elementHandler?: (node:Element, opts:ToHtmlOptions) => { skip?:boolean; node?:Node };
+  skipHandler?: boolean;
+  keepStyles?: KeepStyles;
+}
+type KeepStyles = boolean | Set<string>;
+
+type GlueMode = "block" | "list" | "inline" | "flat" | "li"
+type WhitespaceMode = "normal" | "pre" | "pre-line"
+type GlueChildrenOptions = { os?: number; qd?: number; lc?: string; }
+type GlueChildrenFn = (n: Node, glueMode: GlueMode, ws?: WhitespaceMode, opts?: GlueChildrenOptions) => string;
+
+export type ToMdHandler = (node: Element, ctx: ToMdContext, glueChildren: GlueChildrenFn) => string;
+
+type ToMdContext = {
+  olStart?: number;
+  quoteDepth?: number;
+  lastChar?: string;
+  isRoot?: boolean;
+  shouldSkip?: (node: Node) => boolean;
+  handlers?: Record<string, ToMdHandler>;
+}
 
 export const baseCss = /* css */ `
 html {
@@ -108,13 +131,13 @@ figure figcaption {
 }
 `;
 
-export interface ToHtmlOptions {
-  elementHandler?: (node:Element, opts:ToHtmlOptions) => { skip?:boolean; node?:Node };
-}
-
 export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
   if (!node) return null;
-  const { elementHandler } = opts;
+  const {
+    elementHandler,
+    skipHandler = false,
+    keepStyles = new Set(),
+  } = opts;
 
   if (isText(node)) {
     return document.createTextNode(node.textContent!);
@@ -124,60 +147,53 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
     return null;
   }
 
-  // handle site-specific elements
-  const result = elementHandler?.(node, opts);
+  // --- handle site-specific elements ---
+  const result = !skipHandler && elementHandler
+    ? elementHandler(node, {...opts, skipHandler: false})
+    : null;
   if (result?.skip) return null;
   if (result?.node) return result.node;
 
   // --- default handling for HTML elements ---
   const clone = document.createElement(node.tagName.toLowerCase());
 
-  const allowedStyles = ['display', 'clear']; // img styles for widhth/height???
   for (const attr of node.attributes) {
     const name = attr.name.toLowerCase();
-    let val = '';
 
     switch (name) {
-      case 'href':
-      case 'src':
-        val = 
-          attr.value.startsWith('javascript:')  ?  '#': // ignore JavaScript links
-          attr.value.startsWith('//') ? 'https:' + attr.value : // protocol-relative URL
-          (node as any)[name] || attr.value; // prefer resolved URL
+      case 'href': {
+        copyHrefAttr(clone, node);
         break;
-      case 'title':
-        val = attr.value.replace(/\s+/g, ' ').trim();
+      }
+      case 'src': {
+        copySrcAttr(clone, node);
         break;
+      }
+      case 'title': {
+        clone.setAttribute('title', attr.value.replace(/\s+/g, ' ').trim());
+        break;
+      }
       case 'rowspan':
       case 'colspan':
-      case name.startsWith('data-') && name:
-        val = attr.value;
+      case name.startsWith('data-') && name: {
+        clone.setAttribute(name, attr.value);
         break;
+      }
       case 'width':
-      case 'height':
-        if (isImage(node)) val = attr.value;
-        break;
-      case 'style': {
-        const styles = attr.value.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
-        const styleObj: Record<string, string> = {};
-        for (const style of styles) {
-          const [key, value] = style.split(':').map(s => s.trim());
-          if (!key || !value) continue;
-          const isAllowed = allowedStyles.includes(key);
-          const isImageSize = isImage(node) && (key === 'width' || key === 'height');
-          if (isAllowed || isImageSize) {
-            styleObj[key] = value;
-          }
+      case 'height': {
+        if (isImage(node)) {
+          clone.setAttribute(name, attr.value);
         }
-        val = Object.entries(styleObj).map(([k, v]) => `${k}: ${v}`).join('; ');
+        break;
+      }
+      case 'style': {
+        if (isHTMLElement(node)) {
+          copyStyleAttr(clone, node, keepStyles);
+        }
         break;
       }
       default:
         break;
-    }
-
-    if (val) {
-      clone.setAttribute(attr.name, val);
     }
   }
 
@@ -189,20 +205,51 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
   return clone;
 }
 
-type GlueMode = "block" | "list" | "inline" | "flat" | "li"
-type WhitespaceMode = "normal" | "pre" | "pre-line"
-type GlueChildrenOptions = { os?: number; qd?: number; lc?: string; }
-type GlueChildrenFn = ( n: Node, glueMode: GlueMode, ws?: WhitespaceMode, opts?: GlueChildrenOptions ) => string;
-
-export type ToMdHandler = (node: Element, ctx: ToMdContext, glueChildren: GlueChildrenFn) => string;
-type ToMdContext = {
-  olStart?: number;
-  quoteDepth?: number;
-  lastChar?: string;
-  isRoot?: boolean;
-  shouldSkip?: (node: Node) => boolean;
-  handlers?: Record<string, ToMdHandler>;
+export function copyHrefAttr(dest: Element, src: Element) {
+  const attr = src.getAttribute('href');
+  if (!attr) return;
+  const val = 
+    attr.startsWith('#') ? attr :              // keep fragment links
+    attr.startsWith('javascript:')  ?  '#' :   // ignore JavaScript links
+    attr.startsWith('//') ? `https:${attr}` :  // protocol-relative URL
+    (src as any)['href'] || attr;              // prefer resolved URL
+  if (val) dest.setAttribute('href', val);
 }
+
+export function copySrcAttr(dest: Element, src: Element) {
+  const attr = src.getAttribute('src');
+  if (!attr) return;
+  const val = 
+    attr.startsWith('javascript:')  ?  '#' :   // ignore JavaScript links
+    attr.startsWith('//') ? `https:${attr}` :  // protocol-relative URL
+    (src as any)['src'] || attr;               // prefer resolved URL
+  if (val) dest.setAttribute('src', val);
+}
+
+export function copyStyleAttr(dest: HTMLElement, src: HTMLElement, keepStyles: KeepStyles) {
+  if (!src.hasAttribute('style')) return; // check only one of these?
+  if (keepStyles === false) return;
+  if (keepStyles === true) {
+    dest.setAttribute('style', src.getAttribute('style')!);
+    return;
+  }
+
+  const keep = new Set([
+    ...keepStyles,
+    'display', 'clear',
+    ...(isImage(src) ? ['width', 'height'] : []),
+  ]);
+
+  let styleString = '';
+  for (const k of keep) {
+    const v = src.style.getPropertyValue(k);
+    if (v) styleString += `${k}: ${v}; `;
+  }
+  styleString = styleString.trim();
+
+  if (styleString) dest.setAttribute('style', styleString);
+}
+
 export function toMd(node:Node|null, ctx:ToMdContext = {}) {
   const {
     olStart = 1,
@@ -231,7 +278,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}) {
       const child = children[i];
       //log(`toMd.glue: processing child ${child.nodeName} with ws=${ws}, os=${os}, qd=${qd}, lc="${lc}"`);
       let md = '';
-      if (child.nodeType === Node.TEXT_NODE) {
+      if (isText(child)) {
         md = child.textContent!;
         //log(`toMd.glue.child.md.pre-ws: "${md}"`);
         if (/^\s*$/.test(md)) continue; // all whitespace
@@ -244,7 +291,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}) {
         }
         //log(`tomd.glue.text.md.post-ws: "${md}"`);
       }
-      else if (child.nodeType === Node.ELEMENT_NODE) {
+      else if (isElement(child)) {
         md = toMd(child, { ...ctx, isRoot: false, lastChar: lc, olStart: os, quoteDepth: qd });
       }
 
@@ -560,8 +607,6 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}) {
     
     }
   }
-
-
 
   // log(`toMd: result for ${node.tagName} is "${result}"`);
   return isRoot
