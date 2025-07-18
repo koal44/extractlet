@@ -7,8 +7,8 @@ export type ToHtmlOptions = {
 }
 type KeepStyles = boolean | Set<string>;
 
-type GlueMode = "block" | "list" | "inline" | "flat" | "li"
-type WhitespaceMode = "normal" | "pre" | "pre-line"
+type GlueMode = 'block' | 'list' | 'inline' | 'flat' | 'li'
+type WhitespaceMode = 'normal' | 'pre' | 'pre-line'
 type GlueChildrenOptions = { os?: number; qd?: number; lc?: string; }
 type GlueChildrenFn = (n: Node, glueMode: GlueMode, ws?: WhitespaceMode, opts?: GlueChildrenOptions) => string;
 
@@ -22,114 +22,6 @@ type ToMdContext = {
   shouldSkip?: (node: Node) => boolean;
   handlers?: Record<string, ToMdHandler>;
 }
-
-export const baseCss = /* css */ `
-html {
-  --color-base: #0c0d0e;
-
-  background: white;
-  color: var(--color-base);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 1em;
-  line-height: 1.4;
-}
-body {
-  margin: 0 auto;
-  padding: 1.5em;
-}
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
-  margin: 1em 0 0.25em 0;
-}
-p, ul, ol, blockquote, pre {
-  margin: 0.5em 0;
-}
-a {
-  color: var(--color-base);
-  text-decoration: underline;
-}
-b, strong {
-  font-weight: 600;
-}
-ul, ol {
-  padding-left: 1.4em;
-  margin: 0.3em 0;
-}
-ul li {
-  margin: 0.2em 0;
-  color: #333;
-}
-ul li::marker {
-  color: #777;
-  font-size: 0.8em;
-}
-blockquote {
-  border-left: 2px solid #999;
-  margin: 0.5em 0;
-  padding-left: 0.8em;
-  color: #333;
-}
-pre, code {
-  font-family: "SFMono-Regular", Consolas, Menlo, monospace;
-  background: #eee;
-  padding: 0.2em 0.4em;
-  border-radius: 3px;
-  overflow-x: auto;
-}
-pre code {
-  background: none;
-  padding: 0;
-  border-radius: 0;
-}
-textarea {
-  font-family: inherit;
-}
-button {
-  margin-left: 10px;
-  background: #f2f4f7;
-  border: 1px solid currentColor;
-  color: #4ca5f2;
-  cursor: pointer;
-}
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-  margin: 1em 0;
-  width: 100%;
-  font-size: 1em;
-}
-th, td {
-  border: 1px solid #ccc;
-  padding: 0.2em 0.4em;
-}
-td {
-    text-align: left;
-    vertical-align: top;
-} 
-th {
-  text-align: center;
-  vertical-align: middle;
-  font-weight: bold;
-  background: #f5f5f5;
-}
-table caption {
-  font-weight: bold;
-  margin-top: 0.5em;
-}
-img {
-  vertical-align: text-bottom;
-  max-width: 100%;
-}
-figure {
-  display: inline-flex;
-  flex-direction: column;
-  margin: 1.5em 0;
-  padding: 0;
-}
-figure figcaption {
-  font-size: 0.9em;
-}
-`;
 
 export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
   if (!node) return null;
@@ -149,7 +41,7 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
 
   // --- handle site-specific elements ---
   const result = !skipHandler && elementHandler
-    ? elementHandler(node, {...opts, skipHandler: false})
+    ? elementHandler(node, { ...opts, skipHandler: false })
     : null;
   if (result?.skip) return null;
   if (result?.node) return result.node;
@@ -266,7 +158,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}) {
     ws: 'normal'|'pre'|'pre-line' = 'normal',
     { os = olStart,
       qd = quoteDepth,
-      lc = lastChar
+      lc = lastChar,
     }: { os?: number; qd?: number; lc?: string; } = {}
   ): string {
     const prevLc:string = lc;

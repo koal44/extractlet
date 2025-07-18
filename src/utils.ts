@@ -81,7 +81,7 @@ export function log(...args: unknown[]): void {
 export function h(
   tag: string,
   attrs: Record<string, any> = {},
-  ...children: (string | Node)[]
+  ...children: (string | Node | null)[]
 ): HTMLElement | SVGElement {
 
   let node: HTMLElement | SVGElement;
@@ -113,9 +113,46 @@ export function escapeHtml(html: string): string {
   return html
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+    .replace(/>/g, '&gt;');
     // .replace(/"/g, '&quot;')
     // .replace(/'/g, '&#39;');
+}
+
+export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(
+  html: string, tag: K, doc: Document = document
+): HTMLElementTagNameMap[K]|null {
+  const template = doc.createElement('template');
+  template.innerHTML = html.trim();
+  if (template.content.children.length !== 1) {
+    // throw new Error(`html must contain exactly one element: ${html}`);
+    console.warn(`html must contain exactly one element: ${html}`);
+    return null;
+  }
+  const el = template.content.firstElementChild as HTMLElementTagNameMap[K];
+  if (el.tagName.toLowerCase() !== tag.toLowerCase()) {
+    // throw new Error(`No element found for tag ${tag} in HTML: ${html}`);
+    console.warn(`No element found for tag ${tag} in HTML: ${html}`);
+    return null;
+  }
+  return el;
+}
+
+export function htmlToElement(html:string, doc: Document = document): Element|null {
+  const template = doc.createElement('template');
+  template.innerHTML = html.trim();
+  if (template.content.children.length !== 1) {
+    // throw new Error(`html must contain exactly one element: ${html}`);
+    console.warn(`html must contain exactly one element: ${html}`);
+    return null;
+  }
+  return template.content.firstElementChild;
+}
+
+export function toKebabCase(str: string): string {
+  return str
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+    .toLowerCase();
 }
 
 export function injectCss(
@@ -130,7 +167,7 @@ export function injectCss(
   doc.head.appendChild(style);
 }
 
-export function createMultiToggle({ initState = 0, onToggle = undefined, labels = ['a', 'b'], labelSide = 'right'}
+export function createMultiToggle({ initState = 0, onToggle = undefined, labels = ['a', 'b'], labelSide = 'right' }
   : { initState?: number; onToggle?: (newState: number) => void; labels?: string[]; labelSide?: 'left' | 'right';
 } = {}) {
   if (!Array.isArray(labels) || labels.length === 0) {

@@ -28,8 +28,8 @@
  * 
  */
 
-import { h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript } from './utils.js';
-import { baseCss, toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdHandler } from './core.js';
+import { h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript, htmlToElementK, htmlToElement } from './utils.js';
+import { toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdHandler } from './core.js';
 
 type Contributor = {
   contributorType: 'author'|'editor'|'commenter';
@@ -41,22 +41,22 @@ type Contributor = {
 }
 
 type Comment = {
-  bodyHtml: Node | null;
+  bodyHtml: string|null;
   bodyMd: string;
   contributors: Contributor[];
   vote: number;
 }
 
 type Post = {
-  bodyHtml: Node | null;
+  bodyHtml: string|null;
   bodyMd: string;
   contributors: Contributor[];
   comments: Comment[];
   vote: number;
 }
 
-type PageData = {
-  permaLink: HTMLAnchorElement|null;
+export type SEResult = {
+  permaLink: string;
   posts: Post[];
 }
 
@@ -219,8 +219,8 @@ function scrapePosts(root:Document): Post[] {
 
   postLayouts.forEach(postLayout => {
     // Extract post body
-    const postBodyNode = postLayout.querySelector('.s-prose');
-    const bodyHtml = postBodyNode ? toHtml(postBodyNode) : null;
+    const postBodyNode = toHtml(postLayout.querySelector('.s-prose'));
+    const bodyHtml = postBodyNode instanceof Element  ? postBodyNode.outerHTML : null;
     const bodyMd = postBodyNode ? toMd(postBodyNode) : '';
 
     // Extract contributors
@@ -234,8 +234,8 @@ function scrapePosts(root:Document): Post[] {
     // Extract comments
     const commentNodes = postLayout.querySelectorAll('ul.comments-list li');
     const comments = Array.from(commentNodes).map(li => {
-      const bodySpan = li.querySelector('div.comment-body > span.comment-copy');
-      const bodyHtml = toHtml(bodySpan);
+      const bodySpan = toHtml(li.querySelector('div.comment-body > span.comment-copy'));
+      const bodyHtml = bodySpan instanceof Element ? bodySpan.outerHTML : null;
       const bodyMd = toMd(bodySpan);
       const contributors = [scrapeCommentContributor(li)];
       const vote = scrapeCommentVote(li);
@@ -255,7 +255,7 @@ function scrapePermaLink(root:Document): HTMLAnchorElement|null {
   return isAnchor(clone) ? clone : null;
 }
 
-function buildCopyButton(doc:Document, pageData:PageData, postIdx = -1) {
+function buildCopyButton(doc:Document, pageData:SEResult, postIdx = -1) {
   const responseTxt =
     postIdx === -1 ? 'Copied All!' :
     postIdx ===  0 ? 'Copied Question!' :
@@ -272,9 +272,10 @@ function buildCopyButton(doc:Document, pageData:PageData, postIdx = -1) {
     );
 
     if (pageData.permaLink) {
+      const permaLinkNode = htmlToElementK(pageData.permaLink, 'a');
       copyArr.push(
-        `Title: ${pageData.permaLink?.textContent?.trim()}`,
-        `URL:   ${pageData.permaLink?.getAttribute('href')}\n`);
+        `Title: ${permaLinkNode?.textContent?.trim()}`,
+        `URL:   ${permaLinkNode?.getAttribute('href')}\n`);
     }
   }
 
@@ -366,7 +367,7 @@ function buildContribsAndVotes(contributors:Contributor[], voteCount:number): st
   return `[[ ${contribsText} | ${voteText} ]]`;
 }
 
-function buildPosts(data:PageData, doc:Document): HTMLElement {
+function buildPosts(data:SEResult, doc:Document): HTMLElement {
   const div = h('div', { class: 'posts' }) as HTMLDivElement;
   data.posts.forEach(function(post, idx) {
     const postNode = h('div', { class: 'post' });
@@ -377,21 +378,31 @@ function buildPosts(data:PageData, doc:Document): HTMLElement {
     const postHeading = h('div', { class: 'post-heading' }, postTitle, copyButton);
     postNode.appendChild(postHeading);
 
-    postNode.appendChild(buildPostView(post, 'md'));
-    postNode.appendChild(buildPostView(post, 'html'));
+    postNode.appendChild(buildPostView(post, 'md', doc));
+    postNode.appendChild(buildPostView(post, 'html', doc));
   });
 
   return div;
 }
 
-function buildPostView(post:Post, viewMode:'html'|'md'): HTMLDivElement {
+function buildPostView(post:Post, viewMode:'html'|'md', doc:Document): HTMLDivElement {
   const modes:Record<'html'|'md', { key:'bodyHtml'|'bodyMd'; class:string }> = {
     html: { key: 'bodyHtml', class: 'html-view' },
     md:   { key: 'bodyMd',   class: 'md-view'   },
   };
   const mode = modes[viewMode];
 
-  const postBody = post[mode.key] ?? '';
+  function renderBody(str: string): Node|string|null {
+    switch (viewMode) {
+      case 'html': return htmlToElement(str, doc);
+      case 'md': return str;
+      default: throw new Error(`Unknown mode: ${viewMode}`);
+    }
+  }
+  
+
+  const postBodyStr = post[mode.key] ?? '';
+  const postBody = renderBody(postBodyStr);
   const bodyDiv = h('div', { class: 'post-body' }, postBody);
   const postContribs = buildContribsAndVotes(post.contributors, post.vote);
   const postContribsDiv = h('div', { class: 'post-contribs' }, `${postContribs}`);
@@ -401,7 +412,9 @@ function buildPostView(post:Post, viewMode:'html'|'md'): HTMLDivElement {
     const commentHeading = h('h4', { class: 'comment-heading' }, `Comment ${commentIdx + 1}`);
     const commentContrib = buildContribsAndVotes(comment.contributors, comment.vote);
     const commentContribSpan = h('span', { class: 'comment-contrib' }, ` ${commentContrib}`);
-    const commentBody = comment[mode.key] ?? '';
+
+    const commentBodyStr = comment[mode.key] ?? '';
+    const commentBody = renderBody(commentBodyStr);
     const commentBodyDiv = h('div', { class: 'comment-body' }, commentBody, commentContribSpan);
 
     commentsDiv.appendChild(commentHeading);
@@ -411,97 +424,40 @@ function buildPostView(post:Post, viewMode:'html'|'md'): HTMLDivElement {
   return h('div', { class: mode.class }, bodyDiv, postContribsDiv, commentsDiv) as HTMLDivElement;
 }
 
-const seCss = /* css */ `
-.top-bar {
-  display: flex;
-}
-.top-heading {
-  margin: 0;
-  line-height: 1
-}
-.perma-link {
-  margin: 0.7em 0;
-}
-.post {
-  margin-top: 2.5em;
-  margin-bottom: 0;
-}
-.post-title {
-  margin: 0;
-  line-height: 1;
-  align-content: center;
-}
-.post-heading {
-  display: flex;
-  margin-top: 0px;
-}
-.comments {
-  line-height: 1.2;
-  margin-top: 1.5em;
-}
-.comment-contrib {
-  white-space: nowrap;
-  margin-left: 0.6em;
-  font-size: 0.9em;
-}
-.md-view {
-  white-space: pre-wrap;
-  line-height: 1.4;
-  margin-top: 0.6em;
-}
-.md-view > .post-contribs {
-  margin-top: 1.1em;
-}
-.md-view > .comment-body {
-  white-space: pre-wrap;
-  line-height: 1.1;
-}
-.show-html .html-view,
-.show-md .md-view,
-.show-raw .raw-view {
-  display: block;
-}
-.show-html .md-view,
-.show-html .raw-view,
-.show-md .html-view,
-.show-md .raw-view,
-.show-raw .html-view,
-.show-raw .md-view {
-  display: none;
-}
-.html-view h1 {
-  margin-top: 0;
-}
-`;
-
-export function runBookmarklet(root = document) {
+export function extractFromDoc(root: Document = document): SEResult|undefined {
   const posts = scrapePosts(root);
   if (posts.length === 0) {
     alert('No posts found on this page.');
     return;
   }
-  const permaLink = scrapePermaLink(root);
-  const pageData = { permaLink, posts };
 
-  const win = window.open('', 'extractlet_se', '');
-  if (!win) {
-    alert('Failed to open new window. Please allow pop-ups for this site.');
-    return;
-  }
-  const doc = win.document;
-  doc.title = 'Bookmarklet';
-  injectCss(baseCss, { doc });
-  injectCss(seCss, { doc });
+  const permaLink = scrapePermaLink(root)?.outerHTML || '';
+  const result: SEResult = {
+    posts,
+    permaLink,
+  };
+
+  return result;
+
+  // try {
+  //   await browser.runtime.sendMessage<ExtractletMessage>({ type: 'seResult', result });
+  // } catch (error) {
+  //   console.error('Error sending SE content:', error);
+  //   alert('Failed to send SE content. Check console for details.');
+  // }
+}
+
+export function createPage(pageData: SEResult, doc:Document): void {
   injectCss(multiToggleCss, { id: 'multi-toggle-css', doc });
   injectCss(copyButtonCss, { id: 'copy-button-css', doc });
-
   const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · Stack Exchange');
   const copyAllButton = buildCopyButton(doc, pageData);
   const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
   doc.body.appendChild(topBar);
 
   if (pageData.permaLink) {
-    const permaLinkDiv = h('div', { class: 'perma-link' }, pageData.permaLink);
+    const permaLinkNode = htmlToElementK(pageData.permaLink, 'a', doc);
+    const permaLinkDiv = h('div', { class: 'perma-link' }, permaLinkNode);
     doc.body.appendChild(permaLinkDiv);
   }
 

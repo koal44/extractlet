@@ -55,7 +55,7 @@ describe('htmlify()', () => {
   test('handles custom styles', () => {
     const html = el('<div style="color: red; --size: 100px, width: var(--size); --foo: bar"></div>') as HTMLElement;
     const actual = htmlify(html!);
-    const expected = `<div style="--foo: bar; --size: 100px, width: var(--size); color: red;"></div>`;
+    const expected = '<div style="--foo: bar; --size: 100px, width: var(--size); color: red;"></div>';
     strictEqual(actual, expected);
   });
 });

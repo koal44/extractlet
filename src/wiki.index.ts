@@ -1,1 +1,0 @@
-export { runBookmarklet } from './wiki';
