@@ -41,7 +41,7 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
 
   // --- handle site-specific elements ---
   const result = !skipHandler && elementHandler
-    ? elementHandler(node, { ...opts, skipHandler: false })
+    ? elementHandler(node, opts)
     : null;
   if (result?.skip) return null;
   if (result?.node) return result.node;
@@ -90,7 +90,7 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
   }
 
   for (const child of node.childNodes) {
-    const childNode = toHtml(child, opts);
+    const childNode = toHtml(child, { ...opts, skipHandler: false });
     if (childNode) clone.appendChild(childNode);
   }
 

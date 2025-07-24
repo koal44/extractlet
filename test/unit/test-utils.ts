@@ -75,3 +75,9 @@ export function htmlify(el: Node|string|null|undefined): string {
   }
   return String(el);
 }
+
+export function assertApproxEqual(actual:number, expected:number, tolerance = 0.001, message = '') {
+  if (Math.abs(actual - expected) > tolerance) {
+    throw new Error(`Expected a:'${actual}' ≈ e:'${expected}' (±${tolerance})${message ? ': ' + message : ''}`);
+  }
+}

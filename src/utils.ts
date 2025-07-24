@@ -52,7 +52,8 @@ export function log(...args: unknown[]): void {
     if (escapeWhiteSpace && typeof out === 'string') {
       out = out.replace(/\n/g, '\\n').replace(/\t/g, '\\t');
     }
-    console.log(out);
+
+    console.log(out); // eslint-disable-line no-restricted-properties
   }
 
   function nodeSummary(node: Node): string {
@@ -549,4 +550,61 @@ export function isMathMl(node?: Node|null): node is Element {
 }
 export function isCustomElement(node?: Node|null): node is HTMLElement {
   return !!node && isElement(node) && node.tagName.includes('-');
+}
+export function isSup(node?: Node|null): node is HTMLElement {
+  return !!node && isElement(node) && node.tagName.toUpperCase() === 'SUP';
+}
+export function isSub(node?: Node|null): node is HTMLElement {
+  return !!node && isElement(node) && node.tagName.toUpperCase() === 'SUB';
+}
+
+export function levenshteinSimilarity(a: string, b: string): number {
+  if (a === b) return 1;
+  const m = a.length, n = b.length;
+  if (m * n === 0) return 0;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1]
+        ? dp[i-1][j-1]
+        : Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1;
+  const dist = dp[m][n];
+  return 1 - dist / Math.max(m, n);
+}
+
+export function jaroWinklerSimilarity(a: string, b: string): number {
+  if (a === b) return 1;
+  const m = Math.max(0, Math.floor(Math.max(a.length, b.length) / 2) - 1);
+  let matches = 0, transpositions = 0;
+  const s1Matches = [], s2Matches = [];
+  for (let i = 0; i < a.length; i++) {
+    for (let j = Math.max(0, i - m); j < Math.min(b.length, i + m + 1); j++) {
+      if (!s2Matches[j] && a[i] === b[j]) {
+        s1Matches[i] = s2Matches[j] = true; matches++; break;
+      }
+    }
+  }
+  if (!matches) return 0;
+  let k = 0;
+  for (let i = 0; i < a.length; i++)
+    if (s1Matches[i]) {
+      while (!s2Matches[k]) k++;
+      if (a[i] !== b[k++]) transpositions++;
+    }
+  transpositions /= 2;
+  const jw = ((matches / a.length) + (matches / b.length) + ((matches - transpositions) / matches)) / 3;
+  // Winkler bonus for common prefix
+  let l = 0;
+  const prefix = 0.1;
+  while (l < 4 && a[l] && a[l] === b[l]) l++;
+  return jw + l * prefix * (1 - jw);
+}
+
+export function jaccardSimilarity(a: string, b: string): number {
+  const A = new Set(a.toLowerCase().split(/\s+/));
+  const B = new Set(b.toLowerCase().split(/\s+/));
+  const inter = [...A].filter(x => B.has(x)).length;
+  const union = new Set([...A, ...B]).size;
+  return union ? inter / union : 0;
 }

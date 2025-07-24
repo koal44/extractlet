@@ -1,7 +1,8 @@
 html {
   --color-base: #0c0d0e;
+  --color-bg: white;
 
-  background: white;
+  background: var(--color-bg);
   color: var(--color-base);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 1em;

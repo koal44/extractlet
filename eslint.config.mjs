@@ -27,7 +27,7 @@ export default tseslint.config(
       'no-only-tests/no-only-tests': 'error',
       'eqeqeq': 'warn',
       'semi': ['warn', 'always'],
-      'quotes': ['warn', 'single'],
+      // 'quotes': ['warn', 'single'],
       'comma-dangle': ['warn', {
         'arrays': 'always-multiline',
         'objects': 'always-multiline',
@@ -51,6 +51,6 @@ export default tseslint.config(
     }
   },
   {
-    ignores: ['dist/**', '**/gen/**'],
+    ignores: ['dist/**', 'dist-ff/**', '**/gen/**'],
   }
 );

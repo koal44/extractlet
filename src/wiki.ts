@@ -5,21 +5,10 @@
  *   h1#firstHeading > span                       → Main title
  * 
  *   div#mw-content-text > div
- *     p                                          → Paragraph
- *     h2                                         → Section heading
- *     h3                                         → Subsection heading
- *     ul / ol                                    → Lists
- *     blockquote                                 → Blockquotes (rare)
- *     pre / code                                 → Preformatted/code blocks (e.g., from templates)
- *     table                                      → Tables (infoboxes, navboxes, etc.)
- *     div.reflist                                → Reference list (footnotes)
- *     div.thumb                                  → Inline images/thumbnails
- *     div.gallery                                → Image galleries
- *     sup.reference                              → Inline citation markers
- *     div.hatnote                                → Notes (e.g., disambiguation, summary boxes)
+ *     h[2-6]                                     → Section heading
  */
 
-import { log, h, injectCss, createMultiToggle, multiToggleCss, escapeRegExp, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK } from './utils.js';
+import { log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup } from './utils.js';
 import { toHtml as _toHtml, toMd as _toMd, ToMdHandler, ToHtmlOptions } from './core.js';
 
 export type WikiResult = {
@@ -41,7 +30,12 @@ function shouldSkip(node: Node|null): boolean {
   if (isElement(node)) {
     // const id = node.id || '';
     // const className = node.className || '';
+    const classList = node.classList || [];
     // const aType = node.getAttribute('type') || '';
+
+    if (classList.contains('cite-accessibility-label')) {
+      return true;
+    }
 
     return false;
   }
@@ -82,6 +76,11 @@ function toHtmlElemHandler(node:Element, ctx:ToHtmlOptions): { skip?: boolean; n
     clone.id = node.id; // preserve the ID for references
   }
 
+  if (isSup(node) && node.classList.contains('reference') && node.id.startsWith('cite_ref-')) {
+    clone = toHtml(node, { ...ctx, skipHandler: true }) as HTMLElement;
+    clone.id = node.id; // preserve the ID for references
+  }
+
   return { skip, node: clone };
 }
 
@@ -93,20 +92,20 @@ export function toHtml(node: Node|null, opts: ToHtmlOptions = {}): Node|null {
   return _toHtml(node, { ...opts, elementHandler: toHtmlElemHandler });
 }
 
-class WikiNode {
+export class WikiNode {
   title: string; // Title of this section
   level: number; // 1 = <h1>, 2 = <h2>, etc.
-  section: number; // Section number, starting from 0 (root section is 0)
+  sectionNum: number; // Section number, starting from 0 (root section is 0)
   html: HTMLDivElement|null; // HTML content of this section
   htmlStr: string|null; // Used during serialization
   md: string; // Markdown content of this section
   raw: string; // Raw text content of this section
   children: WikiNode[]; // Child sections
 
-  constructor(title:string, level:number, section:number) {
+  constructor(title:string, level:number, sectionNum:number) {
     this.title = title;
     this.level = level;
-    this.section = section;
+    this.sectionNum = sectionNum;
     this.html = h('div', { class: 'wikinode-section-content' }) as HTMLDivElement;
     this.htmlStr = null;
     this.md = '';
@@ -123,8 +122,8 @@ class WikiNode {
       throw new Error('No title found in the provided root element');
     }
 
-    let curSection = 0;
-    let currentNode = new WikiNode(title, 1, curSection);
+    let curSectionNum = 0;
+    let currentNode = new WikiNode(title, 1, curSectionNum);
     const rootNode = currentNode;
 
     for (const htmlNode of root.querySelector('div#mw-content-text > div')?.childNodes ?? []) {
@@ -133,8 +132,8 @@ class WikiNode {
       if (isDiv(htmlNode) && isHeading(firstChild)) {
         const level = parseInt(firstChild.tagName[1]);
         const title = firstChild.textContent?.trim() ?? '';  // TODO: extract from html?
-        curSection++;
-        currentNode = new WikiNode(title, level, curSection);
+        curSectionNum++;
+        currentNode = new WikiNode(title, level, curSectionNum);
 
         // Find correct parent based on level
         let parentLevel = level - 1;
@@ -158,17 +157,16 @@ class WikiNode {
     return rootNode;
   }
 
-  static reviveWikiNode(pojo: any): WikiNode {
-    const node = new WikiNode(pojo.title, pojo.level, pojo.section);
+  static fromPojo(pojo: WikiNode): WikiNode {
+    const node = new WikiNode(pojo.title, pojo.level, pojo.sectionNum);
     node.html = null;
     node.htmlStr = pojo.htmlStr;
     node.md = pojo.md;
     node.raw = pojo.raw;
-    node.children = (pojo.children || []).map(WikiNode.reviveWikiNode);
+    node.children = (pojo.children || []).map(WikiNode.fromPojo);
     return node;
   }
 
-  
   addChild(section:WikiNode) {
     this.children.push(section);
   }
@@ -188,7 +186,7 @@ class WikiNode {
   }
 
   getNodeBySection(section:number) {
-    return this.find(n => n.section === section);
+    return this.find(n => n.sectionNum === section);
   }
 
   getNodeByTitle(title:string) {
@@ -206,61 +204,16 @@ class WikiNode {
 
   // Pretty-print the tree (for debugging)
   toString(indent = 0) {
-    let out = `${'  '.repeat(indent)}- ${this.title} (H${this.level}) [§${this.section}]\n`;
+    let out = `${'  '.repeat(indent)}- ${this.title} (H${this.level}) [§${this.sectionNum}]\n`;
     for (const child of this.children) {
       out += child.toString(indent + 1);
     }
     return out;
   }
 
-  populateRaw(rawText:string): void {
-    const marker = '='.repeat(this.level);
-    const title = this.title.trim();
-
-    // Find section start
-    let startIdx = 0;
-    let headingSkipIdx = 0;
-    if (this.level > 1) {
-      const headingRegex = new RegExp(`^${marker}\\s*${escapeRegExp(title)}\\s*${marker}\\s*$`, 'm');
-      const match = headingRegex.exec(rawText);
-      if (!match) {
-        console.warn(`[WikiNode.populateRaw] No section match for "${title}"`);
-        console.warn(`rawText: "${rawText.slice(0, 100)}..."`);
-        this.raw = '';
-        return;
-      }
-      startIdx = match.index;
-      headingSkipIdx = startIdx + match[0].length;
-    }
-
-    // Find next section end
-    const rest = rawText.slice(headingSkipIdx);
-    const nextSectionRegex = /^(={1,6})\s*[^=].*?[^=]\s*\1\s*$/gm;
-    const nextMatch = nextSectionRegex.exec(rest);
-    const endIdx = nextMatch ? headingSkipIdx + nextMatch.index : rawText.length;
-
-    this.raw = rawText.slice(startIdx, endIdx).trim();
-  }
-
-  static parseRawIntoSections(rawText: string): {title:string, rawText:string}[] {
-    const sections: {title:string, rawText:string}[] = [];
-    const sectionRegex = /^(={1,6})\s*([^=].*?[^=])\s*\1\s*$/gm; // Matches headings with 1-6 equals signs
-    let match;
-
-    while ((match = sectionRegex.exec(rawText)) !== null) {
-      const title = match[2].trim();
-      const startIdx = match.index + match[0].length;
-      const endIdx = sectionRegex.lastIndex;
-      const sectionRaw = rawText.slice(startIdx, endIdx).trim();
-      sections.push({ title, rawText: sectionRaw });
-    }
-
-    return sections;
-  }
-
   serialize() {
     if (this.html === null) {
-      console.warn(`[WikiNode.serialize] No html for section "${this.title}" (H${this.level}) [§${this.section}]`);
+      console.warn(`[WikiNode.serialize] No html for section "${this.title}" (H${this.level}) [§${this.sectionNum}]`);
       return; // nothing to serialize
     }
     this.htmlStr = this.html?.outerHTML ?? '';
@@ -272,7 +225,7 @@ class WikiNode {
 
   deserialize() {
     if (this.htmlStr === null) {
-      console.warn(`[WikiNode.deserialize] No htmlStr for section "${this.title}" (H${this.level}) [§${this.section}]`);
+      console.warn(`[WikiNode.deserialize] No htmlStr for section "${this.title}" (H${this.level}) [§${this.sectionNum}]`);
       return; // nothing to deserialize
     }
     this.html = htmlToElementK(this.htmlStr, 'div');
@@ -283,9 +236,74 @@ class WikiNode {
   }
 }
 
+  export function parseRawIntoSections(rawText: string): {level:number, sectionNum:number, title:string, raw:string}[] {
+    const sections: {level:number, sectionNum:number, title:string, raw:string}[] = [];
+    const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1\s*$/gm;
+
+    let match;
+    let lastSectionStart = 0;
+    let sectionNum = 0;
+    sections.push({ level: 1, sectionNum, title: '', raw: '' }); // root section
+    while ((match = sectionRegex.exec(rawText)) !== null) {
+      const level = match[1].length;
+      const title = match[2];
+      sections[sections.length - 1].raw = rawText.slice(lastSectionStart, match.index).trim();
+      lastSectionStart = match.index;
+      sections.push({ level, sectionNum: ++sectionNum, title, raw: '' });
+    }
+    sections[sections.length - 1].raw = rawText.slice(lastSectionStart); // add last section raw text
+
+    return sections;
+  }
+
+export function populateWikiNodeWithRaw(
+  root: WikiNode,
+  rawText: string,
+  opts: { similarityFn?: (a: string, b: string) => number } = {}
+) {
+  const similarityFn = opts.similarityFn || jaroWinklerSimilarity;
+  const nodes = [...root];
+  const sections = parseRawIntoSections(rawText);
+  const MIN_ACCEPTABLE_SCORE = 0.5;
+
+  if (nodes.length !== sections.length) {
+    console.warn(`Mismatch: ${nodes.length} HTML nodes vs ${sections.length} wikitext sections`);
+  }
+
+  while (nodes.length && sections.length) {
+    let bestPair = null;
+    let bestScore = -1;
+    outer: for (let ni = 0; ni < nodes.length; ni++) {
+      for (let si = 0; si < sections.length; si++) {
+        if (sections[si].level !== nodes[ni].level) continue;
+        let score = similarityFn(nodes[ni].title, normalizeWikitext(sections[si].title));
+        if (sections[si].level === 1) {
+          score = 1; // Level 1 sections are unique and always match (even if raw title is empty, which it always is)
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          bestPair = { ni, si, score };
+          if (score === 1) break outer; // perfect match, no need to check further
+        }
+      }
+    }
+    if (!bestPair || bestScore < MIN_ACCEPTABLE_SCORE) {
+      // No more acceptable matches
+      break;
+    }
+    // Assign and remove
+    nodes[bestPair.ni].raw = sections[bestPair.si].raw;
+    nodes.splice(bestPair.ni, 1);
+    sections.splice(bestPair.si, 1);
+  }
+  if (nodes.length) console.warn(`Unmatched nodes: ${nodes.map(n => `${n.title} (H${n.level}) [§${n.sectionNum}]`).join(', ')}`);
+  if (sections.length) console.warn(`Unmatched sections: ${sections.map(s => `${s.title} (H${s.level}) [§${s.sectionNum}]`).join(', ')}`);
+}
+
 function renderHtml(node: WikiNode): HTMLDivElement {
-  const titleElem = h(`h${node.level}`, {}, node.title);
-  const container = h('div', { class: 'wikinode-section' }, titleElem) as HTMLDivElement;
+  const titleElem = h(`h${node.level}`, { class: 'html-wikinode-title' }, node.title);
+  const container = h('div', { class: 'html-wikinode-section' }, titleElem) as HTMLDivElement;
+  container.id = `html-section-${node.sectionNum}`;
 
   if (node.html) container.appendChild(node.html);
   for (const child of node.children) {
@@ -294,21 +312,31 @@ function renderHtml(node: WikiNode): HTMLDivElement {
   return container;
 }
 
-function renderMd(node: WikiNode): string {
-  let out = `${'='.repeat(node.level)} ${node.title.trim()} ${'='.repeat(node.level)}\n\n`;
-  out += node.md ? node.md + '\n\n' : '';
+function renderMd(node: WikiNode): HTMLDivElement {
+  const titleElem = h(`h${node.level}`, { class: 'md-wikinode-title' }, node.title);
+  const container = h('div', { class: 'md-wikinode-section' }, titleElem) as HTMLDivElement;
+  container.id = `md-section-${node.sectionNum}`;
+
+  // const out = `${'='.repeat(node.level)} ${node.title} ${'='.repeat(node.level)}\n\n${node.md}`;
+  const pre = h('pre', { class: 'md-text' }, node.md);
+  container.appendChild(pre);
   for (const child of node.children) {
-    out += renderMd(child);
+    container.appendChild(renderMd(child));
   }
-  return out;
+  return container;
 }
 
-function renderRaw(node: WikiNode): string {
-  let out = node.raw ? node.raw + '\n\n' : '';
+function renderRaw(node: WikiNode): HTMLDivElement {
+  const titleElem = h(`h${node.level}`, { class: 'raw-wikinode-title' }, node.title);
+  const container = h('div', { class: 'raw-wikinode-section' }, titleElem) as HTMLDivElement;
+  container.id = `raw-section-${node.sectionNum}`;
+
+  const pre = h('pre', { class: 'raw-text' }, node.raw);
+  container.appendChild(pre);
   for (const child of node.children) {
-    out += renderRaw(child);
+    container.appendChild(renderRaw(child));
   }
-  return out;
+  return container;
 }
 
 function getBaseAndRawUrl(root:Document): { baseUrl: string; rawUrl: string } {
@@ -328,6 +356,24 @@ function getBaseAndRawUrl(root:Document): { baseUrl: string; rawUrl: string } {
   }
 
   return { baseUrl, rawUrl };
+}
+
+export function normalizeWikitext(raw:string): string {
+  // Remove bold/italic
+  raw = raw.replace(/'''/g, '').replace(/''/g, '');
+
+  // Files with captions
+  raw = raw.replace(/\[\[File:[^|\]]+\|[^|\]]*\|([^\]]+)\]\]/ig, '$1');
+  // Internal/external links
+  raw = raw.replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '$1');
+  raw = raw.replace(/\[\[([^|\]]+)\]\]/g, '$1');
+  raw = raw.replace(/\[http[^\s\]]+\s+([^\]]+)\]/g, '$1');
+  // <ref>...</ref> to []
+  raw = raw.replace(/<ref[^>]*>.*?<\/ref>/gi, '[]');
+  // Remove allowed tags, keep text
+  raw = raw.replace(/<(\/?)(b|big|code|em|i|p|small|span|strong|sub|sup)[^>]*>/gi, '');
+  // Trim outer whitespace
+  return raw.trim();
 }
 
 async function fetchRawPage(rawUrl: string): Promise<string> {
@@ -369,33 +415,83 @@ export async function createPage(result: WikiResult, doc:Document): Promise<void
   const { baseUrl, rawUrl, data } = result;
 
   // --- restore WikiNode tree after serialization ---
-  const tree = WikiNode.reviveWikiNode(data);
+  const tree = WikiNode.fromPojo(data);
   tree.deserialize();
 
   const rawText = await fetchRawPage(rawUrl);
   // log(rawText.slice(0, 1000), '...');
-  for (const node of tree) node.populateRaw(rawText);
-
-  injectCss(multiToggleCss, { id: 'wiki-multi-toggle', doc });
+  populateWikiNodeWithRaw(tree, rawText);
 
   const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · Wiki');
   const permaLink = h('a', { href: baseUrl, target: '_blank', class: 'perma-link' }, baseUrl);
-  const viewToggle = createMultiToggle({
-    initState: 0,
-    onToggle: (state) => {
-      doc.body.classList.remove('show-html', 'show-md', 'show-raw');
-      doc.body.classList.add(['show-html', 'show-md', 'show-raw'][state]);
-    },
-    labels: ['html', 'md', 'raw'],
-    labelSide: 'right',
-  });
-  const topBar = h('div', { class: 'top-bar' }, topHeading, permaLink, viewToggle);
+  const topBar = h('div', { class: 'top-bar' }, topHeading, permaLink);
   doc.body.appendChild(topBar);
+
+  const views = [
+    { key: 'html', label: 'HTML', showClass: 'show-html', idPrefix: 'html-section-', observeClass: 'html-wikinode-title', containerClass: 'html-view' },
+    { key: 'md', label: 'Markdown', showClass: 'show-md', idPrefix: 'md-section-', observeClass: 'md-wikinode-title', containerClass: 'md-view' },
+    { key: 'raw', label: 'Raw', showClass: 'show-raw', idPrefix: 'raw-section-', observeClass: 'raw-wikinode-title', containerClass: 'raw-view' },
+  ];
+  let currentSectionNum: number|null = null;
+  let currentViewState = 0; // html default view
+
+  const viewToggle = createMultiToggle({
+    initState: currentViewState,
+    labels: views.map(v => v.label),
+    labelSide: 'right',
+    onToggle: (state) => {
+      const prevView = views[currentViewState];
+      currentViewState = state;
+
+      // Determine visible section in previous view
+      const toggleBar = doc.querySelector('.view-toggle') as HTMLElement;
+      if (!toggleBar) return; // no toggle bar probably means page not yet rendered (or a bug..)
+      const focusLine = toggleBar.getBoundingClientRect().bottom + 10;
+
+      const headings = doc.querySelectorAll(`.${prevView.observeClass}`);
+      let bestHeading: HTMLElement | null = null;
+      let bestDelta = Infinity;
+
+      for (const el of headings) {
+        const rect = el.getBoundingClientRect();
+        const delta = Math.abs(focusLine - rect.top);
+        if (delta < bestDelta) {
+          bestHeading = el as HTMLElement;
+          bestDelta = delta;
+        }
+      }
+
+      const activeSectionNum = bestHeading?.parentElement?.id?.match(/-(\d+)$/);
+      const mainContainer = doc.querySelector(`.${prevView.containerClass}`) as HTMLElement | null;
+      const isPreambleActive = mainContainer ? mainContainer.getBoundingClientRect().top > focusLine : false;
+      currentSectionNum = (activeSectionNum && !isPreambleActive) ? +activeSectionNum[1] : null;
+
+      // Switch view
+      const nextView = views[state];
+      doc.body.classList.remove(...views.map(v => v.showClass));
+      doc.body.classList.add(nextView.showClass);
+
+      // Scroll to equivalent section
+      if (currentSectionNum !== null) {
+        const targetId = `${nextView.idPrefix}${currentSectionNum}`;
+        const targetEl = doc.getElementById(targetId);
+        if (targetEl) {
+          const sectionTop = targetEl.getBoundingClientRect().top;
+          const offset = sectionTop - focusLine;
+          window.scrollBy({ top: offset, behavior: 'auto' });
+        }
+      }
+    },
+  });
+
+  injectCss(multiToggleCss, { id: 'wiki-multi-toggle', doc });
+  const viewToggleContainer = h('div', { class: 'view-toggle' }, viewToggle);
+  doc.body.appendChild(viewToggleContainer);
 
   // --- Render views ---
   const html = h('div', { class: 'html-view' }, renderHtml(tree));
-  const md = h('pre', { class: 'md-view' }, renderMd(tree));
-  const raw = h('pre', { class: 'raw-view' }, renderRaw(tree));
-  const contentBox = h('div', { style: 'margin-top: 3em;' }, html, md, raw);
+  const md = h('div', { class: 'md-view' }, renderMd(tree));
+  const raw = h('div', { class: 'raw-view' }, renderRaw(tree));
+  const contentBox = h('div', { class: 'content-box' }, html, md, raw);
   doc.body.appendChild(contentBox);
 }
