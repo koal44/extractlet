@@ -8,7 +8,7 @@
  *     h[2-6]                                     → Section heading
  */
 
-import { log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup } from './utils.js';
+import { log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup, createCopyButton, copyButtonCss, warn } from './utils.js';
 import { toHtml as _toHtml, toMd as _toMd, ToMdHandler, ToHtmlOptions } from './core.js';
 
 export type WikiResult = {
@@ -234,6 +234,10 @@ export class WikiNode {
       child.deserialize();
     }
   }
+
+  getFullMd(): string {
+    return `${'='.repeat(this.level)} ${this.title} ${'='.repeat(this.level)}\n\n${this.md}`;
+  }
 }
 
   export function parseRawIntoSections(rawText: string): {level:number, sectionNum:number, title:string, raw:string}[] {
@@ -301,8 +305,11 @@ export function populateWikiNodeWithRaw(
 }
 
 function renderHtml(node: WikiNode): HTMLDivElement {
+  const copyText = node.html?.outerHTML || ''; // TODO: use node.md!! node.html is only for dev
+  const copyBtn = createCopyButton(copyText, "Copied HTML!");
   const titleElem = h(`h${node.level}`, { class: 'html-wikinode-title' }, node.title);
-  const container = h('div', { class: 'html-wikinode-section' }, titleElem) as HTMLDivElement;
+  const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
+  const container = h('div', { class: 'html-wikinode-section' }, titleBar) as HTMLDivElement;
   container.id = `html-section-${node.sectionNum}`;
 
   if (node.html) container.appendChild(node.html);
@@ -313,12 +320,14 @@ function renderHtml(node: WikiNode): HTMLDivElement {
 }
 
 function renderMd(node: WikiNode): HTMLDivElement {
+  const copyBtn = createCopyButton(node.getFullMd(), "Copied Markdown!");
   const titleElem = h(`h${node.level}`, { class: 'md-wikinode-title' }, node.title);
-  const container = h('div', { class: 'md-wikinode-section' }, titleElem) as HTMLDivElement;
+  const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
+  const container = h('div', { class: 'md-wikinode-section' }, titleBar) as HTMLDivElement;
   container.id = `md-section-${node.sectionNum}`;
 
   // const out = `${'='.repeat(node.level)} ${node.title} ${'='.repeat(node.level)}\n\n${node.md}`;
-  const pre = h('pre', { class: 'md-text' }, node.md);
+  const pre = h('p', { class: 'md-text' }, node.md);
   container.appendChild(pre);
   for (const child of node.children) {
     container.appendChild(renderMd(child));
@@ -327,16 +336,32 @@ function renderMd(node: WikiNode): HTMLDivElement {
 }
 
 function renderRaw(node: WikiNode): HTMLDivElement {
+  const copyBtn = createCopyButton(node.raw, "Copied Wikitext!");
   const titleElem = h(`h${node.level}`, { class: 'raw-wikinode-title' }, node.title);
-  const container = h('div', { class: 'raw-wikinode-section' }, titleElem) as HTMLDivElement;
+  const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
+  const container = h('div', { class: 'raw-wikinode-section' }, titleBar) as HTMLDivElement;
   container.id = `raw-section-${node.sectionNum}`;
 
-  const pre = h('pre', { class: 'raw-text' }, node.raw);
+  const rawBody = stripHeading(node);
+  const pre = h('p', { class: 'raw-text' }, rawBody);
   container.appendChild(pre);
   for (const child of node.children) {
     container.appendChild(renderRaw(child));
   }
   return container;
+
+  // --- helper fn ----
+  function stripHeading(node: WikiNode): string {
+    const raw = node.raw || '';
+    if (node.level === 1 || !node.raw) return raw;
+
+    const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1\s*$/;
+    const lines = raw.split('\n');
+    if (lines.length && sectionRegex.test(lines[0])) {
+      return lines.slice(1).join('\n');
+    }
+    return raw;
+  }
 }
 
 function getBaseAndRawUrl(root:Document): { baseUrl: string; rawUrl: string } {
@@ -411,44 +436,112 @@ export async function extractFromDoc(root: Document = document): Promise<WikiRes
   return result;
 }
 
+function getCopyPreamble(url: string): string {
+  const copyArr: string[] = [];
+  copyArr.push(
+    '===========================================',
+    '           Extractlet · Wiki',
+    '===========================================',
+    `URL: ${url}`
+  );
+  return copyArr.join('\n');
+}
+
 export async function createPage(result: WikiResult, doc:Document): Promise<void> {
+  injectCss(multiToggleCss, { id: 'wiki-multi-toggle', doc });
+  injectCss(copyButtonCss, { id: 'wiki-copy-button', doc });
+
+  // --- passed data from background script ---
   const { baseUrl, rawUrl, data } = result;
 
   // --- restore WikiNode tree after serialization ---
   const tree = WikiNode.fromPojo(data);
   tree.deserialize();
 
+  // --- fetch raw wikitext and add it to the tree ---
   const rawText = await fetchRawPage(rawUrl);
-  // log(rawText.slice(0, 1000), '...');
   populateWikiNodeWithRaw(tree, rawText);
 
+  // --- There are 3 views: HTML, Markdown, Raw ---
+  type ViewKey = 'html' | 'md' | 'raw';
+  const viewKeys: ViewKey[] = ['html', 'md', 'raw'];
+  const views: Record<
+    ViewKey,
+    {
+      label: string;
+      showClass: string;
+      idPrefix: string;
+      observeClass: string;
+      containerClass: string;
+      getCopyAllText: () => string;
+      getCopyAllResponse: () => string;
+      getCopyAllHint: () => string;
+    }> =
+    {
+    html: {
+      label: 'HTML',
+      showClass: 'show-html',
+      idPrefix: 'html-section-',
+      observeClass: 'html-wikinode-title',
+      containerClass: 'html-view',
+      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map(n => n.getFullMd()).join('\n\n')}`,
+      getCopyAllResponse: () => 'Copied all sections as Markdown!',
+      getCopyAllHint: () => 'Copy all sections as Markdown',
+    },
+    md: {
+      label: 'Markdown',
+      showClass: 'show-md',
+      idPrefix: 'md-section-',
+      observeClass: 'md-wikinode-title',
+      containerClass: 'md-view',
+      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map(n => n.getFullMd()).join('\n\n')}`,
+      getCopyAllResponse: () => 'Copied all sections as Markdown!',
+      getCopyAllHint: () => 'Copy all sections as Markdown',
+    },
+    raw: {
+      label: 'Wikitext',
+      showClass: 'show-raw',
+      idPrefix: 'raw-section-',
+      observeClass: 'raw-wikinode-title',
+      containerClass: 'raw-view',
+      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map(n => n.raw).join('\n\n')}`,
+      getCopyAllResponse: () => 'Copied all sections as Wikitext!',
+      getCopyAllHint: () => 'Copy all sections as Wikitext',
+    },
+  };
+
+  let currentSectionNum: number|null = null;
+  let currentView: ViewKey = 'html';
+
   const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · Wiki');
-  const permaLink = h('a', { href: baseUrl, target: '_blank', class: 'perma-link' }, baseUrl);
-  const topBar = h('div', { class: 'top-bar' }, topHeading, permaLink);
+  const copyAllButton = createCopyButton(
+    () => views[currentView].getCopyAllText(),
+    () => views[currentView].getCopyAllResponse(),
+    () => views[currentView].getCopyAllHint()
+  );
+  const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
   doc.body.appendChild(topBar);
 
-  const views = [
-    { key: 'html', label: 'HTML', showClass: 'show-html', idPrefix: 'html-section-', observeClass: 'html-wikinode-title', containerClass: 'html-view' },
-    { key: 'md', label: 'Markdown', showClass: 'show-md', idPrefix: 'md-section-', observeClass: 'md-wikinode-title', containerClass: 'md-view' },
-    { key: 'raw', label: 'Raw', showClass: 'show-raw', idPrefix: 'raw-section-', observeClass: 'raw-wikinode-title', containerClass: 'raw-view' },
-  ];
-  let currentSectionNum: number|null = null;
-  let currentViewState = 0; // html default view
+  const permaLink = h('a', { href: baseUrl, target: '_blank', class: 'perma-link' }, baseUrl);
+  doc.body.appendChild(permaLink);
 
   const viewToggle = createMultiToggle({
-    initState: currentViewState,
-    labels: views.map(v => v.label),
+    initState: viewKeys.indexOf(currentView),
+    labels: viewKeys.map(vk => views[vk].label),
     labelSide: 'right',
     onToggle: (state) => {
-      const prevView = views[currentViewState];
-      currentViewState = state;
+      const prevView = views[currentView];
+      currentView = viewKeys[state];
 
       // Determine visible section in previous view
-      const toggleBar = doc.querySelector('.view-toggle') as HTMLElement;
-      if (!toggleBar) return; // no toggle bar probably means page not yet rendered (or a bug..)
+      const toggleBar = doc.querySelector('.view-toggle') as HTMLElement | null;
+      if (!toggleBar) return warn("Toggle bar (.view-toggle) not found: UI may not be fully rendered.");
+
       const focusLine = toggleBar.getBoundingClientRect().bottom + 10;
 
       const headings = doc.querySelectorAll(`.${prevView.observeClass}`);
+      if (headings.length === 0) return warn(`No headings found with class ${prevView.observeClass}. View state: ${currentView}.`); 
+
       let bestHeading: HTMLElement | null = null;
       let bestDelta = Infinity;
 
@@ -461,14 +554,21 @@ export async function createPage(result: WikiResult, doc:Document): Promise<void
         }
       }
 
-      const activeSectionNum = bestHeading?.parentElement?.id?.match(/-(\d+)$/);
+      if (!bestHeading) return warn("No bestHeading found despite non-empty headings list. Possible DOM error.");
+      const titlebar = bestHeading.parentElement;
+      if (!titlebar || !isDiv(titlebar)) return warn("Best heading's parent is not a div. Possible DOM structure change.");
+      const sectionDiv = titlebar.parentElement;
+      if (!sectionDiv || !isDiv(sectionDiv)) return warn("Best heading's grandparent is not a div. Possible DOM structure change.");
+      const activeSectionNum = sectionDiv.id?.match(/-(\d+)$/)?.[1];
+      if (!activeSectionNum) return warn("Active section number not found in sectionDiv ID:", sectionDiv.id, sectionDiv);
       const mainContainer = doc.querySelector(`.${prevView.containerClass}`) as HTMLElement | null;
+      if (!mainContainer) return warn(`Main container not found with class ${prevView.containerClass}. Possible DOM structure change.`);
       const isPreambleActive = mainContainer ? mainContainer.getBoundingClientRect().top > focusLine : false;
-      currentSectionNum = (activeSectionNum && !isPreambleActive) ? +activeSectionNum[1] : null;
+      currentSectionNum = !isPreambleActive ? +activeSectionNum : null;
 
       // Switch view
-      const nextView = views[state];
-      doc.body.classList.remove(...views.map(v => v.showClass));
+      const nextView = views[currentView];
+      doc.body.classList.remove(...viewKeys.map(vk => views[vk].showClass));
       doc.body.classList.add(nextView.showClass);
 
       // Scroll to equivalent section
@@ -484,7 +584,6 @@ export async function createPage(result: WikiResult, doc:Document): Promise<void
     },
   });
 
-  injectCss(multiToggleCss, { id: 'wiki-multi-toggle', doc });
   const viewToggleContainer = h('div', { class: 'view-toggle' }, viewToggle);
   doc.body.appendChild(viewToggleContainer);
 
@@ -494,4 +593,5 @@ export async function createPage(result: WikiResult, doc:Document): Promise<void
   const raw = h('div', { class: 'raw-view' }, renderRaw(tree));
   const contentBox = h('div', { class: 'content-box' }, html, md, raw);
   doc.body.appendChild(contentBox);
+  viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present
 }

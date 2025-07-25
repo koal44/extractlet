@@ -1,11 +1,14 @@
-html {
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+html, body {
   --color-base: #0c0d0e;
   --color-bg: white;
 
   background: var(--color-bg);
   color: var(--color-base);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 1em;
+  font-size: 100%;
   line-height: 1.4;
 }
 body {
@@ -39,16 +42,17 @@ ul li::marker {
   font-size: 0.8em;
 }
 blockquote {
-  border-left: 2px solid #999;
+  border-left: 0.12em solid #999;
   margin: 0.5em 0;
   padding-left: 0.8em;
   color: #333;
 }
 pre, code {
   font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+  font-size: 1em;
   background: #eee;
   padding: 0.2em 0.4em;
-  border-radius: 3px;
+  border-radius: 0.2em;
   overflow-x: auto;
 }
 pre code {
@@ -60,11 +64,11 @@ textarea {
   font-family: inherit;
 }
 button {
-  margin-left: 10px;
   background: #f2f4f7;
-  border: 1px solid currentColor;
+  border: 0.06em solid currentColor;
   color: #4ca5f2;
   cursor: pointer;
+  border-radius: 0.2em;
 }
 table {
   border-collapse: collapse;
@@ -74,7 +78,7 @@ table {
   font-size: 1em;
 }
 th, td {
-  border: 1px solid #ccc;
+  border: 0.06em solid #ccc;
   padding: 0.2em 0.4em;
 }
 td {
@@ -103,4 +107,25 @@ figure {
 }
 figure figcaption {
   font-size: 0.9em;
+}
+.top-bar {
+  display: flex;
+  gap: 1em;
+  align-items: center;
+}
+.top-heading {
+  margin: 0;
+  line-height: 1;
+  font-weight: 500;
+  font-size: 1.5em;
+}
+.perma-link {
+  display: block;
+}
+.view-toggle {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--color-bg);
+  padding: 0.5em 0;
 }

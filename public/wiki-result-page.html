@@ -6,7 +6,7 @@
   <title>Extractlet - Wiki</title>
   <link rel="stylesheet" href="base.css">
   <style>
-    html {
+    html, body {
       --color-base: #202122;
       --color-bg: white;
       font-family: sans-serif;
@@ -14,16 +14,6 @@
     }
     img {
       vertical-align: middle;
-    }
-    /* .top-bar {
-    } */
-    .top-heading {
-      margin-top: 0;
-      line-height: 1;
-    }
-    .perma-link {
-      display: block;
-      margin-bottom: 0.7em
     }
     .content-box {
       margin-top: 3em;
@@ -55,17 +45,22 @@
       font-kerning: none;
       white-space: nowrap;
     }
-    .view-toggle {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: var(--color-bg);
-      padding: 0.5em;
-    }
     .raw-text,
     .md-text {
       background: var(--color-bg);
       white-space: pre-wrap;
+    }
+    .wikinode-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 1em;
+      margin: 3em 0 0.25em 0;
+      font-size: 1em;
+    }
+    .html-wikinode-title,
+    .md-wikinode-title,
+    .raw-wikinode-title {
+      margin: 0;
     }
   </style>
   <script src="browser-polyfill.js"></script>

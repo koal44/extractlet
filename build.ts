@@ -51,7 +51,6 @@ if (manifest.background && manifest.background.scripts) {
   console.log('Patched manifest.json for Chrome/other in dist');
 }
 
-
 console.log('Build completed!');
 
 // ------------------------

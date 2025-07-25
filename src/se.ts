@@ -256,15 +256,26 @@ function scrapePermaLink(root:Document): HTMLAnchorElement|null {
 }
 
 function buildCopyButton(doc:Document, pageData:SEResult, postIdx = -1) {
+  if (postIdx < -1 || postIdx >= pageData.posts.length) {
+    throw new Error('Invalid postIdx: ' + postIdx);
+  }
+  const isAll = postIdx === -1;
+  const isQuestion = postIdx === 0;
+  const isAnswer = postIdx >= 1;
+
   const responseTxt =
-    postIdx === -1 ? 'Copied All!' :
-    postIdx ===  0 ? 'Copied Question!' :
-    postIdx >=   1 ? `Copied Answer ${postIdx}!` :
-    (() => { throw new Error('Invalid postIdx: ' + postIdx); })();
+    isAll      ? 'Copied All!' :
+    isQuestion ? 'Copied Question!' :
+    isAnswer   ? `Copied Answer ${postIdx}!` : '';
+
+  const hintTxt =
+    isAll      ? 'Copy all posts' :
+    isQuestion ? 'Copy question' :
+    isAnswer   ? `Copy answer ${postIdx}` : '';
 
   const copyArr = [];
 
-  if (postIdx === -1) {
+  if (isAll) {
     copyArr.push(
       '===========================================',
       '        Extractlet · Stack Exchange',
@@ -280,7 +291,7 @@ function buildCopyButton(doc:Document, pageData:SEResult, postIdx = -1) {
   }
 
   pageData.posts.forEach((post, idx) => {
-    if (postIdx !== -1 && idx !== postIdx) return;
+    if (!isAll && idx !== postIdx) return;
 
     const postHeading = idx === 0 ? 'Question' : `Answer ${idx}`;
     copyArr.push(`\n❖❖ ${postHeading} ❖❖`, '', post.bodyMd);
@@ -299,7 +310,7 @@ function buildCopyButton(doc:Document, pageData:SEResult, postIdx = -1) {
   });
 
   const copyTxt = copyArr.join('\n').trimEnd() + '\n';
-  return createCopyButton(doc, copyTxt, responseTxt);
+  return createCopyButton(copyTxt, responseTxt, hintTxt);
 }
 
 function buildContribsAndVotes(contributors:Contributor[], voteCount:number): string {
@@ -438,13 +449,6 @@ export function extractFromDoc(root: Document = document): SEResult|undefined {
   };
 
   return result;
-
-  // try {
-  //   await browser.runtime.sendMessage<ExtractletMessage>({ type: 'seResult', result });
-  // } catch (error) {
-  //   console.error('Error sending SE content:', error);
-  //   alert('Failed to send SE content. Check console for details.');
-  // }
 }
 
 export function createPage(pageData: SEResult, doc:Document): void {
@@ -470,8 +474,10 @@ export function createPage(pageData: SEResult, doc:Document): void {
     labels: ['html', 'md'], // , 'raw'
     labelSide: 'right',
   });
-  doc.body.appendChild(viewToggle);
+  const viewToggleContainer = h('div', { class: 'view-toggle' }, viewToggle);
+  doc.body.appendChild(viewToggleContainer);
 
   const output = buildPosts(pageData, doc);
   doc.body.appendChild(output);
+  viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present
 }

@@ -156,6 +156,20 @@ export function toKebabCase(str: string): string {
     .toLowerCase();
 }
 
+export function warn(...args: Parameters<typeof console.warn>): void {
+  console.warn(...args);
+}
+
+export function warnTrue(...args: Parameters<typeof console.warn>): true {
+  console.warn(...args);
+  return true;
+}
+
+export function warnFalse(...args: Parameters<typeof console.warn>): false {
+  console.warn(...args);
+  return false;
+}
+
 export function injectCss(
   css: string,
   { id = undefined, doc = document }: { id?: string; doc?: Document; } = {}
@@ -166,6 +180,10 @@ export function injectCss(
   style.textContent = css;
   if (id) style.id = id;
   doc.head.appendChild(style);
+}
+
+interface MultiToggleDiv extends HTMLDivElement {
+  init: () => void;
 }
 
 export function createMultiToggle({ initState = 0, onToggle = undefined, labels = ['a', 'b'], labelSide = 'right' }
@@ -179,8 +197,8 @@ export function createMultiToggle({ initState = 0, onToggle = undefined, labels 
   const switchBody = h('label', { class: 'multi-toggle-switchbody' }, checkbox, slider);
   const stateLabel = h('span', { class: `multi-toggle-label-${labelSide}` }, labels[initState]);
   const wrapper = labelSide === 'left'
-    ? h('div', { class: 'multi-toggle' }, stateLabel, switchBody)
-    : h('div', { class: 'multi-toggle' }, switchBody, stateLabel);
+    ? h('div', { class: 'multi-toggle' }, stateLabel, switchBody) as MultiToggleDiv
+    : h('div', { class: 'multi-toggle' }, switchBody, stateLabel) as MultiToggleDiv;
 
   const setState = (newState: number): void => {
     state = newState;
@@ -191,7 +209,8 @@ export function createMultiToggle({ initState = 0, onToggle = undefined, labels 
   };
 
   let state = initState;
-  setState(state);
+  wrapper.init = () => { setState(initState); };
+  //setState(state);
 
   checkbox.addEventListener('change', () => {
     setState((state + 1) % labels.length);
@@ -261,7 +280,8 @@ export const multiToggleCss = /* css */ `
 `;
 
 export const copyButtonCss = /* css */ `
-.copybutton {
+.copybutton-wrapper {
+  font-size: var(--copybutton-size, 1em); /* scalable */
   --copybutton-color: #4ca5f2;
   --copybutton-bg: #f2f4f7;
   display: inline-flex;
@@ -277,49 +297,44 @@ export const copyButtonCss = /* css */ `
   display: none;
   color: var(--copybutton-color);
   background-color: var(--copybutton-bg);
-  border: 1px solid currentColor;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 15px;
+  border: 0.05em solid currentColor;
+  border-radius: 0.3em;
+  padding: 0.2em 0.4em;
+  font-size: 0.75em;
   align-content: center;
-  margin-left: 5px;
+  margin-left: 0.25em;
 }
-.copybutton button {
+.copybutton {
+  font-size: inherit;
   cursor: pointer;
-  margin-left: 20px;
-  padding: 6px 8px;
+  margin: 0;
+  padding: 0.3em 0.4em;
   background-color: var(--copybutton-bg);
-  border: 1px solid currentColor;
-  border-radius: 6px;
+  border: 0.08em solid currentColor;
+  border-radius: 0.3em;
   color: var(--copybutton-color);
   transition: background-color 0.1s linear;
 }
 .copybutton-icon {
-  width: 20px;
-  height: 20px;
+  width: 1em;
+  height: 1em;
   fill: none;
+  display: block;
 }
 .copybutton-icon path {
   stroke: currentColor;
-  stroke-width: 1.66667;
+  stroke-width: 0.08em;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 `;
 
 export function createCopyButton(
-  doc: Document,
   copyText: string | (() => string),
-  responseText: string = 'Copied!'
+  responseText: string | (() => string) = 'Copied!',
+  hintText: string | (() => string) = 'Copy'
 ): HTMLDivElement {
-  // hidden helper to hold the text to be copied
-  let ta = doc.getElementById('copybutton-hidden-ta') as HTMLTextAreaElement | null;
-  if (!ta) {
-    ta = h('textarea', { id: 'copybutton-hidden-ta' }) as HTMLTextAreaElement;
-    doc.body.appendChild(ta);
-  }
-
-  const response = h('span', { class: 'copybutton-response' }, responseText);
+  const response = h('span', { class: 'copybutton-response' });
   const iconPath = h('svg:path', {
     d: 'M4.16667 12.5H3.33333C2.89131 12.5 2.46738 12.3244 2.15482 12.0118C1.84226 11.6993 1.66667 11.2754 1.66667 10.8333V3.33332C1.66667 2.8913 1.84226 2.46737 2.15482 2.15481C2.46738 1.84225 2.89131 1.66666 3.33333 1.66666H10.8333C11.2754 1.66666 11.6993 1.84225 12.0118 2.15481C12.3244 2.46737 12.5 2.8913 12.5 3.33332V4.16666M9.16667 7.49999H16.6667C17.5871 7.49999 18.3333 8.24618 18.3333 9.16666V16.6667C18.3333 17.5871 17.5871 18.3333 16.6667 18.3333H9.16667C8.24619 18.3333 7.5 17.5871 7.5 16.6667V9.16666C7.5 8.24618 8.24619 7.49999 9.16667 7.49999Z',
   });
@@ -331,30 +346,35 @@ export function createCopyButton(
     focusable: 'false',
   }, iconPath);
 
-  const button = h('button', {}, icon) as HTMLButtonElement;
-  button.addEventListener('click', function() {
-    ta.value = typeof copyText === 'function' ? copyText() : copyText;
-    ta.select();
-
+  const button = h('button', { class: 'copybutton' }, icon) as HTMLButtonElement;
+  button.addEventListener('click', async function() {
+    const text = typeof copyText === 'function' ? copyText() : copyText;
     try {
-      const successful = doc.execCommand('copy');
-      if (successful) {
-        button.disabled = true;
-        response.style.display = 'inline-block';
-        setTimeout(() => {
-          // Reset button to original state
-          button.disabled = false;
-          response.style.display = 'none';
-        }, 1000);
-      } else {
-        alert('Failed to copy content.');
-      }
+      await navigator.clipboard.writeText(text);
+      button.disabled = true;
+      response.textContent = typeof responseText === 'function' ? responseText() : responseText;
+      response.style.display = 'inline-block';
+      setTimeout(() => {
+        // Reset button to original state
+        button.disabled = false;
+        response.style.display = 'none';
+      }, 1000);
     } catch (err) {
+      alert('Failed to copy content.');
       console.error('Copy error:', err);
     }
   });
 
-  return h('div', { class: 'copybutton' }, button, response) as HTMLDivElement;
+  // set hint
+  if (typeof hintText === 'string') {
+    button.title = hintText;
+  } else if (typeof hintText === 'function') {
+    const updateTitle = () => { button.title = hintText(); };
+    button.addEventListener('mouseenter', updateTitle);
+    button.addEventListener('focus', updateTitle);
+  }
+
+  return h('div', { class: 'copybutton-wrapper' }, button, response) as HTMLDivElement;
 }
 
 // Bad idea. css parsing is complex and if doing inline styles,

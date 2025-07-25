@@ -1,10 +1,7 @@
 import browser from 'webextension-polyfill';
-import { WikiResult } from './wiki';
-import { SEResult } from './se';
 import { toKebabCase } from './utils';
-import { isExtractletMessage } from './types/extractlet-message.js';
-
-let latestResult: SEResult | WikiResult | undefined;
+import { isExtractedDataMessage } from './types/extracted-data-message.js';
+import { EXTRACTED_DATA_STORAGE_PREFIX } from './constants';
 
 browser.action.onClicked.addListener(async (tab) => {
   if (tab.id === undefined) return;
@@ -18,40 +15,48 @@ browser.action.onClicked.addListener(async (tab) => {
   }
 });
 
-browser.runtime.onMessage.addListener((msg: unknown, sender: browser.Runtime.MessageSender, sendResponse) => {
-  /* note: the while the code is sync, we return true to silence TS errors. it should be harmless */
-  if (!isExtractletMessage(msg)) {
+browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runtime.MessageSender) => {
+  if (!isExtractedDataMessage(msg)) {
     console.error('Received unknown message:', msg);
-    sendResponse(null);
-    return true;
+    return;
   }
   switch (msg.type) {
     case 'wikiResult':
     case 'seResult': {
-      latestResult = msg.result;
-      const url = `${toKebabCase(msg.type)}-page.html`;
+      const uuid = crypto.randomUUID();
+      const key = `${EXTRACTED_DATA_STORAGE_PREFIX}${uuid}`;
+      try {
+        await browser.storage.local.set({ [key]: msg });
+      } catch (err) {
+        return console.error("Failed to set storage for key:", key, err);
+      }
+      const url = `${toKebabCase(msg.type)}-page.html?uuid=${uuid}`;
       browser.tabs.create({
         url: browser.runtime.getURL(url),
         active: true,
-        index: sender.tab ? sender.tab.index + 1 : undefined,
+        index: sender.tab ? sender.tab.index + 1 : undefined, // open tab next to the current one
+        windowId: sender.tab?.windowId, // so incognito works
       });
-      sendResponse(null);
-      return true;
-    }
-    case 'getLatestResult': {
-      if (!latestResult) {
-        console.error('No latest result available');
-        sendResponse(null);
-        return true;
-      }
-      if (!sender.tab || typeof sender.tab.id !== 'number') {
-        console.error('sender.tab is undefined');
-        sendResponse(null);
-        return true;
-      }
-      sendResponse(latestResult);
-      latestResult = undefined;
-      return true;
+      await pruneStaleStorage();
+      return;
     }
   }
 });
+
+async function pruneStaleStorage() {
+  const TTL = 24 * 60 * 60 * 1000; // 24 hours
+  const all = await browser.storage.local.get(null);
+  const now = Date.now();
+  const keysToRemove: string[] = [];
+  for (const [k, v] of Object.entries(all)) {
+    if (!k.startsWith(EXTRACTED_DATA_STORAGE_PREFIX)) continue;
+    if (!isExtractedDataMessage(v)) {
+      console.warn(`Skipping invalid storage value for key ${k}:`, v);
+      continue;
+    }
+    if (now - v.timestamp > TTL) keysToRemove.push(k);
+  }
+  if (keysToRemove.length > 0) {
+    browser.storage.local.remove(keysToRemove);
+  }
+}
