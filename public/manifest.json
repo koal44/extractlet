@@ -24,7 +24,8 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "notifications"
   ],
   "icons": {
     "16": "icons/icon-head-16.png",

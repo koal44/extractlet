@@ -6,7 +6,7 @@ import { el, assertNodeEqual, setupDom } from './test-utils.js';
 
 setupDom();
 
-test.skip('toHtml_spacing_challenges', () => {
+test.skip('toHtml spacing challenges', () => {
   const html = `
     <div>
       <p>
@@ -31,7 +31,7 @@ test.skip('toHtml_spacing_challenges', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toHtml_preserves_escaped_html', () => {
+test('toHtml preserves escaped html', () => {
   const html = `
     <div>
       <p>
@@ -50,7 +50,7 @@ test('toHtml_preserves_escaped_html', () => {
     assertNodeEqual(result, expected);
 });
 
-test('toMd_collapse_linebreaks', () => {
+test('toMd collapse linebreaks', () => {
   const html = `
     <div>
       <p>
@@ -63,7 +63,7 @@ test('toMd_collapse_linebreaks', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_trim_after_anchor', () => {
+test('toMd trim after anchor', () => {
   const html = `
     <div>
       <p>
@@ -75,7 +75,7 @@ test('toMd_trim_after_anchor', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_no_double_space', () => {
+test('toMd no double space', () => {
   const html = `
     <div>
       <p>
@@ -89,7 +89,7 @@ test('toMd_no_double_space', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_mathjax_script', () => {
+test('toMd mathjax script', () => {
   const html = `
     <div>
       <p>
@@ -103,7 +103,7 @@ test('toMd_mathjax_script', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_trailing_whitespace_node', () => {
+test('toMd trailing whitespace node', () => {
   const html = `
     <div>
       <p>Done.</p>
@@ -114,14 +114,14 @@ test('toMd_trailing_whitespace_node', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_single_p', () => {
+test('toMd single p', () => {
   const html = '<div><p>Hello world</p></div>';
   const result = toMd(el(html));
   const expected = 'Hello world';
   strictEqual(result, expected);
 });
 
-test('toMd_div_wraps_two_ps', () => {
+test('toMd div wraps two ps', () => {
   const html = `
     <div>
       <p>Hello</p>
@@ -132,7 +132,7 @@ test('toMd_div_wraps_two_ps', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_nested_divs_with_p', () => {
+test('toMd nested divs with p', () => {
   const html = `
     <div>
       <div>
@@ -147,7 +147,7 @@ test('toMd_nested_divs_with_p', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_deeply_nested_divs_collapse_spacing', () => {
+test('toMd deeply nested divs collapse spacing', () => {
   const html = `
     <div>
       <div>
@@ -163,7 +163,7 @@ test('toMd_deeply_nested_divs_collapse_spacing', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_deeply_nested_divs_collapse_spacing2', () => {
+test('toMd deeply nested divs collapse spacing2', () => {
   const html = `
     <div>
       <div>
@@ -186,7 +186,7 @@ test('toMd_deeply_nested_divs_collapse_spacing2', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_empty_divs_do_not_add_spacing', () => {
+test('toMd empty divs do not add spacing', () => {
   const html = `
     <div>
       <div></div>
@@ -199,28 +199,28 @@ test('toMd_empty_divs_do_not_add_spacing', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_div_with_inline_span_text', () => {
+test('toMd div with inline span text', () => {
   const html = '<div><span>Hello</span>, <em>world</em>!</div>';
   const result = toMd(el(html));
   const expected = 'Hello, *world*!';
   strictEqual(result, expected);
 });
 
-test('toMd_div_with_empty_inline_should_not_count', () => {
+test('toMd div with empty inline should not count', () => {
   const html = '<div><span> </span></div>';
   const result = toMd(el(html));
   const expected = '';
   strictEqual(result, expected);
 });
 
-test('toMd_p_and_inline_span_spacing', () => {
+test('toMd p and inline span spacing', () => {
   const html = '<div><p>Hello</p><span>World</span></div>';
   const result = toMd(el(html));
   const expected = 'Hello\n\nWorld';
   strictEqual(result, expected);
 });
 
-test('toMd_div_text_p_text', () => {
+test('toMd div text p text', () => {
   const html = `
     <div>
       intro
@@ -232,7 +232,7 @@ test('toMd_div_text_p_text', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_messy_spacing_collapse', () => {
+test('toMd messy spacing collapse', () => {
   const html = `
     <div>
       <p>Hello   \t\n</p>
@@ -244,25 +244,25 @@ test('toMd_messy_spacing_collapse', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_span_does_not_add_break', () => {
+test('toMd span does not add break', () => {
   const html = `
     <div>
       <span>Hello</span>
       <span>World</span>
     </div>`;
   const result = toMd(el(html));
-  const expected = 'HelloWorld'; // no \n
+  const expected = 'Hello World'; // no \n
   strictEqual(result, expected);
 });
 
-test('toMd_p_with_spans_inline', () => {
+test('toMd p with spans inline', () => {
   const html = '<p><span>Hello</span><span> world</span></p>';
   const result = toMd(el(html));
   const expected = 'Hello world';
   strictEqual(result, expected);
 });
 
-test('toMd_p_with_spans_inline2', () => {
+test('toMd p with spans inline2', () => {
   const html = `<p>
     <span>
      Hello
@@ -276,7 +276,7 @@ test('toMd_p_with_spans_inline2', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_spans_between_ps', () => {
+test('toMd spans between ps', () => {
   const html = `<div>
     <p>Hello</p>
     <span> -- </span>
@@ -287,7 +287,7 @@ test('toMd_spans_between_ps', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_p_span_p_combo', () => {
+test('toMd p span p combo', () => {
   const html = `<div>
     <p>Hello</p>
     <p><span>World</span></p>
@@ -297,7 +297,7 @@ test('toMd_p_span_p_combo', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_p_with_inline_span_then_p', () => {
+test('toMd p with inline span then p', () => {
   const html = `<div>
     <p>This is <span>inline</span> text.</p>
     <p>Second paragraph.</p>
@@ -307,7 +307,7 @@ test('toMd_p_with_inline_span_then_p', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_mixed_text_span_p_text', () => {
+test('toMd mixed text span p text', () => {
   const html = `
     <div>
       Intro
@@ -320,154 +320,154 @@ test('toMd_mixed_text_span_p_text', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_em_simple', () => {
+test('toMd em simple', () => {
   const html = '<p>This is <em>important</em> text.</p>';
   const result = toMd(el(html));
   const expected = 'This is *important* text.';
   strictEqual(result, expected);
 });
 
-test('toMd_em_nested_div', () => {
+test('toMd em nested div', () => {
   const html = '<div><p><em>Hello</em> world</p></div>';
   const result = toMd(el(html));
   const expected = '*Hello* world';
   strictEqual(result, expected);
 });
 
-test('toMd_b_simple', () => {
+test('toMd b simple', () => {
   const html = '<p>This is <b>bold</b> text.</p>';
   const result = toMd(el(html));
   const expected = 'This is **bold** text.';
   strictEqual(result, expected);
 });
 
-test('toMd_b_nested_div', () => {
+test('toMd b nested div', () => {
   const html = '<div><p><b>Hello</b> world</p></div>';
   const result = toMd(el(html));
   const expected = '**Hello** world';
   strictEqual(result, expected);
 });
 
-test('toMd_em_and_bold', () => {
+test('toMd em and bold', () => {
   const html = '<p>This is <b><em>very important</em></b> text.</p>';
   const result = toMd(el(html));
   const expected = 'This is ***very important*** text.';
   strictEqual(result, expected);
 });
 
-test('toMd_br_inside_paragraph', () => {
+test('toMd br inside paragraph', () => {
   const html = '<p>Hello<br/>world</p>';
   const result = toMd(el(html));
   const expected = 'Hello  \nworld';
   strictEqual(result, expected);
 });
 
-test('toMd_anchor_simple', () => {
+test('toMd anchor simple', () => {
   const html = '<p>Visit <a href="https://example.com">our site</a> today.</p>';
   const result = toMd(el(html));
   const expected = 'Visit [our site](https://example.com/) today.';
   strictEqual(result, expected);
 });
 
-test('toMd_anchor_nested_em', () => {
+test('toMd anchor nested em', () => {
   const html = '<a href="https://example.com"><em>important link</em></a>';
   const result = toMd(el(html));
   const expected = '[*important link*](https://example.com/)';
   strictEqual(result, expected);
 });
 
-test('toMd_a_inline_full_url', () => {
+test('toMd a inline full url', () => {
   const html = '<a href="https://example.com">Click here</a>';
   const result = toMd(el(html));
   const expected = '[Click here](https://example.com/)';
   strictEqual(result, expected);
 });
 
-test('toMd_a_inline_relative_url', () => {
+test('toMd a inline relative url', () => {
   const html = '<a href="/questions/1234">See question</a>';
   const result = toMd(el(html));
   const expected = '[See question](/questions/1234)';
   strictEqual(result, expected);
 });
 
-test('toMd_a_with_empty_href_is_unlinked', () => {
+test('toMd a with empty href is unlinked', () => {
   const html = '<a href="">No link</a>';
   const result = toMd(el(html));
   const expected = 'No link'; // Don't treat as markdown link
   strictEqual(result, expected);
 });
 
-test('toMd_a_name_anchor_only', () => {
+test('toMd a name anchor only', () => {
   const html = '<a name="section1"></a>';
   const result = toMd(el(html));
   const expected = ''; // No renderable content
   strictEqual(result, expected);
 });
 
-test('toMd_naked_url_text', () => {
+test('toMd naked url text', () => {
   const html = '<div>https://example.com</div>';
   const result = toMd(el(html));
   const expected = 'https://example.com';
   strictEqual(result, expected);
 });
 
-test('toMd_a_with_bold_child', () => {
+test('toMd a with bold child', () => {
   const html = '<a href="https://example.com"><b>Link</b></a>';
   const result = toMd(el(html));
   const expected = '[**Link**](https://example.com/)';
   strictEqual(result, expected);
 });
 
-test('toMd_h1_simple', () => {
+test('toMd h1 simple', () => {
   const html = '<div><h1>Introduction</h1></div>';
   const result = toMd(el(html));
   const expected = '# Introduction';
   strictEqual(result, expected);
 });
 
-test('toMd_h2_with_inline', () => {
+test('toMd h2 with inline', () => {
   const html = '<div><h2>Usage <em>details</em></h2></div>';
   const result = toMd(el(html));
   const expected = '## Usage *details*';
   strictEqual(result, expected);
 });
 
-test('toMd_h3_with_bold', () => {
+test('toMd h3 with bold', () => {
   const html = '<div><h3>Important <b>note</b></h3></div>';
   const result = toMd(el(html));
   const expected = '### Important **note**';
   strictEqual(result, expected);
 });
 
-test('toMd_hr_simple', () => {
+test('toMd hr simple', () => {
   const html = '<div>before<hr/>after</div>';
   const result = toMd(el(html));
   const expected = 'before\n\n---\n\nafter';
   strictEqual(result, expected);
 });
 
-test('toMd_ul_simple', () => {
+test('toMd ul simple', () => {
   const html = '<ul><li>Item 1</li><li>Item 2</li></ul>';
   const result = toMd(el(html));
   const expected = '- Item 1\n- Item 2';
   strictEqual(result, expected);
 });
 
-test('toMd_ol_simple', () => {
+test('toMd ol simple', () => {
   const html = '<ol><li>First</li><li>Second</li></ol>';
   const result = toMd(el(html));
   const expected = '1. First\n2. Second';
   strictEqual(result, expected);
 });
 
-test('toMd_double_spaced_list', () => {
+test('toMd double spaced list', () => {
   const html = '<div><ul><li><p>Item 1</p></li><li><p>Item 2</p></li></ul></div>';
   const result = toMd(el(html));
   const expected = '- Item 1\n\n- Item 2';
   strictEqual(result, expected);
 });
 
-test('toMd_list_with_two_paragraphs', () => {
+test('toMd list with two paragraphs', () => {
   const html = `<div><ul>
 <li>
 <p>Para 1</p>
@@ -483,7 +483,7 @@ test('toMd_list_with_two_paragraphs', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_deep_list_with_paragraphs', () => {
+test('toMd deep list with paragraphs', () => {
   const html = `<div>
 <ul>
   <li>
@@ -511,7 +511,7 @@ test('toMd_deep_list_with_paragraphs', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_nest_list_with_variable_bullet_length', () => {
+test('toMd nest list with variable bullet length', () => {
   const html = `<div>
 <ol>
   <li>Item 1</li>
@@ -547,7 +547,7 @@ test('toMd_nest_list_with_variable_bullet_length', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_nested_list', () => {
+test('toMd nested list', () => {
   const html = `
 <div>
   <ul>
@@ -568,7 +568,7 @@ test('toMd_nested_list', () => {
     strictEqual(result, expected);
 });
 
-test('toMd_nested_list_wild', () => {
+test('toMd nested list wild', () => {
     const html = `
 <div>
   <h1>Nested List Wild</h1>
@@ -607,35 +607,35 @@ test('toMd_nested_list_wild', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_code_fenced_basic', () => {
+test('toMd code fenced basic', () => {
   const html = '<div><pre><code>printf("%d\\n", 42);</code></pre></div>';
   const result = toMd(el(html));
   const expected = '```\nprintf("%d\\n", 42);\n```';
   strictEqual(result, expected);
 });
 
-test('toMd_inline_code_basic', () => {
+test('toMd inline code basic', () => {
   const html = '<p>The <code>$</code> character is a shortcut for <code>window.jQuery</code>.</p>';
   const result = toMd(el(html));
   const expected = 'The `$` character is a shortcut for `window.jQuery`.';
   strictEqual(result, expected);
 });
 
-test('toMd_inline_code_with_backtick', () => {
+test('toMd inline code with backtick', () => {
   const html = '<p>The name <code>Tuple`2</code> is valid.</p>';
   const result = toMd(el(html));
   const expected = 'The name ``Tuple`2`` is valid.';
   strictEqual(result, expected);
 });
 
-test('toMd_pre_with_trailing_newline', () => {
+test('toMd pre with trailing newline', () => {
   const html = '<div><pre>line1\nline2\n</pre></div>';
   const result = toMd(el(html));
   const expected = '```\nline1\nline2\n```';
   strictEqual(result, expected);
 });
 
-test('toMd_h1_p_pre_code_and_inline_code_mix', () => {
+test('toMd h1 p pre code and inline code mix', () => {
   const html = `
 <div><h1>code block</h1>
 <p>foo</p>
@@ -660,7 +660,7 @@ bar \`function bye() { console.log("bye-bye!") }\` baz`;
     strictEqual(result, expected);
 });
 
-test('toMd_complex_mixed_markup_case', () => {
+test('toMd complex mixed markup case', () => {
   const html = `<div><h1>Header One</h1>
 <p>This is the first paragraph. It has <em>italic</em> text, <strong>bold</strong> text, and <em><strong>both</strong></em>.</p>
 <p>This is the second paragraph.<br>
@@ -699,7 +699,7 @@ Final paragraph.`;
   strictEqual(result, expected);
 });
 
-test('toMd_StackOverflow_example_code_blocks', () => {
+test('toMd StackOverflow example code blocks', () => {
   const html = `<div><h2>Code and Preformatted Text</h2>
 <p>Indent four spaces to create an escaped <code>&lt;pre&gt; &lt;code&gt;</code> block:</p>
 <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title function_">printf</span>(<span class="hljs-string">"%d\n"</span>, <span class="hljs-number">42</span>);  <span class="hljs-comment">/- what was the
@@ -779,7 +779,7 @@ The name \`\`Tuple\`2\`\` is a valid .NET type name.`;
   strictEqual(result, expected);
 });
 
-test('toMd_pre_1', () => {
+test('toMd pre 1', () => {
   const html = `<div><pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title function_">printf</span>(<span class="hljs-string">"%d\n"</span>, <span class="hljs-number">42</span>);  <span class="hljs-comment">/- what was the
                         question again? -/</span></code></pre>
 </div>`;
@@ -792,7 +792,7 @@ printf("%d\n", 42);  /- what was the
   strictEqual(result, expected);
 });
 
-test('toMd_pre_2', () => {
+test('toMd pre 2', () => {
   const html = `<div><pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title function_">alert</span>(<span class="hljs-literal">false</span>);
 </code></pre>
 <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title function_">alert</span>(<span class="hljs-literal">true</span>);
@@ -811,7 +811,7 @@ alert(true);
   strictEqual(result, expected);
 });
 
-test('toMd_pre_3', () => {
+test('toMd pre 3', () => {
   const html = `<div><hr>
 <h2>Code Spans</h2>
 </div>`;
@@ -823,7 +823,7 @@ test('toMd_pre_3', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_simple_blockquotes', () => {
+test('toMd simple blockquotes', () => {
   const html = `<div><blockquote>
 <p>The syntax is based on the way email programs
 usually do quotations. You don't need to hard-wrap
@@ -836,7 +836,7 @@ the paragraphs in your blockquotes, but it looks much nicer if you do.  Depends 
   strictEqual(result, expected);
 });
 
-test('toMd_spaced_blockquote', () => {
+test('toMd spaced blockquote', () => {
   const html = `<div><blockquote>
 <p>The <code>&gt;</code> on the blank lines is required
 to create a single blockquote.</p>
@@ -854,7 +854,7 @@ two distinct blockquotes.</p>
   strictEqual(result, expected);
 });
 
-test('toMd_blockquotes_within_blockquotes', () => {
+test('toMd blockquotes within blockquotes', () => {
   const html = `<div><blockquote>
 <p>A standard blockquote is indented</p>
 <blockquote>
@@ -878,7 +878,7 @@ test('toMd_blockquotes_within_blockquotes', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_lists_in_a_blockquote', () => {
+test('toMd lists in a blockquote', () => {
   const html = `<div><blockquote>
 <ul>
 <li>A list in a blockquote</li>
@@ -899,7 +899,7 @@ test('toMd_lists_in_a_blockquote', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_preformatted_text_in_a_blockquote', () => {
+test('toMd preformatted text in a blockquote', () => {
   const html = `<div><blockquote>
 <p>Intro</p>
 <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-title class_">Indent</span> five spaces total.  <span class="hljs-title class_">The</span> first
@@ -922,7 +922,7 @@ one is part <span class="hljs-keyword">of</span> the blockquote designator.
   strictEqual(result, expected);
 });
 
-test('toMd_blockquote_with_anchor', () => {
+test('toMd blockquote with anchor', () => {
     const html = `<div><blockquote>
 <p>Check out <a href="https://example.com">this link</a> with <strong>bold</strong> and <code>code</code>.</p>
 </blockquote>
@@ -932,7 +932,7 @@ test('toMd_blockquote_with_anchor', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_blockquote_with_list', () => {
+test('toMd blockquote with list', () => {
   const html = `<div>
 <blockquote>
 <p>Here are my thoughts:</p>
@@ -951,7 +951,7 @@ test('toMd_blockquote_with_list', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_blockquote_with_header', () => {
+test('toMd blockquote with header', () => {
   const html = `<div><blockquote>
 <h2>Important</h2>
 <p>Pay attention to this header.</p>
@@ -965,7 +965,7 @@ test('toMd_blockquote_with_header', () => {
     strictEqual(result, expected);
 });
 
-test('toMd_blockquote_with_code_block', () => {
+test('toMd blockquote with code block', () => {
   const html = `<div><blockquote>
 <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"><span class="hljs-keyword">const</span> x = <span class="hljs-number">42</span>;
 </code></pre>
@@ -980,7 +980,7 @@ test('toMd_blockquote_with_code_block', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_blockquote_with_nested_blockquote', () => {
+test('toMd blockquote with nested blockquote', () => {
   const html = `<div><blockquote>
 <p>Here's what they said:</p>
 <blockquote>
@@ -996,7 +996,7 @@ test('toMd_blockquote_with_nested_blockquote', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_blockquote_with_ruler', () => {
+test('toMd blockquote with ruler', () => {
   const html = `<div><blockquote>
 <p>Before</p>
 <hr>
@@ -1013,7 +1013,7 @@ test('toMd_blockquote_with_ruler', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_list_advanced', () => {
+test('toMd list advanced', () => {
   const html = `<div><ol>
 <li>
 <p>Lists in a list item:</p>
@@ -1078,7 +1078,7 @@ indent the &gt;'s four spaces.</p>
   strictEqual(result, expected);
 });
 
-test('toMd_stackoverflow_help_style', () => {
+test('toMd stackoverflow help style', () => {
   const html = `<div><h1>StackOverflow Advanced List Example</h1>
 <ol>
 <li>
@@ -1143,7 +1143,7 @@ test('toMd_stackoverflow_help_style', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_ordered_list_with_start', () => {
+test('toMd ordered list with start', () => {
   const html = `<div><ol start="4">
 <li>Starting at four, baby!</li>
 <li>List item</li>
@@ -1156,7 +1156,7 @@ test('toMd_ordered_list_with_start', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_nested_ols_should_respect_independent_start_values', () => {
+test('toMd nested ols should respect independent start values', () => {
   const html = `
 <div>
 <ol start="10">
@@ -1180,7 +1180,7 @@ test('toMd_nested_ols_should_respect_independent_start_values', () => {
   strictEqual(result.trim(), expected);
 });
 
-test('toMd_nested_ols_without_start_should_default_correctly', () => {
+test('toMd nested ols without start should default correctly', () => {
   const html = `<div>
 <ol start="2">
   <li>Outer item A
@@ -1201,7 +1201,7 @@ test('toMd_nested_ols_without_start_should_default_correctly', () => {
   strictEqual(result.trim(), expected);
 });
 
-test('toMd_simple_img', () => {
+test('toMd simple img', () => {
   const html = `<div><p><img src="https://i.sstatic.net/fzsVsZw6.png" alt="wikilogo"></p>
 </div>`;
   const result = toMd(el(html));
@@ -1210,7 +1210,7 @@ test('toMd_simple_img', () => {
   strictEqual(result.trim(), expected);
 });
 
-test('toMd_imgs_combined_dump', () => {
+test('toMd imgs combined dump', () => {
   const html = `<div><p><img src="https://i.sstatic.net/fzsVsZw6.png" alt="wikilogo">
 <img src="https://i.sstatic.net/fzsVsZw6.png" alt="wikilogo" title="Wikipedia Logo">
 <img src="https://i.sstatic.net/fzsVsZw6.png" alt="">
@@ -1220,12 +1220,12 @@ test('toMd_imgs_combined_dump', () => {
 </p>
 </div>`;
 
-  const expected = '![wikilogo](https://i.sstatic.net/fzsVsZw6.png)![wikilogo](https://i.sstatic.net/fzsVsZw6.png "Wikipedia Logo")![](https://i.sstatic.net/fzsVsZw6.png)![](https://i.sstatic.net/fzsVsZw6.png)![wiki logo](https://i.sstatic.net/fzsVsZw6.png "logo for wiki")[](https://example.com/)';
+  const expected = '![wikilogo](https://i.sstatic.net/fzsVsZw6.png) ![wikilogo](https://i.sstatic.net/fzsVsZw6.png "Wikipedia Logo") ![](https://i.sstatic.net/fzsVsZw6.png) ![](https://i.sstatic.net/fzsVsZw6.png) ![wiki logo](https://i.sstatic.net/fzsVsZw6.png "logo for wiki") [](https://example.com/)';
   const result = toMd(el(html)).trim();
   strictEqual(result, expected);
 });
 
-test('toMd_img_inline_with_text', () => {
+test('toMd img inline with text', () => {
   const html = `<div><p>here's an inline image: <img src="https://i.sstatic.net/fzsVsZw6.png" alt="wikilogo">. it's a picture of a globe!<br>
 <img src="https://i.sstatic.net/fzsVsZw6.png" alt="wikilogo"></p>
 </div>`;
@@ -1239,7 +1239,7 @@ here's an inline image: ![wikilogo](https://i.sstatic.net/fzsVsZw6.png). it's a 
   strictEqual(result, expected);
 });
 
-test('toMd_inline_html_kbd', () => {
+test('toMd inline html kbd', () => {
   const html = '<div><p>To reboot your computer, press <kbd>ctrl</kbd>+<kbd>alt</kbd>+<kbd>del</kbd>.</p></div>';
   const expected = 'To reboot your computer, press <kbd>ctrl</kbd>+<kbd>alt</kbd>+<kbd>del</kbd>.';
 
@@ -1247,7 +1247,7 @@ test('toMd_inline_html_kbd', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_kbd_with_styling', () => {
+test('toMd kbd with styling', () => {
   const html = '<div><p>To reboot your computer, press <kbd><b>ctrl</b></kbd>+<i><kbd>alt</kbd></i>+<kbd><strong>del</strong></kbd>.</p></div>';
   const expected = 'To reboot your computer, press <kbd>**ctrl**</kbd>+*<kbd>alt</kbd>*+<kbd>**del**</kbd>.';
 
@@ -1255,7 +1255,7 @@ test('toMd_kbd_with_styling', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_sub_sup', () => {
+test('toMd sub sup', () => {
   const html = '<div><p>H<sub>2</sub>O, and E = mc<sup>2</sup></p></div>';
 
   const expected = 'H<sub>2</sub>O, and E = mc<sup>2</sup>';
@@ -1264,7 +1264,7 @@ test('toMd_sub_sup', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_table_simple', () => {
+test('toMd table simple', () => {
   const html = `<div>
 <div class="s-table-container">
 <table class="s-table">
@@ -1300,7 +1300,7 @@ test('toMd_table_simple', () => {
   strictEqual(result, expected);
 });
 
-test('toMd_table_complex', () => {
+test('toMd table complex', () => {
   const html = `<div><div class="s-table-container"><table class="s-table"><thead>
 <tr>
 <th style="text-align:left">Name <strong>bold</strong></th>
@@ -1358,7 +1358,7 @@ test('toMd_table_complex', () => {
   // console.log(json.length); // prints: 6 (because of the two slashes and quotes)
 });
 
-test('toMd_table_with_block_cell', () => {
+test('toMd table with block cell', () => {
   const html = `<div><div class="s-table-container"><table class="s-table"><thead>
 <tr>
 <th>left</th>
@@ -1391,7 +1391,7 @@ test('toMd_table_with_block_cell', () => {
   strictEqual(result, expected);
 });
 
-test('toHtml_preserves_spoiler_blockquote', () => {
+test('toHtml preserves spoiler blockquote', () => {
   const html = `
     <div class="s-prose py16 js-md-preview">
       <blockquote class="spoiler" data-spoiler="Reveal spoiler">
@@ -1408,4 +1408,71 @@ test('toHtml_preserves_spoiler_blockquote', () => {
     </div>`.trim();
 
   assertNodeEqual(result, expected);
+});
+
+test('toMd figure handling', () => {
+  const html = '<figure><img src="pic.jpg" alt="desc"><figcaption>Caption</figcaption></figure>';
+  const result = toMd(el(html));
+  const expected = ':::figure\n![desc](pic.jpg)\n\nCaption\n:::';
+  strictEqual(result, expected);
+});
+
+test('toMd figure two images and caption', () => {
+  const html = `
+    <figure>
+      <img src="foo.jpg" alt="foo alt">
+      <img src="bar.jpg" alt="bar alt">
+      <figcaption>This is a <b>caption</b> with a <a href="/wiki/Link">link</a>.</figcaption>
+    </figure>
+  `;
+  const expected = [
+    ':::figure',
+    '![foo alt](foo.jpg)',
+    '![bar alt](bar.jpg)',
+    '',
+    'This is a **caption** with a [](/wiki/Link).',
+    ':::',
+  ].join('\n');
+  const result = toMd(el(html));
+  strictEqual(result, expected);
+});
+
+test('toMd divs block separation', () => {
+  const html = `<div>
+    <div>Hello</div>
+    <div>World</div>
+  </div>`;
+  const result = toMd(el(html));
+  const expected = 'Hello\n\nWorld';
+  strictEqual(result, expected);
+});
+
+test('toMd anchor with escaped url', () => {
+  const html = `<a href="https://en.wikipedia.org/wiki/Stress%E2%80%93energy_tensor" title="Stress–energy tensor">stress–energy tensor</a>`;
+  const result = toMd(el(html));
+  const expected = '[](https://en.wikipedia.org/wiki/Stress–energy_tensor)';
+  strictEqual(result, expected);
+});
+
+test('toMd div with two spans', () => {
+  const html = `<div>
+    <span>First</span>
+    <span>Second</span>
+  </div>`.trim();
+  const result = toMd(el(html));
+  const expected = 'First Second';
+  strictEqual(result, expected);
+});
+
+test('toMd listitem with two paragraphs', () => {
+  const html = `<li>
+    <p>Para 1</p>
+    <p>Para 2</p>
+  </li>`;
+  const result = toMd(el(html));
+  const expected = `
+- Para 1
+
+  Para 2`.trim();
+  strictEqual(result, expected);
 });

@@ -18,7 +18,10 @@ const root = document;
     } else {
       alert('Extractlet couldn\'t extract the Stack Exchange page. Sorry!');
     }
-  } else if (root.getElementById('mw-content-text') && root.querySelector('main#content')) {
+  } else if (
+    (root.getElementById('mw-content-text') && root.querySelector('main#content')) // Wikipedia pages
+    || root.querySelector('head > meta[property="mw:htmlVersion"]') // parsoid pages
+  ) {
     const result = await wikiExtraction(root);
     if (result) {
       try {

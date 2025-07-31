@@ -111,12 +111,15 @@ export function escapeRegExp(pattern: string): string {
 }
 
 export function escapeHtml(html: string): string {
-  return html
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-    // .replace(/"/g, '&quot;')
-    // .replace(/'/g, '&#39;');
+  return html.replace(/[&<>]/g, (ch) => ( // /[&<>"']/
+    {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      // '"': '&quot;',
+      // "'": '&#39;',
+    }[ch] ?? (() => { throw new Error(`Unexpected character in escapeHtml: ${ch}`); })()
+  ));
 }
 
 export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(
@@ -149,15 +152,59 @@ export function htmlToElement(html:string, doc: Document = document): Element|nu
   return template.content.firstElementChild;
 }
 
-export function toKebabCase(str: string): string {
+export function toKebabCase(str: string, opts: { splitNumbers?: boolean } = {}): string {
+  const { splitNumbers = true } = opts;
+  const re = splitNumbers
+    ? /([A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+)/g
+    : /([A-Z]?[a-z0-9]+|[A-Z0-9]+(?![a-z]))/g;
+    
   return str
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
-    .toLowerCase();
+    .match(re)
+    ?.map(w => w.toLowerCase())
+    .join('-') ?? '';
+}
+
+export function toKebabCaseI18n(str: string): string {
+  return str
+    .normalize('NFC')
+    // Insert a separator when switching between CJK and Latin
+    .replace(/([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}])(?=[A-Za-z])/gu, '$1 ')
+    .replace(/([A-Za-z])(?=[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}])/gu, '$1 ')
+    .match(/([\p{Lu}]?[\p{Ll}]+|[\p{Lu}]+(?![\p{Ll}])|[\p{L}]+|\p{N}+)/gu)
+    ?.map(w => w.toLocaleLowerCase())
+    .join('-') ?? '';
+}
+
+export function toPascalCase(str: string, keepAcronyms = false): string {
+  const re = keepAcronyms
+    ? /([A-Z][a-z]+|[A-Z](?![a-z])|[a-z]+|\d+)/g
+    : /([A-Z][a-z]+|[A-Z]+(?![a-z])|[a-z]+|\d+)/g;
+
+  return str.match(re)?.map(w => w[0].toLocaleUpperCase() + w.slice(1).toLocaleLowerCase()) .join('')
+    ?? '';
+}
+
+export function toPascalCaseI18n(str: string, keepAcronyms = false) {
+  const re = keepAcronyms
+    ? /([\p{Lu}][\p{Ll}]+|[\p{Lu}](?![\p{Ll}])|[\p{Ll}]+|[\p{L}]+|\p{N}+)/gu
+    : /([\p{Lu}][\p{Ll}]+|[\p{Lu}]+(?![\p{Ll}])|[\p{Ll}]+|[\p{L}]+|\p{N}+)/gu;
+
+  return str
+    .normalize('NFC')
+    // Insert a separator when switching between CJK and Latin
+    .replace(/([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}])(?=[A-Za-z])/gu, '$1 ')
+    .replace(/([A-Za-z])(?=[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}])/gu, '$1 ')
+    .match(re)?.map(w => w[0].toLocaleUpperCase() + w.slice(1).toLocaleLowerCase())
+    .join('') ?? '';
 }
 
 export function warn(...args: Parameters<typeof console.warn>): void {
   console.warn(...args);
+}
+
+export function warnNull(...args: Parameters<typeof console.warn>): null {
+  console.warn(...args);
+  return null;
 }
 
 export function warnTrue(...args: Parameters<typeof console.warn>): true {
@@ -628,3 +675,25 @@ export function jaccardSimilarity(a: string, b: string): number {
   const union = new Set([...A, ...B]).size;
   return union ? inter / union : 0;
 }
+
+export function isCaptionSimilar(a?: string|null, b?: string|null, opts: { unicode?: string; lower?: boolean; underscores?: boolean; trim?: boolean; punct?: boolean } = {}) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const { unicode = 'NFC', lower = true, underscores = true, trim = true, punct = false } = opts;
+  const norm = (s: string) => {
+    if (!s) return '';
+    if (punct) s = s.replace(/[.,:;?!'"\-–—]/g, '');
+    s = s.normalize(unicode);
+    if (underscores) s = s.replace(/_/g, ' ');
+    if (lower) s = s.toLocaleLowerCase('en');
+    if (trim) s = s.trim();
+    return s;
+  };
+  return norm(a) === norm(b);
+}
+
+export function lastUrlSegment(url: string): string {
+  const clean = url.split(/[?#]/)[0].replace(/\/+$/, '');
+  return decodeURIComponent(clean.split('/').pop() || '');
+}
+

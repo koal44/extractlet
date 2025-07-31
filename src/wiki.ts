@@ -1,20 +1,49 @@
 /**
- * Wikipedia DOM Reference (Desktop)
- * 
- * main#content
- *   h1#firstHeading > span                       → Main title
- * 
- *   div#mw-content-text > div
- *     h[2-6]                                     → Section heading
+ * Wikipedia Content DOM Reference
+ *
+ * == Classic Wikipedia (Desktop) ==
+ *
+ * html
+ *   head
+ *     title                                → (Fallback title)
+ *     link[rel="canonical"]                → Permalink
+ *     link[rel="alternate"][type="application/x-wiki"] → Raw wikitext
+ *   body
+ *     main#content
+ *       h1#firstHeading > span             → Main title
+ *       div#mw-content-text > div
+ *         h2...h6                          → Section headings
+ *         <blocks>                         → Section content (paragraphs, lists, tables, etc.)
+ *
+ * == Parsoid HTML (API Output) ==
+ *
+ * html
+ *   head
+ *     title                                → Main title (use this for Parsoid; <h1> often absent)
+ *     link[rel="dc:isVersionOf"]           → Permalink (protocol-relative or absolute)
+ *   body
+ *     section[data-mw-section-id="0"]
+ *       <blocks>                           → Lead/intro content (no heading in section 0)
+ *     section[data-mw-section-id="N"]
+ *       h2...h6                            → Section heading (may be absent for some sections)
+ *       <blocks>                           → Section content (paragraphs, lists, tables, etc.)
+ *
+ * Notes:
+ * - <blocks> denotes content elements: <p>, <ul>, <ol>, <table>, <figure>, etc.
+ * - In Parsoid, section 0 contains lead content (no heading).
+ * - Main title in Parsoid is best taken from <head><title>.
+ * - Not all sections have a heading (especially section 0).
+ * - Permalinks and raw URLs are in <head> as <link> tags, but structure differs slightly.
  */
 
-import { log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup, createCopyButton, copyButtonCss, warn } from './utils.js';
-import { toHtml as _toHtml, toMd as _toMd, ToMdHandler, ToHtmlOptions } from './core.js';
+
+import { log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup, createCopyButton, copyButtonCss, warn, isHTMLElement, isDocument, warnNull } from './utils.js';
+import { toHtml as _toHtml, toMd as _toMd, ToHtmlOptions, ToMdContext, ToMdElementHandler } from './core.js';
 
 export type WikiResult = {
   baseUrl: string; // Base URL of the wiki page
   rawUrl: string; // Raw URL of the wiki page
-  data: WikiNode; // The WikiNode tree representing the page structure
+  data: WikiNode|null; // The WikiNode tree representing the page structure
 }
 
 declare global {
@@ -28,22 +57,53 @@ function shouldSkip(node: Node|null): boolean {
   if (isText(node)) return false; // Text nodes are never ignored
 
   if (isElement(node)) {
+    const tag = node.tagName.toUpperCase();
+    if (['META', 'STYLE', 'LINK'].includes(tag)) return true;
     // const id = node.id || '';
-    // const className = node.className || '';
-    const classList = node.classList || [];
     // const aType = node.getAttribute('type') || '';
+    
+    const classList = node.classList || [];
+    if (classList.contains('cite-accessibility-label')) return true;
+    if (classList.contains('mw-empty-elt')) return true;
 
-    if (classList.contains('cite-accessibility-label')) {
-      return true;
+    if (isHTMLElement(node)) {
+      if (node.style.display === 'none') return true;
     }
-
     return false;
   }
 
+  // if it's not an elem or text, always skip
   return true;
 }
 
-const toMdHandlers: Record<string, ToMdHandler> = {};
+const toMdElemHandler: ToMdElementHandler = (node, _ctx, _gc) => {
+  if (shouldSkip(node)) return { skip: true };
+
+  // const tag = node.tagName.toUpperCase();
+  // if (tag === 'FIGURE') {
+  //   const captionNode = node.querySelector('figcaption');  // case sensitive??
+  //   const parts = [];
+  //   for (const child of node.childNodes) {
+  //     if (captionNode && child === captionNode) continue;
+  //     parts.push(toMd(child, ctx));
+  //   }
+
+  //   let md = ':::figure\n';
+  //   md += parts.filter(Boolean).join('\n');
+  //   if (parts.length && captionNode) md += '\n';
+  //   if (captionNode) {
+  //     const caption = toMd(captionNode, ctx).trim();  // captionNode.textContent??
+  //     if (caption) md += '\n' + caption;
+  //   }
+  //   md += '\n:::';
+  //   return { md };
+  // }
+  return {};
+};
+
+export function toMd(node: Node|null, ctx: ToMdContext = {}): string {
+  return _toMd(node, { ...ctx, toMdElementHandler: toMdElemHandler });
+}
 
 function toHtmlElemHandler(node:Element, ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
   if (shouldSkip(node)) return { skip: true };
@@ -84,12 +144,8 @@ function toHtmlElemHandler(node:Element, ctx:ToHtmlOptions): { skip?: boolean; n
   return { skip, node: clone };
 }
 
-export function toMd(node: Node|null): string {
-  return _toMd(node, { shouldSkip, handlers: toMdHandlers });
-}
-
 export function toHtml(node: Node|null, opts: ToHtmlOptions = {}): Node|null {
-  return _toHtml(node, { ...opts, elementHandler: toHtmlElemHandler });
+  return _toHtml(node, { ...opts, toHtmlElementHandler: toHtmlElemHandler });
 }
 
 export class WikiNode {
@@ -113,26 +169,26 @@ export class WikiNode {
     this.children = [];
   }
 
-  static buildFromHTML(root:Document): WikiNode {
-    if (!root || !root.querySelector) {
-      throw new Error('Invalid root element provided for WikiNode.buildFromHTML');
-    }
+  static buildFromHTML(root:Document|HTMLElement): WikiNode|null {
     const title = root.querySelector('h1#firstHeading > span')?.textContent?.trim() ?? '';
-    if (!title) {
-      throw new Error('No title found in the provided root element');
-    }
+    if (!title) return warnNull('No title found in the provided root element');
 
     let curSectionNum = 0;
     let currentNode = new WikiNode(title, 1, curSectionNum);
+    const currentMdDiv = h('div') as HTMLDivElement;
     const rootNode = currentNode;
 
     for (const htmlNode of root.querySelector('div#mw-content-text > div')?.childNodes ?? []) {
       if (!isElement(htmlNode)) continue;
       const firstChild = htmlNode.children?.[0];
+
       if (isDiv(htmlNode) && isHeading(firstChild)) {
         const level = parseInt(firstChild.tagName[1]);
         const title = firstChild.textContent?.trim() ?? '';  // TODO: extract from html?
         curSectionNum++;
+        // currentNode.md = currentNode.md.trim(); // alt
+        currentNode.md = toMd(currentMdDiv).trim();
+        currentMdDiv.innerHTML = ''; // Reset
         currentNode = new WikiNode(title, level, curSectionNum);
 
         // Find correct parent based on level
@@ -150,11 +206,60 @@ export class WikiNode {
         if (htmlFrag) {
           if (currentNode.html === null) throw new Error('Current node html is null');
           currentNode.html.appendChild(htmlFrag);
-          currentNode.md += toMd(htmlNode);
+          // currentNode.md += toMd(htmlNode) + '\n\n'; // alt
+          const clone = htmlNode.cloneNode(true) as HTMLElement;
+          currentMdDiv.appendChild(clone);
         }
       }
     }
+    // currentNode.md = currentNode.md.trim(); // alt
+    currentNode.md = toMd(currentMdDiv).trim();
     return rootNode;
+  }
+
+  static buildFromParsoidHTML(root:Document|Element): WikiNode|null {
+    let childElems: Element[] = [];
+    let curWikiNode: WikiNode|null = null;
+
+    if (isDocument(root)) {
+      const sect0 = root.querySelector('section[data-mw-section-id="0"]');
+      if (!sect0) return warnNull('No section[data-mw-section-id="0"] found in the provided document');
+      const title = root.querySelector('head > title')?.textContent?.trim() ?? '';
+      if (!title) return warnNull('No title found in the provided document');
+      
+      curWikiNode = new WikiNode(title, 1, 0);
+      const bodyChildren = [...root.body.children].filter(el => el !== sect0);
+      childElems = [...bodyChildren, ...sect0.children];
+    } else {
+      const firstElem = root.firstElementChild;
+      const heading = firstElem && isHeading(firstElem) ? firstElem : null;
+      if (!heading) return warnNull('No heading found in the provided element');
+      const title = heading.textContent?.trim() ?? '';
+      if (!title) return warnNull('No title found in the provided element');
+      const level = heading.tagName[1];
+      const sectionId = root.getAttribute('data-mw-section-id');
+      if (!sectionId) return warnNull('No data-mw-section-id found in the section element');
+
+      curWikiNode = new WikiNode(title, +level, +sectionId);
+      const sectChildren = [...root.children].filter(el => el !== heading);
+      childElems = sectChildren;
+    }
+
+    const currentMdDiv = h('div') as HTMLDivElement;
+    for (const child of childElems) {
+      if (child.tagName.toLowerCase() === 'section') {
+        curWikiNode.addChild(WikiNode.buildFromParsoidHTML(child));
+      } else {
+        const htmlFrag = toHtml(child);
+        if (htmlFrag) {
+          curWikiNode.html!.appendChild(htmlFrag);
+          currentMdDiv.appendChild(child.cloneNode(true) as Element);
+        }
+      }
+    }
+    curWikiNode.md = toMd(currentMdDiv).trim();
+
+    return curWikiNode;
   }
 
   static fromPojo(pojo: WikiNode): WikiNode {
@@ -167,8 +272,8 @@ export class WikiNode {
     return node;
   }
 
-  addChild(section:WikiNode) {
-    this.children.push(section);
+  addChild(section:WikiNode|null) {
+    if (section !== null) this.children.push(section);
   }
 
   *[Symbol.iterator](): Generator<WikiNode, void, unknown> {
@@ -240,25 +345,25 @@ export class WikiNode {
   }
 }
 
-  export function parseRawIntoSections(rawText: string): {level:number, sectionNum:number, title:string, raw:string}[] {
-    const sections: {level:number, sectionNum:number, title:string, raw:string}[] = [];
-    const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1\s*$/gm;
+export function parseRawIntoSections(rawText: string): {level:number, sectionNum:number, title:string, raw:string}[] {
+  const sections: {level:number, sectionNum:number, title:string, raw:string}[] = [];
+  const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1\s*$/gm;
 
-    let match;
-    let lastSectionStart = 0;
-    let sectionNum = 0;
-    sections.push({ level: 1, sectionNum, title: '', raw: '' }); // root section
-    while ((match = sectionRegex.exec(rawText)) !== null) {
-      const level = match[1].length;
-      const title = match[2];
-      sections[sections.length - 1].raw = rawText.slice(lastSectionStart, match.index).trim();
-      lastSectionStart = match.index;
-      sections.push({ level, sectionNum: ++sectionNum, title, raw: '' });
-    }
-    sections[sections.length - 1].raw = rawText.slice(lastSectionStart); // add last section raw text
-
-    return sections;
+  let match;
+  let lastSectionStart = 0;
+  let sectionNum = 0;
+  sections.push({ level: 1, sectionNum, title: '', raw: '' }); // root section
+  while ((match = sectionRegex.exec(rawText)) !== null) {
+    const level = match[1].length;
+    const title = match[2];
+    sections[sections.length - 1].raw = rawText.slice(lastSectionStart, match.index).trim();
+    lastSectionStart = match.index;
+    sections.push({ level, sectionNum: ++sectionNum, title, raw: '' });
   }
+  sections[sections.length - 1].raw = rawText.slice(lastSectionStart); // add last section raw text
+
+  return sections;
+}
 
 export function populateWikiNodeWithRaw(
   root: WikiNode,
@@ -327,8 +432,8 @@ function renderMd(node: WikiNode): HTMLDivElement {
   container.id = `md-section-${node.sectionNum}`;
 
   // const out = `${'='.repeat(node.level)} ${node.title} ${'='.repeat(node.level)}\n\n${node.md}`;
-  const pre = h('p', { class: 'md-text' }, node.md);
-  container.appendChild(pre);
+  const textElem = h('p', { class: 'md-text' }, node.md);
+  container.appendChild(textElem);
   for (const child of node.children) {
     container.appendChild(renderMd(child));
   }
@@ -343,8 +448,8 @@ function renderRaw(node: WikiNode): HTMLDivElement {
   container.id = `raw-section-${node.sectionNum}`;
 
   const rawBody = stripHeading(node);
-  const pre = h('p', { class: 'raw-text' }, rawBody);
-  container.appendChild(pre);
+  const textElem = h('p', { class: 'raw-text' }, rawBody);
+  container.appendChild(textElem);
   for (const child of node.children) {
     container.appendChild(renderRaw(child));
   }
@@ -364,10 +469,19 @@ function renderRaw(node: WikiNode): HTMLDivElement {
   }
 }
 
-function getBaseAndRawUrl(root:Document): { baseUrl: string; rawUrl: string } {
-  const baseLink = root.querySelector('link[rel="canonical"]') as HTMLLinkElement|null;
-  const baseUrl = baseLink?.href ?? '';
+function getPermaUrl(doc: Document): string|null {
+  // classic pages
+  const canonical = doc.querySelector('head > link[rel="canonical"]') as HTMLLinkElement|null;
+  if (canonical) return new URL(canonical.href, doc.baseURI).href;
 
+  // parsoid pages
+  const dcLink = doc.querySelector('head > link[rel="dc:isVersionOf"]') as HTMLLinkElement|null;
+  if (dcLink) return new URL(dcLink.href, doc.baseURI).href;
+
+  return null;
+}
+
+function getRawUrl(root: Document, baseUrl: string): string {
   const altLink = root.querySelector('link[rel="alternate"][type="application/x-wiki"]') as HTMLLinkElement|null;
   let rawUrl = altLink?.href.includes('action=edit')
     ? altLink.href.replace(/action=edit$/, 'action=raw')
@@ -379,8 +493,7 @@ function getBaseAndRawUrl(root:Document): { baseUrl: string; rawUrl: string } {
       rawUrl = `${baseDomain}/w/index.php?origin=*&title=${baseTitle}&action=raw`; //&origin=*
     }
   }
-
-  return { baseUrl, rawUrl };
+  return rawUrl;
 }
 
 export function normalizeWikitext(raw:string): string {
@@ -420,16 +533,21 @@ async function fetchRawPage(rawUrl: string): Promise<string> {
 }
 
 export async function extractFromDoc(root: Document = document): Promise<WikiResult|undefined> {
-  const { baseUrl, rawUrl } = getBaseAndRawUrl(root);
-  if (!baseUrl) {
+  const permaUrl = getPermaUrl(root);
+  if (!permaUrl) {
+    console.warn('[extractFromDoc] No base URL found in the document');
     return;
   }
+  const rawUrl = getRawUrl(root, permaUrl);
+  
+  const isParsoidPage = root.querySelector('head > meta[property="mw:htmlVersion"]') !== null;
+  const tree = isParsoidPage ? WikiNode.buildFromParsoidHTML(root) : WikiNode.buildFromHTML(root);
 
-  const tree = WikiNode.buildFromHTML(root);
-  tree.serialize();
+  if (tree) tree.serialize();
+
   const result: WikiResult = {
     data: tree,
-    baseUrl: baseUrl,
+    baseUrl: permaUrl,
     rawUrl: rawUrl,
   };
 
@@ -453,6 +571,7 @@ export async function createPage(result: WikiResult, doc:Document): Promise<void
 
   // --- passed data from background script ---
   const { baseUrl, rawUrl, data } = result;
+  if (!data) return warn('No tree data provided to createPage');
 
   // --- restore WikiNode tree after serialization ---
   const tree = WikiNode.fromPojo(data);

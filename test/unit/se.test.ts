@@ -5,7 +5,7 @@ import { el, assertNodeEqual, setupDom } from './test-utils.js';
 
 setupDom();
 
-test('toHtml_test1', () => {
+test('toHtml test1', () => {
   const html = `
     <div class="s-prose js-post-body" itemprop="text">
       <p>
@@ -41,7 +41,7 @@ test('toHtml_test1', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toHtml_mathjax_script', () => {
+test('toHtml mathjax script', () => {
   const html = `
     <div>
       <p>
@@ -62,7 +62,7 @@ test('toHtml_mathjax_script', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toMd_converts_spoiler_blockquote_to_markdown', () => {
+test('toMd converts spoiler blockquote to markdown', () => {
   const html = `
     <div>
       <blockquote class="spoiler" data-spoiler="Reveal spoiler">
@@ -76,7 +76,7 @@ test('toMd_converts_spoiler_blockquote_to_markdown', () => {
   strictEqual(result.trim(), expected.trim());
 });
 
-test('toHtml_snippets', () => {
+test('toHtml snippets', () => {
   const html = `
 <div>
   <p>check this out!</p>
@@ -144,7 +144,7 @@ test('toHtml_snippets', () => {
   assertNodeEqual(actual, expected);
 });
 
-test('toMd_snippets', () => {
+test('toMd snippets', () => {
   const html = `<div><p>check this out!</p>
 <p><div class="snippet"><div class="snippet-code"><pre class="prettyprint-override lang-js snippet-code-js"><code>document.getElementById('btn').addEventListener('click', () =&gt; {
   const box = document.getElementById('greeting');
@@ -195,7 +195,7 @@ document.getElementById('btn').addEventListener('click', () => {
   strictEqual(result.trim(), expected.trim());
 });
 
-test('toMd_js_snippet', () => {
+test('toMd js snippet', () => {
   const html = `<div class="s-prose py16 js-md-preview"><p>jstime, baby!</p>
 <p><div class="snippet"><div class="snippet-code"><pre class="prettyprint-override lang-js snippet-code-js"><code>const x = 2;
 const y = 3**2;
@@ -219,7 +219,7 @@ console.log(y);
   strictEqual(result, expected);
 });
 
-test('toHtml_js_snippet', () => {
+test('toHtml js snippet', () => {
   const html = `
 <div class="s-prose py16 js-md-preview">
   <p>jstime, baby!</p>
@@ -270,7 +270,7 @@ console.log(y);
   assertNodeEqual(result, expected);
 });
 
-test('scrapePostContributor_basic_editor', () => {
+test('scrapePostContributor basic editor', () => {
   const html = `<div class="post-signature flex--item">
 <div class="user-info user-hover ">
     <div class="d-flex ">
@@ -304,7 +304,7 @@ test('scrapePostContributor_basic_editor', () => {
   deepStrictEqual(result, expected);
 });
 
-test('scrapePostContributor_basic_editor', () => {
+test('scrapePostContributor basic editor', () => {
   const html = `<div class="post-signature owner flex--item">
                 <div class="user-info ">
     <div class="d-flex ">

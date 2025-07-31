@@ -1,6 +1,6 @@
 /* eslint-disable no-irregular-whitespace */
-import { test } from 'node:test';
-import { normalizeWikitext, parseRawIntoSections, toHtml } from '../../src/wiki.js';
+import { describe, test } from 'node:test';
+import { normalizeWikitext, parseRawIntoSections, toHtml, toMd, WikiNode } from '../../src/wiki.js';
 import { el, assertNodeEqual, setupDom } from './test-utils.js';
 import { deepEqual, strictEqual } from 'node:assert';
 
@@ -33,7 +33,7 @@ test('normalizeWikitext covers common and edge cases', () => {
   }
 });
 
-test('parseRawIntoSections_wikitext_with_unusual_headings', () => {
+test('parseRawIntoSections wikitext with unusual headings', () => {
   const rawText = `
 Some intro text.
 
@@ -126,7 +126,7 @@ And some closing content.
   deepEqual(parseRawIntoSections(rawText), expectedSections);
 });
 
-test.skip('toHtml_Tensor_Para1', () => {
+test.skip('toHtml Tensor Para1', () => {
   /*A tensor may be represented as a (potentially multidimensional) array. Just as a [[Vector space|vector]] in an {{mvar|n}}-[[dimension (vector space)|dimensional]] space is represented by a [[multidimensional array|one-dimensional]] array with {{mvar|n}} components with respect to a given [[Basis (linear algebra)#Ordered bases and coordinates|basis]], any tensor with respect to a basis is represented by a multidimensional array.  For example, a [[linear operator]] is represented in a basis as a two-dimensional square {{math|''n'' × ''n''}} array.  The numbers in the multidimensional array are known as the ''components'' of the tensor.  They are denoted by indices giving their position in the array, as [[subscript and superscript|subscripts and superscripts]], following the symbolic name of the tensor.  For example, the components of an order-{{math|2}} tensor {{mvar|T}} could be denoted {{math|''T''<sub>''ij''</sub>}} , where {{mvar|i}} and {{mvar|j}} are indices running from {{math|1}} to {{mvar|n}}, or also by {{math|''T''{{thinsp}}{{su|lh=0.8|b=''j''|p=''i''}}}}.  Whether an index is displayed as a superscript or subscript depends on the transformation properties of the tensor, described below. Thus while {{math|''T''<sub>''ij''</sub>}} and {{math|''T''{{thinsp}}{{su|lh=0.8|b=''j''|p=''i''}}}} can both be expressed as ''n''-by-''n'' matrices, and are numerically related via [[Raising and lowering indices|index juggling]], the difference in their transformation laws indicates it would be improper to add them together.*/
 
   const html = `<p>A tensor may be represented as a (potentially multidimensional) array. Just as a <a href="/wiki/Vector_space" title="Vector space">vector</a> in an <span class="texhtml mvar" style="font-style:italic;">n</span>-<a href="/wiki/Dimension_(vector_space)" title="Dimension (vector space)">dimensional</a> space is represented by a <a href="/wiki/Multidimensional_array" class="mw-redirect" title="Multidimensional array">one-dimensional</a> array with <span class="texhtml mvar" style="font-style:italic;">n</span> components with respect to a given <a href="/wiki/Basis_(linear_algebra)#Ordered_bases_and_coordinates" title="Basis (linear algebra)">basis</a>, any tensor with respect to a basis is represented by a multidimensional array.  For example, a <a href="/wiki/Linear_operator" class="mw-redirect" title="Linear operator">linear operator</a> is represented in a basis as a two-dimensional square <span class="texhtml"><i>n</i> × <i>n</i></span> array.  The numbers in the multidimensional array are known as the <i>components</i> of the tensor.  They are denoted by indices giving their position in the array, as <a href="/wiki/Subscript_and_superscript" title="Subscript and superscript">subscripts and superscripts</a>, following the symbolic name of the tensor.  For example, the components of an order-<span class="texhtml">2</span> tensor <span class="texhtml mvar" style="font-style:italic;">T</span> could be denoted <span class="texhtml"><i>T</i><sub><i>ij</i></sub></span> , where <span class="texhtml mvar" style="font-style:italic;">i</span> and <span class="texhtml mvar" style="font-style:italic;">j</span> are indices running from <span class="texhtml">1</span> to <span class="texhtml mvar" style="font-style:italic;">n</span>, or also by <span class="texhtml"><i>T</i><span style="white-space: nowrap;"> </span><span class="nowrap"><span style="display:inline-block;margin-bottom:-0.3em;vertical-align:-0.4em;line-height:0.8;font-size:80%;text-align:left"><sup style="font-size:inherit;line-height:inherit;vertical-align:baseline"><i>i</i></sup><br><sub style="font-size:inherit;line-height:inherit;vertical-align:baseline"><i>j</i></sub></span></span></span>.  Whether an index is displayed as a superscript or subscript depends on the transformation properties of the tensor, described below. Thus while <span class="texhtml"><i>T</i><sub><i>ij</i></sub></span> and <span class="texhtml"><i>T</i><span style="white-space: nowrap;"> </span><span class="nowrap"><span style="display:inline-block;margin-bottom:-0.3em;vertical-align:-0.4em;line-height:0.8;font-size:80%;text-align:left"><sup style="font-size:inherit;line-height:inherit;vertical-align:baseline"><i>i</i></sup><br><sub style="font-size:inherit;line-height:inherit;vertical-align:baseline"><i>j</i></sub></span></span></span> can both be expressed as <i>n</i>-by-<i>n</i> matrices, and are numerically related via <a href="/wiki/Raising_and_lowering_indices" class="mw-redirect" title="Raising and lowering indices">index juggling</a>, the difference in their transformation laws indicates it would be improper to add them together.
@@ -136,7 +136,7 @@ test.skip('toHtml_Tensor_Para1', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toHtml_Tensor_Para1_Sentence1', () => {
+test('toHtml Tensor Para1 Sentence1', () => {
   // WikiText:
   // A tensor may be represented as a (potentially multidimensional) array. Just as a [[Vector space|vector]] in an {{mvar|n}}-[[dimension (vector space)|dimensional]] space is represented by a [[multidimensional array|one-dimensional]] array with {{mvar|n}} components with respect to a given [[Basis (linear algebra)#Ordered bases and coordinates|basis]], any tensor with respect to a basis is represented by a multidimensional array.
 
@@ -150,7 +150,7 @@ test('toHtml_Tensor_Para1_Sentence1', () => {
   assertNodeEqual(result, expected);
 });
 
-test.skip('toHtml_Tensor_Para1_Sentence2', () => {
+test.skip('toHtml Tensor Para1 Sentence2', () => {
   // WikiText:
   // Just as a [[Vector space|vector]] in an {{mvar|n}}-[[dimension (vector space)|dimensional]] space is represented by a [[multidimensional array|one-dimensional]] array with {{mvar|n}} components with respect to a given [[Basis (linear algebra)#Ordered bases and coordinates|basis]], any tensor with respect to a basis is represented by a multidimensional array.
 
@@ -161,7 +161,7 @@ test.skip('toHtml_Tensor_Para1_Sentence2', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toHtml_Tensor_Para1_Sentence2a', () => {
+test('toHtml Tensor Para1 Sentence2a', () => {
   // WikiText:
   // Just as a [[Vector space|vector]] in
 
@@ -172,7 +172,7 @@ test('toHtml_Tensor_Para1_Sentence2a', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toHtml_Tensor_Para1_Sentence2b', () => {
+test('toHtml Tensor Para1 Sentence2b', () => {
   // WikiText:
   // an {{mvar|n}}-[[dimension (vector space)|dimensional]] space.
 
@@ -183,7 +183,7 @@ test('toHtml_Tensor_Para1_Sentence2b', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toHtml_Tensor_Para1_Sentence2c', () => {
+test('toHtml Tensor Para1 Sentence2c', () => {
   // WikiText:
   // is represented by a [[multidimensional array|one-dimensional]] array with {{mvar|n}} components with respect
 
@@ -194,7 +194,7 @@ test('toHtml_Tensor_Para1_Sentence2c', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toHtml_Tensor_Para1_Sentence2d', () => {
+test('toHtml Tensor Para1 Sentence2d', () => {
   // WikiText:
   // to a given [[Basis (linear algebra)#Ordered bases and coordinates|basis]], any tensor with respect to a basis is represented by a multidimensional array.
 
@@ -205,7 +205,7 @@ test('toHtml_Tensor_Para1_Sentence2d', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toHtml_Tensor_Para1_Sentence3', () => {
+test('toHtml Tensor Para1 Sentence3', () => {
   // WikiText:
   // For example, a [[linear operator]] is represented in a basis as a two-dimensional square {{math|''n'' × ''n''}} array.
 
@@ -216,7 +216,7 @@ test('toHtml_Tensor_Para1_Sentence3', () => {
   assertNodeEqual(result, expected);
 });
 
-test('toHtml_Tensor_Para1_Sentence4', () => {
+test('toHtml Tensor Para1 Sentence4', () => {
   // WikiText:
   // For example, the components of an order-{{math|2}} tensor {{mvar|T}} could be denoted {{math|''T''<sub>''ij''</sub>}} , where {{mvar|i}} and {{mvar|j}} are indices running from {{math|1}} to {{mvar|n}}, or also by {{math|''T''{{thinsp}}{{su|lh=0.8|b=''j''|p=''i''}}}}.
 
@@ -226,3 +226,497 @@ test('toHtml_Tensor_Para1_Sentence4', () => {
 
   assertNodeEqual(toHtml(el(html)), el(expected));
 });
+
+test('toHtml strips meta', () => {
+  const html = '<div>foo<meta property="mw:pageProp/toc">bar</div>';
+  const result = toHtml(el(html));
+  const expected = '<div>foobar</div>';
+  assertNodeEqual(result, expected);
+});
+
+test('toHtml strips style', () => {
+  const html = '<div>foo<style>.a{}</style>bar</div>';
+  const result = toHtml(el(html));
+  const expected = '<div>foobar</div>';
+  assertNodeEqual(result, expected);
+});
+
+test('toHtml strips link', () => {
+  const html = '<div>foo<link rel="stylesheet" href="foo.css">bar</div>';
+  const result = toHtml(el(html));
+  const expected = '<div>foobar</div>';
+  assertNodeEqual(result, expected);
+});
+
+test('toHtml strips display none', () => {
+  const html = '<div>foo<div style="display:none">baz</div>bar</div>';
+  const result = toHtml(el(html));
+  const expected = '<div>foobar</div>';
+  assertNodeEqual(result, expected);
+});
+
+test('toMd converts anchor to markdown', () => {
+  const html = '<a href="foo" title="bar">baz</a>';
+  const result = toMd(el(html));
+  const expected = '[baz](foo "bar")';
+  strictEqual(result, expected);
+});
+
+test('toMd converts img to markdown', () => {
+  const html = '<img src="pic.jpg" alt="my alt">';
+  const result = toMd(el(html));
+  const expected = '![my alt](pic.jpg)';
+  strictEqual(result, expected);
+});
+
+test('toMd tensor preamble', () => {
+  const html = `
+<div class="wikinode-section-content">
+  <div>For other uses, see <a href="https://en.wikipedia.org/wiki/Tensor_(disambiguation)">Tensor (disambiguation)</a>.
+  </div>
+  <div>Not to be confused with <a href="https://en.wikipedia.org/wiki/Vector_field">Vector field</a> or <a href="https://en.wikipedia.org/wiki/Tensor_field">Tensor field</a>.
+  </div>
+</div>`.trim();
+  const result = toMd(el(html));
+  const expected = `
+For other uses, see [](https://en.wikipedia.org/wiki/Tensor_(disambiguation)).
+
+Not to be confused with [](https://en.wikipedia.org/wiki/Vector_field) or [](https://en.wikipedia.org/wiki/Tensor_field).
+`.trim();
+  strictEqual(result, expected);
+});
+
+test('WikiNode.buildFromHTML produces double linefeeds between top-level children', () => {
+  const html = `
+  <main id="content" class="mw-body">
+    <header>
+      <h1 id="firstHeading" class="firstHeading mw-first-heading">
+        <span class="mw-page-title-main">Tensor</span>
+      </h1>
+    </header>
+    <div id="bodyContent">
+      <div id="mw-content-text" class="mw-body-content">
+        <div class="mw-content-ltr mw-parser-output" lang="en" dir="ltr">
+          <div class="shortdescription nomobile noexcerpt noprint searchaux" style="display:none">Algebraic object with geometric applications</div>
+          <style data-mw-deduplicate="TemplateStyles:r1236090951">.mw-parser-output .hatnote{font-style:italic}</style>
+          <div role="note" class="hatnote navigation-not-searchable">For other uses, see <a href="/wiki/Tensor_(disambiguation)" class="mw-disambig" title="Tensor (disambiguation)">Tensor (disambiguation)</a>.</div>
+          <link rel="mw-deduplicated-inline-style" href="mw-data:TemplateStyles:r1236090951">
+          <div role="note" class="hatnote navigation-not-searchable">This article is about tensors on a single vector space and is not to be confused with <a href="/wiki/Vector_field" title="Vector field">Vector field</a> or <a href="/wiki/Tensor_field" title="Tensor field">Tensor field</a>.</div>
+          <figure class="mw-halign-right" typeof="mw:File/Thumb"><a href="/wiki/File:Components_stress_tensor.svg" class="mw-file-description"><img src="//upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png" decoding="async" width="300" height="274" class="mw-file-element" srcset="//upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/450px-Components_stress_tensor.svg.png 1.5x, //upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/600px-Components_stress_tensor.svg.png 2x" data-file-width="340" data-file-height="310"></a><figcaption>The second-order <a href="/wiki/Cauchy_stress_tensor" title="Cauchy stress tensor">Cauchy stress tensor</a></figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>`.trim();
+  const htmlEl = el(html) as HTMLDivElement;
+  const result = WikiNode.buildFromHTML(htmlEl);
+  const expectedMd = `
+For other uses, see [](/wiki/Tensor_(disambiguation)).
+
+This article is about tensors on a single vector space and is not to be confused with [](/wiki/Vector_field) or [](/wiki/Tensor_field).
+
+:::figure
+[![](//upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [](/wiki/Cauchy_stress_tensor)
+:::`.trim();
+  strictEqual(result!.md, expectedMd);
+});
+
+// Test suite: mediawiki.org / spec/HTML 2.8.0 / image cases
+describe('Extractlet: Parsoid HTML 2.8.0 Image Handling', () => {
+  // wikitext: [[File:Foobar.jpg]]
+  test('1', () => {
+    const html = `
+<span typeof="mw:File" class="mw-default-size">
+ <a href="./File:Foobar.jpg" class="mw-file-description">
+  <img class="mw-file-element" resource="./File:Foobar.jpg" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg"
+       width="1941" height="220">
+ </a>
+</span>`.trim();
+    const expectedMd = `[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foo.jpg|link=]]
+  test('inline image no link', () => {
+    const html = `
+<span typeof="mw:File" class="mw-default-size">
+ <span>
+  <img class="mw-file-element" resource="./File:Foobar.jpg" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg"
+       width="1941" height="220">
+ </span>
+</span>`.trim();
+    const expectedMd = `![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foo.jpg|left|<p>caption</p>]]
+  test('figure with caption', () => {
+    const html = `
+<figure typeof="mw:File" class="mw-default-size">
+ <a href="./File:Foo.jpg" class="mw-file-description" title="caption">
+  <img class="mw-file-element" alt="caption" resource="./File:Foo.jpg" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foo.jpg"
+       width="1941" height="220">
+ </a>
+ <figcaption><p>caption</p></figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foo.jpg)](./File:Foo.jpg)
+
+caption
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|50px|middle]]
+  test('inline image with 50px width, vertical align', () => {
+    const html = `
+<span typeof="mw:File" class="mw-valign-middle">
+ <a href="./File:Foobar.jpg" class="mw-file-description">
+  <img class="mw-file-element" resource="./File:Foobar.jpg" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg"
+       width="50" height="6">
+ </a>
+</span>`.trim();
+    const expectedMd = `[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|500x10px|baseline|cap<div></div>tion]]
+  test('figure with disallowed caption', () => {
+    const html = `
+<span typeof="mw:File" class="mw-valign-baseline"
+    data-mw='{"caption":"cap<div></div>tion"}'>
+ <a href="./File:Foobar.jpg" class="mw-file-description" title="caption">
+  <img class="mw-file-element" alt="caption" resource="./File:Foobar.jpg" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg"
+       width="89" height="10">
+ </a>
+</span>`.trim();
+    const expectedMd = `[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|50px|border|caption]]
+  test('inline image with border and caption', () => {
+    const html = `
+<span typeof="mw:File" class="mw-image-border" data-mw='{"caption":"caption"}'>
+ <a href="./File:Foobar.jpg" class="mw-file-description" title="caption">
+  <img class="mw-file-element" alt="caption" resource="./File:Foobar.jpg" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg"
+       width="50" height="6">
+ </a>
+</span>`.trim();
+    const expectedMd = `[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|thumb|left|caption content]]
+  test('figure thumb left aligned with caption', () => {
+    const html = `
+<figure typeof="mw:File/Thumb" 
+  class="mw-halign-left mw-default-size">
+   <a href="./File:Foobar.jpg" class="mw-file-description">
+     <img class="mw-file-element" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg" width="180" height="20" 
+        resource="./File:Foobar.jpg" />
+   </a>
+   <figcaption>caption content</figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
+
+caption content
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|thumb|50x50px|right|caption]]
+  test('figure thumb right aligned, scaled, with caption', () => {
+    const html = `
+<figure typeof="mw:File/Thumb" class="mw-halign-right">
+   <a href="./File:Foobar.jpg" class="mw-file-description">
+     <img class="mw-file-element" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg" width="50" height="6" 
+        resource="./File:Foobar.jpg" />
+   </a>
+   <figcaption>caption</figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
+
+caption
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|frame|caption]]
+  test('figure frame with caption', () => {
+    const html = `
+<figure typeof="mw:File/Frame" class="mw-default-size">
+   <a href="./File:Foobar.jpg" class="mw-file-description">
+     <img class="mw-file-element" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg" width="1941" height="220" 
+        resource="./File:Foo.jpg" />
+   </a>
+   <figcaption>caption</figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
+
+caption
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|500x50px|frame|left|caption]]
+  test('figure frame left aligned, scaled, with caption', () => {
+    const html = `
+<figure typeof="mw:File/Frame" class="mw-halign-left">
+   <a href="./File:Foobar.jpg" class="mw-file-description">
+     <img class="mw-file-element" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg" width="442" height="50" 
+        resource="./File:Foo.jpg" />
+   </a>
+   <figcaption>caption</figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
+
+caption
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|frameless|500x50px|caption]]
+  test('figure frameless, scaled, with caption', () => {
+    const html = `
+<figure typeof="mw:File/Frameless">
+   <a href="./File:Foobar.jpg" class="mw-file-description" title="caption">
+     <img class="mw-file-element" alt="caption" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg" width="442" height="50" 
+        resource="./File:Foobar.jpg" />
+   </a>
+   <figcaption>caption</figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
+
+caption
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|frameless|500x50px|border|caption]]
+  test('figure frameless, scaled, with border and caption', () => {
+    const html = `
+<figure typeof="mw:File/Frameless" class="mw-image-border">
+   <a href="./File:Foobar.jpg" class="mw-file-description" title="caption">
+     <img class="mw-file-element" alt="caption" src="http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg" width="442" height="50" 
+        resource="./File:Foobar.jpg" />
+   </a>
+   <figcaption>caption</figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
+
+caption
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|thumb=Thumb.png|Title]]
+  test('figure thumb with manual thumbnail and caption', () => {
+    const html = `
+<figure class="mw-default-size" typeof="mw:File/Thumb" data-mw='{"thumb":"Thumb.png"}'>
+  <a href="File:Foobar.jpg" class="mw-file-description">
+    <img class="mw-file-element" src="//example.com/images/e/ea/Thumb.png" height="135" width="135"
+         resource="./File:Foobar.jpg" />
+  </a>
+  <figcaption>Title</figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](//example.com/images/e/ea/Thumb.png)](file:///Foobar.jpg)
+
+Title
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|scale=0.5]]
+  test('inline image scaled by 0.5', () => {
+    const html = `
+<span typeof="mw:File" class="mw-default-size" data-mw='{"scale":0.5}'>
+ <a href="./File:Foobar.jpg" class="mw-file-description">
+  <img class="mw-file-element" resource="./File:Foobar.jpg" src="//upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg"
+       width="971" height="110">
+ </a>
+</span>`.trim();
+    const expectedMd = `[![](//upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|thumb|scale=1]]
+  test('figure thumb, scaled to 1, empty caption', () => {
+    const html = `
+<figure class="mw-default-size" typeof="mw:File/Thumb" data-mw='{"scale":1}'>
+  <a href="File:Foobar.jpg" class="mw-file-description">
+    <img class="mw-file-element" src="//upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg"
+         height="26" width="220" resource="./File:Foobar.jpg" />
+  </a>
+  <figcaption></figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](//upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  // wikitext: [[File:Foobar.jpg|thumb|upright=1]]
+  test('figure thumb with upright scaling, empty caption', () => {
+    const html = `
+<figure class="mw-default-size" typeof="mw:File/Thumb" data-mw='{"scale":1}'>
+  <a href="File:Foobar.jpg" class="mw-file-description">
+    <img class="mw-file-element" src="//upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg"
+         height="26" width="220" resource="./File:Foobar.jpg" />
+  </a>
+  <figcaption></figcaption>
+</figure>`.trim();
+    const expectedMd = `
+:::figure
+[![](//upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
+:::`.trim();
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('figure video thumb with poster and caption', () => {
+    const html = `
+<figure class="mw-halign-right" typeof="mw:File/Thumb">
+  <span>
+    <video class="mw-file-element" poster="//upload.wikimedia.org/wikipedia/commons/thumb/9/94/Folgers.ogv/50px--Folgers.ogv.jpg"
+            controls=""
+            preload="none"
+            height="38"
+            width="50"
+            resource="./File:Folgers.ogv">
+      <source src="https://upload.wikimedia.org/wikipedia/commons/9/94/Folgers.ogv"
+              type='video/ogg; codecs="theora, vorbis"'
+              data-file-width="352"
+              data-file-height="264"
+              data-title="Original Ogg file, 352 × 264 (637 kbps)"
+              data-shorttitle="Ogg source"/>
+      <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/9/94/Folgers.ogv/Folgers.ogv.160p.webm"
+              type='video/webm; codecs="vp8, vorbis"'
+              data-width="214"
+              data-height="160"
+              data-title="Low bandwidth WebM (160P)"
+              data-shorttitle="WebM 160P"/>
+      <track kind="subtitles"
+              type="text/x-srt"
+              src="https://commons.wikimedia.org/w/index.php?title=TimedText:Folgers.ogv.de.srt&amp;action=raw&amp;ctype=text%2Fx-srt"
+              srclang="de"
+              label="Deutsch (de) subtitles"
+              data-mwtitle="TimedText:Folgers.ogv.de.srt"
+              data-dir="ltr"/>
+    </video>
+  </span>
+  <figcaption>caption</figcaption>
+</figure>`.trim();
+
+    const expectedMd = `
+:::figure
+**Video sources:**
+- [Ogg source](https://upload.wikimedia.org/wikipedia/commons/9/94/Folgers.ogv)
+- [WebM 160P](https://upload.wikimedia.org/wikipedia/commons/transcoded/9/94/Folgers.ogv/Folgers.ogv.160p.webm)
+
+**Poster:** ![Poster](//upload.wikimedia.org/wikipedia/commons/thumb/9/94/Folgers.ogv/50px--Folgers.ogv.jpg)
+
+**Subtitles:**
+- [Deutsch (de) subtitles](https://commons.wikimedia.org/w/index.php?title=TimedText:Folgers.ogv.de.srt&action=raw&ctype=text%2Fx-srt)
+
+caption
+:::`.trim();
+
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('video with poster only (thumbtime, no sources/tracks)', () => {
+    const html = `
+<span class="mw-default-size" typeof="mw:File" data-mw='{"thumbtime":"1:25"}'>
+  <span>
+    <video class="mw-file-element" poster="//upload.wikimedia.org/wikipedia/commons/thumb/9/94/Folgers.ogv/seek%3D59-Folgers.ogv.jpg"
+           controls=""
+           preload="none"
+           height="264"
+           width="352"
+           resource="./File:Folgers.ogv">
+      <!-- No <source>, no <track> -->
+    </video>
+  </span>
+</span>`.trim();
+
+    const expectedMd = `**Poster:** ![Poster](//upload.wikimedia.org/wikipedia/commons/thumb/9/94/Folgers.ogv/seek%3D59-Folgers.ogv.jpg)`;
+
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('video with one fragmented source, poster', () => {
+    const html = `
+<span class="mw-default-size" typeof="mw:File" data-mw='{"starttime":"25","endtime":"45"}'>
+  <span>
+    <video class="mw-file-element" poster="//upload.wikimedia.org/wikipedia/commons/thumb/9/94/Folgers.ogv/seek%3D25-Folgers.ogv.jpg"
+           controls=""
+           preload="none"
+           height="264"
+           width="352"
+           resource="./File:Folgers.ogv">
+      <source src="https://upload.wikimedia.org/wikipedia/commons/9/94/Folgers.ogv#t=25,45"
+              type='video/ogg; codecs="theora, vorbis"'
+              data-file-width="352"
+              data-file-height="264"
+              data-title="Original Ogg file, 352 × 264 (637 kbps)"
+              data-shorttitle="Ogg source"/>
+    </video>
+  </span>
+</span>`.trim();
+
+    const expectedMd = `
+**Video sources:**
+- [Ogg source](https://upload.wikimedia.org/wikipedia/commons/9/94/Folgers.ogv#t=25,45)
+
+**Poster:** ![Poster](//upload.wikimedia.org/wikipedia/commons/thumb/9/94/Folgers.ogv/seek%3D25-Folgers.ogv.jpg)
+`.trim();
+
+  // Single source (with #t= fragment), poster, no tracks.
+    strictEqual(toMd(el(html)), expectedMd);
+
+  });
+
+  test('audio with one source, no poster', () => {
+    const html = `
+      <span class="mw-default-size mw-default-audio-height" typeof="mw:File">
+        <span>
+          <audio class="mw-file-element" controls=""
+                preload="none"
+                height="20"
+                width="220"
+                resource="./File:Continuity_proof.ogg">
+            <source src="https://upload.wikimedia.org/wikipedia/commons/4/4d/Continuity_proof.ogg"
+                    type='audio/ogg; codecs="vorbis"'
+                    data-title="Original Ogg file (25 kbps)"
+                    data-shorttitle="Ogg source"/>
+          </audio>
+        </span>
+      </span>`.trim();
+
+    const expectedMd = `
+**Audio sources:**
+- [Ogg source](https://upload.wikimedia.org/wikipedia/commons/4/4d/Continuity_proof.ogg)
+`.trim();
+
+    // Single audio source, no poster, no tracks.
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+});
+

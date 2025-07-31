@@ -4,12 +4,12 @@ import { el, setupDom, htmlify } from './test-utils.js';
 
 setupDom();
 
-test('htmlify_simple', () => {
+test('htmlify simple', () => {
   const html = el('<div class="test" style="color: red;">Hello <span>World</span></div>');
   strictEqual(htmlify(html), '<div class="test" style="color: red;">Hello <span>World</span></div>');
 });
 
-test('htmlify_unordered_class', () => {
+test('htmlify unordered class', () => {
   const html = el('<div class="beta alpha">Hello <span>World</span></div>');
   strictEqual(htmlify(html), '<div class="alpha beta">Hello <span>World</span></div>');
 });

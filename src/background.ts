@@ -1,6 +1,6 @@
 import browser from 'webextension-polyfill';
 import { toKebabCase } from './utils';
-import { isExtractedDataMessage } from './types/extracted-data-message.js';
+import { ExtractedDataMessage, isExtractedDataMessage } from './types/extracted-data-message.js';
 import { EXTRACTED_DATA_STORAGE_PREFIX } from './constants';
 
 browser.action.onClicked.addListener(async (tab) => {
@@ -25,11 +25,23 @@ browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runti
     case 'seResult': {
       const uuid = crypto.randomUUID();
       const key = `${EXTRACTED_DATA_STORAGE_PREFIX}${uuid}`;
+      await pruneStaleStorage();
+
       try {
         await browser.storage.local.set({ [key]: msg });
-      } catch (err) {
+      } catch (err: any) {
+        if (/quota/i.test(err?.message ?? String(err))) {
+          await browser.storage.local.clear();
+          await browser.notifications.create({
+            type: "basic",
+            iconUrl: browser.runtime.getURL("icons/icon-head-48.png"),
+            title: "Cache cleared",
+            message: "Cache was full and has been cleared. Try again.",
+          });
+        }
         return console.error("Failed to set storage for key:", key, err);
       }
+
       const url = `${toKebabCase(msg.type)}-page.html?uuid=${uuid}`;
       browser.tabs.create({
         url: browser.runtime.getURL(url),
@@ -37,26 +49,39 @@ browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runti
         index: sender.tab ? sender.tab.index + 1 : undefined, // open tab next to the current one
         windowId: sender.tab?.windowId, // so incognito works
       });
-      await pruneStaleStorage();
       return;
     }
   }
 });
 
 async function pruneStaleStorage() {
-  const TTL = 24 * 60 * 60 * 1000; // 24 hours
+  const TTL = 24 * 60 * 60 * 1000;
+  const MAX_ENTRIES = 10;
+
   const all = await browser.storage.local.get(null);
-  const now = Date.now();
-  const keysToRemove: string[] = [];
+  
+  const storedItems: Array<[string, ExtractedDataMessage]> = [];
   for (const [k, v] of Object.entries(all)) {
-    if (!k.startsWith(EXTRACTED_DATA_STORAGE_PREFIX)) continue;
-    if (!isExtractedDataMessage(v)) {
-      console.warn(`Skipping invalid storage value for key ${k}:`, v);
+    if (!k.startsWith(EXTRACTED_DATA_STORAGE_PREFIX)) {
+      console.warn(`Unexpected key in storage: ${k}`);
       continue;
     }
-    if (now - v.timestamp > TTL) keysToRemove.push(k);
+    if (!isExtractedDataMessage(v)) {
+      console.warn(`Unexpected storage value for key ${k}:`, v);
+      continue;
+    }
+    storedItems.push([k, v]);
   }
-  if (keysToRemove.length > 0) {
-    browser.storage.local.remove(keysToRemove);
+
+  // remove entries older than TTL
+  const expired = storedItems.filter(([, v]) => Date.now() - v.timestamp > TTL).map(([k]) => k);
+  if (expired.length) await browser.storage.local.remove(expired);
+
+  // remove oldest entries until we have at most MAX_ENTRIES left
+  const remaining = storedItems.filter(([, v]) => Date.now() - v.timestamp <= TTL);
+  while (remaining.length > MAX_ENTRIES) {
+    const oldest = remaining.reduce((old, cur) => cur[1].timestamp < old[1].timestamp ? cur : old);
+    await browser.storage.local.remove(oldest[0]);
+    remaining.splice(remaining.indexOf(oldest), 1);
   }
 }

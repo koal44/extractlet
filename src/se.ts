@@ -29,7 +29,7 @@
  */
 
 import { h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript, htmlToElementK, htmlToElement } from './utils.js';
-import { toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdHandler } from './core.js';
+import { toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdElementHandler } from './core.js';
 
 type Contributor = {
   contributorType: 'author'|'editor'|'commenter';
@@ -87,47 +87,54 @@ function shouldSkip(node: Node|null): boolean {
   return true;
 }
 
-const toMdHandlers: Record<string, ToMdHandler> = {
-  DIV(node, ctx, glueChildren) {
-    let result;
-    result = glueChildren(node, 'flat', 'normal');
-    if (node.classList.contains('snippet')) {
-      result = result.replace(/\n*$/, '\n\n');
-      result = `<!-- begin snippet: -->\n\n${result}<!-- end snippet -->\n\n`;
+const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
+  if (shouldSkip(node)) return { skip: true };
+  const tagName = node.tagName.toUpperCase();
+  switch (tagName) {
+    case 'DIV': {
+      let md = gc(node, 'flat', 'normal');
+      if (node.classList.contains('snippet')) {
+        md = md.replace(/\n*$/, '\n\n');
+        md = `<!-- begin snippet: -->\n\n${md}<!-- end snippet -->\n\n`;
+      }
+      return { md };
     }
-    return result;
-  },
-  PRE(node, ctx, glueChildren) {
-    let result;
-    result = glueChildren(node, 'flat', 'pre');
-    result = result.replace(/\n*$/, '\n');
-    
-    const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
-    if (
-      lang
-      && ['js', 'css', 'html'].includes(lang)
-      && node.classList.contains(`snippet-code-${lang}`)
-    ) {
-      result = `<!-- language: lang-${lang} -->\n\n${result}\n`;
-    } else {
-      result = `\`\`\`\n${result}\`\`\`\n\n`;
+    case 'PRE': {
+      let md = gc(node, 'flat', 'pre');
+      md = md.replace(/\n*$/, '\n');
+      
+      const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
+      if (
+        lang
+        && ['js', 'css', 'html'].includes(lang)
+        && node.classList.contains(`snippet-code-${lang}`)
+      ) {
+        md = `<!-- language: lang-${lang} -->\n\n${md}\n`;
+      } else {
+        md = `\`\`\`\n${md}\`\`\`\n\n`;
+      }
+      return { md };
     }
-    return result;
-  },
-  BLOCKQUOTE(node, ctx, glueChildren) {
-    let result;
-    result = glueChildren(node, 'block', 'normal', { qd: (ctx.quoteDepth ?? 0) + 1 });
-    const isSpoiler = node.classList.contains('spoiler');
-    const marker = isSpoiler ? '>!' : '>';
-    const bqPrefix = result.match(new RegExp('^\\n*'))?.[0] ?? '';
-    const bqSuffix = result.match(/\n*$/)?.[0] ?? '';
+    case 'BLOCKQUOTE': {
+      let md = gc(node, 'block', 'normal', { qd: (ctx.quoteDepth ?? 0) + 1 });
+      const isSpoiler = node.classList.contains('spoiler');
+      const marker = isSpoiler ? '>!' : '>';
+      const bqPrefix = md.match(new RegExp('^\\n*'))?.[0] ?? '';
+      const bqSuffix = md.match(/\n*$/)?.[0] ?? '';
 
-    result = result.slice(bqPrefix.length, result.length - bqSuffix.length);
-    result = result.split('\n').map(line => `${marker} ${line}`).join('\n');
-    result = bqPrefix + result + bqSuffix;
-    return result;
-  },
+      md = md.slice(bqPrefix.length, md.length - bqSuffix.length);
+      md = md.split('\n').map(line => `${marker} ${line}`).join('\n');
+      md = bqPrefix + md + bqSuffix;
+      return { md };
+    }
+  }
+
+  return {};
 };
+
+export function toMd(node: Node|null) {
+  return _toMd(node, { toMdElementHandler: toMdElemHandler });
+}
 
 function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
   if (shouldSkip(node)) return { skip: true };
@@ -143,12 +150,8 @@ function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; 
   return {};
 }
 
-export function toMd(node: Node|null) {
-  return _toMd(node, { shouldSkip, handlers: toMdHandlers });
-}
-
 export function toHtml(node: Node|null) {
-  return _toHtml(node, { elementHandler: toHtmlElemHandler });
+  return _toHtml(node, { toHtmlElementHandler: toHtmlElemHandler });
 }
 
 function scrapeFallbackName(userNode:Element|null) {
