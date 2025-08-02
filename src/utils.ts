@@ -676,12 +676,13 @@ export function jaccardSimilarity(a: string, b: string): number {
   return union ? inter / union : 0;
 }
 
-export function isCaptionSimilar(a?: string|null, b?: string|null, opts: { unicode?: string; lower?: boolean; underscores?: boolean; trim?: boolean; punct?: boolean } = {}) {
+export function isCaptionSimilar(a?: string|null, b?: string|null, opts: { unicode?: string; lower?: boolean; underscores?: boolean; trim?: boolean; punct?: boolean; trailingSlash?: boolean; } = {}) {
   if (a === b) return true;
   if (!a || !b) return false;
-  const { unicode = 'NFC', lower = true, underscores = true, trim = true, punct = false } = opts;
+  const { unicode = 'NFC', lower = true, underscores = true, trim = true, punct = false, trailingSlash = true } = opts;
   const norm = (s: string) => {
     if (!s) return '';
+    if (trailingSlash) s = s.replace(/\/+$/, '');
     if (punct) s = s.replace(/[.,:;?!'"\-–—]/g, '');
     s = s.normalize(unicode);
     if (underscores) s = s.replace(/_/g, ' ');

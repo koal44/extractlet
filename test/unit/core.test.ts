@@ -1,10 +1,12 @@
 import { test } from 'node:test';
 import { strictEqual } from 'node:assert';
 import { toHtml, toMd } from '../../src/core.js';
-import { el, assertNodeEqual, setupDom } from './test-utils.js';
+import { el, assertNodeEqual, setupDom, logPandocHtmlToMd } from './test-utils.js';
 //import { log, lOpts } from '../../src/utils.js';
 
 setupDom();
+
+void logPandocHtmlToMd; // appease eslint whining
 
 test.skip('toHtml spacing challenges', () => {
   const html = `
@@ -1337,6 +1339,8 @@ test('toMd table complex', () => {
 </tbody>
 </table></div></div>`;
 
+// logPandocHtmlToMd(html);
+
   const expected = `
 | Name **bold** | Description       | Code Sample      | Misc          |
 |:------------- |:-----------------:| ----------------:| -------------:|
@@ -1475,4 +1479,10 @@ test('toMd listitem with two paragraphs', () => {
 
   Para 2`.trim();
   strictEqual(result, expected);
+});
+
+test('white space in a span isnt ignored', () => {
+  const html = '<div>Text before<span> </span>and after.</div>';
+  const expectedMd = 'Text before and after.';
+  strictEqual(toMd(el(html)), expectedMd);
 });

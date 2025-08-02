@@ -9,7 +9,7 @@ export type ToHtmlOptions = {
 }
 type KeepStyles = boolean | Set<string>;
 
-type GlueMode = 'block' | 'list' | 'inline' | 'flat' | 'li'
+type GlueMode = 'block' | 'list' | 'li' | 'inline'
 type WhitespaceMode = 'normal' | 'pre' | 'pre-line'
 type GlueChildrenOptions = { os?: number; qd?: number; lc?: string; }
 type GlueChildrenFn = (n: Node, glueMode: GlueMode, ws?: WhitespaceMode, opts?: GlueChildrenOptions, innerCtx?: ToMdContext) => string;
@@ -101,24 +101,23 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
 }
 
 export function copyHrefAttr(dest: Element, src: Element) {
-  const attr = src.getAttribute('href');
-  if (!attr) return;
-  const val = 
-    attr.startsWith('#') ? attr :              // keep fragment links
-    attr.startsWith('javascript:')  ?  '#' :   // ignore JavaScript links
-    attr.startsWith('//') ? `https:${attr}` :  // protocol-relative URL
-    (src as any)['href'] || attr;              // prefer resolved URL
+  const val = getNormalizedUrl(src, 'href');
   if (val) dest.setAttribute('href', val);
 }
 
 export function copySrcAttr(dest: Element, src: Element) {
-  const attr = src.getAttribute('src');
-  if (!attr) return;
-  const val = 
-    attr.startsWith('javascript:')  ?  '#' :   // ignore JavaScript links
-    attr.startsWith('//') ? `https:${attr}` :  // protocol-relative URL
-    (src as any)['src'] || attr;               // prefer resolved URL
+  const val = getNormalizedUrl(src, 'src');
   if (val) dest.setAttribute('src', val);
+}
+
+function getNormalizedUrl(node: Element, attr: 'href'|'src'): string {
+  const url = node.getAttribute(attr)?.trim();
+  if (!url) return '';
+  if (url.startsWith('#')) return url;
+  if (url.startsWith('javascript:')) return '#';
+  if (url.startsWith('//')) return `https:${url}`;
+  // Prefer browser-resolved property if present
+  return ((node as any)[attr]).trim() || url;
 }
 
 export function copyStyleAttr(dest: HTMLElement, src: HTMLElement, keepStyles: KeepStyles) {
@@ -165,17 +164,17 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
     const children = n.childNodes;
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
-      // log( `[glue][child] idx=${i}, type=${child.nodeType === 3 ? "TEXT" : child.nodeName}, localLc=${localLc}, content='${child.textContent}'`);
+      // log( `[glue][child] idx=${i}, type=${child.nodeType === 3 ? "TEXT" : child.nodeName}, localLc='${localLc}', content='${child.textContent}'`);
       let md = '';
       if (isText(child)) {
         md = child.textContent!;
         // log(`[glue][child][text].md-pre: '${md}'`);
         if (/^\s*$/.test(md)) { // all whitespace
-          if (!/\s/.test(localLc) && isElement(children[i-1]) && isElement(children[i+1])) {
-            // log(`[glue][child][text][push-space] prevNode: '${children[i-1].nodeName}', nextNode: '${children[i+1].nodeName}', localLc='${localLc}'`);
+          if (!/\s/.test(localLc) && (glueMode === 'inline' || i !== children.length - 1)) {
             md = ' ';
-            result.push(md);
             localLc = md;
+            // log(`[glue][child][text][push-space] localLc='${localLc}', md='${md}'`);
+            result.push(md);
           }
           continue;
         }
@@ -219,29 +218,24 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
       localLc = md.length > 0 ? md[md.length - 1] : localLc;
     }
 
-    // remove ws between blocks
-    // if (result.length > 2) {
-    //   for (let i = 1; i < result.length - 1; i++) {
-    //     if (result[i] === ' ' && (/\s$/.test(result[i-1]) || /^\s/.test(result[i+1]))) {
-    //       result[i] = ''; // remove single space
-    //     }
-    //   }
-    // }
+    // log(`[glue][children-ended] <${(n as any).tagName || n.nodeName}> glueMode='${glueMode}' localLc='${localLc}'`);
     // log(`[glue] result before join:`, result);
     let glued = result.join('');
     // log(`[glue] glued-before: '${glued}'`);
     
     const displayModes = {
-      block:  { prefix: '\n\n', suffix: '\n\n', trim: true  },
-      list:   { prefix: '\n',   suffix: '',     trim: true  },
-      inline: { prefix: '',     suffix: '',     trim: false },
-      flat:   { prefix: '',     suffix: '',     trim: false },
-      li:     { prefix: '',     suffix: '',     trim: false },
+      block:  { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
+      list:   { prefix: '\n',   suffix: '',     trimStart: true,  trimEnd: true },
+      li:     { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
+      inline: { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
     };
-    const { prefix, suffix, trim } = displayModes[glueMode];
+    const { prefix, suffix, trimStart, trimEnd } = displayModes[glueMode];
     const prefixSafe = prevLc === '\n' ? '' : prefix;
     // log(`[glue] prefix: '${prefix}', suffix: '${suffix}', prefixSafe: '${prefixSafe}'`);
-    glued = trim ? glued.trim() : glued;
+
+    glued = trimStart ? glued.trimStart() : glued;
+    glued = trimEnd ? glued.trimEnd() : glued;
+
     glued = glued ? `${prefixSafe}${glued}${suffix}` : '';
 
     // log(`[glue] glued-after: '${glued}'`);
@@ -261,6 +255,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
   } else { // --- default handling for HTML elements ---
     // log(`toMd.elemNode: ${node.tagName}`);
     switch (node.tagName.toUpperCase()) {
+      case 'BODY':
       case 'DIV': {
         result = glueChildren(node, 'block', 'normal');
         break;
@@ -301,16 +296,24 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
       }
 
       case 'A': {
-        let href = ((node as HTMLAnchorElement).href || node.getAttribute('href') || '').trim();
+        //let href = ((node as HTMLAnchorElement).href || node.getAttribute('href') || '').trim();
+        let href = getNormalizedUrl(node, 'href');
         href = decodeURIComponent(href);
         const hrefSeg = lastUrlSegment(href);
         let title = (node.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
         const dedupeCtx = title ? { dedupeCaption: title, ...ctx } : ctx;
-        let aText = glueChildren(node, 'inline', 'normal', {}, dedupeCtx);
+        let aText = glueChildren(node, 'inline', 'normal', {}, dedupeCtx).trim();
 
         // dedupe. text—Markdown is final output; LLMs/humans don’t need repeated info. (prefer figcaption > href > aText > title)
-        const isTitleDupe = isCaptionSimilar(title, aText) || isCaptionSimilar(title, ctx.dedupeCaption) || isCaptionSimilar(title, hrefSeg);
-        const isATextDupe = isCaptionSimilar(aText, ctx.dedupeCaption) || isCaptionSimilar(aText, hrefSeg);
+        const isTitleDupe = 
+          isCaptionSimilar(title, aText) ||
+          isCaptionSimilar(title, ctx.dedupeCaption)||
+          isCaptionSimilar(title, hrefSeg) ||
+          isCaptionSimilar(title, href);
+        const isATextDupe =
+          isCaptionSimilar(aText, ctx.dedupeCaption) ||
+          isCaptionSimilar(aText, hrefSeg) ||
+          isCaptionSimilar(aText, href);
         title = isTitleDupe ? '' : title;
         aText = isATextDupe ? '' : aText;
 
@@ -394,7 +397,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
 
       case 'PRE': {
         // const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
-        result = glueChildren(node, 'flat', 'pre');
+        result = glueChildren(node, 'inline', 'pre');
         result = result.replace(/\n*$/, '\n');
         result = `\`\`\`\n${result}\`\`\`\n\n`;
         break;
@@ -423,7 +426,8 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
       }
 
       case 'IMG': {
-        let src = (node as HTMLImageElement).src || node.getAttribute('src') || '';
+        //let src = (node as HTMLImageElement).src || node.getAttribute('src') || '';
+        let src = getNormalizedUrl(node, 'src');
         src = decodeURIComponent(src);
         const srcSeg = lastUrlSegment(src);
         let alt = (node.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
@@ -454,28 +458,25 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
 
       case 'TABLE': {
         const table = [];
-        const rows = Array.from(node.querySelectorAll('tr'));
-        const headerRow =
-          rows.find(r => [...r.children].some(cell => isTableHeader(cell)))
-          || rows[0];
-        if (!headerRow) break;
-
-        const nCols = headerRow.children.length;
+        const rows = [...node.querySelectorAll('tr')];
+        const nCols = Math.max(...rows.map(row => row.children.length));
+        const headerRow = rows.find(r => [...r.children].some(cell => isTableHeader(cell)));
         const minColWidth = 3; // Minimum column width for table cells
 
+        // add header row
+        if (headerRow) {
+          table.push([...headerRow.children].filter(c => isTableHeader(c) || isTableCell(c)).map(c => toMd(c, ctx).trim()));
+        } else {
+          table.push(new Array(nCols).fill(''));
+        }
+
+        // add separator row
+        table.push(new Array(nCols).fill(''));
+
+        // add data rows
         for (const row of rows) {
-          if (row !== headerRow && table.length === 1) {
-            // insert separator immediately after header
-            table.push(new Array(nCols).fill(''));
-          }
-
-          const trow = [];
-          for (const cell of row.children) {
-            if (!isTableHeader(cell) && !isTableCell(cell)) continue;
-            trow.push(toMd(cell, ctx).trim());
-          }
-
-          table.push(trow);
+          if (row === headerRow) continue; // skip header row as it's already added
+          table.push([...row.children].filter(c => isTableHeader(c) || isTableCell(c)).map(c => toMd(c, ctx).trim()));
         }
 
         //log('DEBUG table array of arrays:', table);
@@ -502,7 +503,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
             const endWall = j === nCols - 1 ? '|\n' : '';
 
             if (i === 1) { // separator row
-              const style = headerRow.children[j]?.getAttribute('style') ?? '';
+              const style = headerRow?.children[j]?.getAttribute('style') ?? '';
               leftMark = style.includes('left') || style.includes('center') ? ':' : ' ';
               rightMark = style.includes('right') || style.includes('center') ? ':' : ' ';
               cell = '-'.repeat(width);
@@ -517,6 +518,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
           }
         }
 
+        result = `\n\n${result}\n\n`;
         break;
       }
 
@@ -542,15 +544,31 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
           parts.push(toMd(child, { ...ctx, dedupeCaption: caption }));
         }
 
-        result = '\n\n:::figure\n';
-        result += parts.filter(Boolean).join('\n');
-        if (parts.length && caption) result += '\n';
-        if (caption) result += '\n' + caption;
-        result += '\n:::\n\n';
+        // data-mw attribute handling (e.g. for PDF pages in Wikimedia Commons)
+        const dataAttr = node.getAttribute('data-mw') || '{}';
+        let data;
+        try {
+          data = JSON.parse(dataAttr);
+        } catch (e) {
+          log(`WARNING: Failed to parse data-mw attribute: ${dataAttr}`, e);
+        }
+
+        const fullCaption = [];
+        if (data?.page) fullCaption.push(`page ${data.page} preview`);
+        if (caption) fullCaption.push(caption);
+
+        const body = [];
+        body.push('\n\n:::figure');
+        if (parts.length) body.push(parts.filter(Boolean).join('\n'));
+        if (fullCaption.length) body.push('\n' + fullCaption.join('\n'));
+        body.push(':::\n\n');
+
+        result = body.join('\n');
         break;
       }
+
       case 'FIGCAPTION': {
-        result = glueChildren(node, 'flat', 'normal').trim();
+        result = glueChildren(node, 'inline', 'normal').trim();
         break;
       }
 
@@ -601,7 +619,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
       }
 
       default: {
-        result = glueChildren(node, 'flat', 'normal');
+        result = glueChildren(node, 'inline', 'normal');
         result = `<${node.tagName.toLowerCase()}>${result}</${node.tagName.toLowerCase()}>`;
         // result = node.outerHTML || '';
         break;

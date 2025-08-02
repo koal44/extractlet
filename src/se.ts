@@ -92,7 +92,7 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
   const tagName = node.tagName.toUpperCase();
   switch (tagName) {
     case 'DIV': {
-      let md = gc(node, 'flat', 'normal');
+      let md = gc(node, 'inline', 'normal');
       if (node.classList.contains('snippet')) {
         md = md.replace(/\n*$/, '\n\n');
         md = `<!-- begin snippet: -->\n\n${md}<!-- end snippet -->\n\n`;
@@ -100,7 +100,7 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
       return { md };
     }
     case 'PRE': {
-      let md = gc(node, 'flat', 'pre');
+      let md = gc(node, 'inline', 'pre');
       md = md.replace(/\n*$/, '\n');
       
       const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';

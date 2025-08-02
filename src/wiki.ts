@@ -11,9 +11,10 @@
  *   body
  *     main#content
  *       h1#firstHeading > span             → Main title
- *       div#mw-content-text > div
- *         h2...h6                          → Section headings
- *         <blocks>                         → Section content (paragraphs, lists, tables, etc.)
+ *       div#mw-content-text
+ *         div.mw-parser-output
+ *           h2...h6                          → Section headings
+ *           <blocks>                         → Section content (paragraphs, lists, tables, etc.)
  *
  * == Parsoid HTML (API Output) ==
  *
@@ -79,6 +80,12 @@ function shouldSkip(node: Node|null): boolean {
 const toMdElemHandler: ToMdElementHandler = (node, _ctx, _gc) => {
   if (shouldSkip(node)) return { skip: true };
 
+  // if (node.tagName === 'SPAN' && node.getAttribute('typeof') === 'mw:Entity') {
+  //   const md = node.textContent; // node.textContent ?? '';
+  //   log('typeof mw:Entity', node, node.textContent, node.innerHTML);
+  //   return { md };
+  // }
+  
   // const tag = node.tagName.toUpperCase();
   // if (tag === 'FIGURE') {
   //   const captionNode = node.querySelector('figcaption');  // case sensitive??
@@ -170,7 +177,7 @@ export class WikiNode {
   }
 
   static buildFromHTML(root:Document|HTMLElement): WikiNode|null {
-    const title = root.querySelector('h1#firstHeading > span')?.textContent?.trim() ?? '';
+    const title = root.querySelector('h1#firstHeading')?.textContent?.trim() ?? '';
     if (!title) return warnNull('No title found in the provided root element');
 
     let curSectionNum = 0;
@@ -178,8 +185,7 @@ export class WikiNode {
     const currentMdDiv = h('div') as HTMLDivElement;
     const rootNode = currentNode;
 
-    for (const htmlNode of root.querySelector('div#mw-content-text > div')?.childNodes ?? []) {
-      if (!isElement(htmlNode)) continue;
+    for (const htmlNode of root.querySelector('div#mw-content-text > div.mw-parser-output')?.children ?? []) {
       const firstChild = htmlNode.children?.[0];
 
       if (isDiv(htmlNode) && isHeading(firstChild)) {

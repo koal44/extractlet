@@ -1,6 +1,7 @@
 import { JSDOM } from 'jsdom';
 import { strictEqual } from 'node:assert';
-import { escapeHtml, isElement, isHTMLElement, isNode, isText } from '../../src/utils';
+import { escapeHtml, isElement, isHTMLElement, isNode, isText, log } from '../../src/utils';
+import { execSync } from 'node:child_process';
 
 export function setupDom() {
   const dom = new JSDOM();
@@ -80,4 +81,37 @@ export function assertApproxEqual(actual:number, expected:number, tolerance = 0.
   if (Math.abs(actual - expected) > tolerance) {
     throw new Error(`Expected a:'${actual}' ≈ e:'${expected}' (±${tolerance})${message ? ': ' + message : ''}`);
   }
+}
+
+function pandocAvailable(): void {
+  try {
+    execSync('pandoc --version', { stdio: 'ignore' });
+  } catch {
+    throw new Error('Error: Pandoc not found in PATH.\nInstall from https://github.com/jgm/pandoc/releases\n');
+  }
+}
+
+export function logPandocHtmlToMd(input: string): void {
+  pandocAvailable();
+  if (process?.env?.PANDOC !== 'true') return;
+
+  const mdFlavors = ['markdown']; //, 'markdown_phpextra', 'markdown_mmd', 'markdown_strict', 'commonmark', 'gfm', 'commonmark_x'];
+  log(`[${logPandocHtmlToMd.name}]\n--- Input ---\n${input}\n\n`, { jsonifyStrings: false });
+  for (const flavor of mdFlavors) {
+    const out = execSync(`pandoc -f html -t markdown`, { input }).toString();
+    log(`--- Output ${flavor} ---\n${out}`, { jsonifyStrings: false });
+  }
+}
+
+export function logPandocWtToMd(input: string): void {
+  pandocAvailable();
+  if (process?.env?.PANDOC !== 'true') return;
+
+  const mdFlavors = ['markdown']; // 'markdown_phpextra', 'markdown_mmd', 'markdown_strict', 'commonmark', 'gfm', 'commonmark_x'];
+  log(`[${logPandocWtToMd.name}]\n--- Input ---\n${input}\n\n`, { jsonifyStrings: false });
+  for (const flavor of mdFlavors) {
+    const out = execSync(`pandoc -f mediawiki -t ${flavor}`, { input }).toString();
+    log(`--- Output ${flavor} ---\n${out}`, { jsonifyStrings: false });
+  }
+
 }

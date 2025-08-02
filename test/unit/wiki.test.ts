@@ -1,10 +1,13 @@
 /* eslint-disable no-irregular-whitespace */
 import { describe, test } from 'node:test';
 import { normalizeWikitext, parseRawIntoSections, toHtml, toMd, WikiNode } from '../../src/wiki.js';
-import { el, assertNodeEqual, setupDom } from './test-utils.js';
+import { el, assertNodeEqual, setupDom, logPandocWtToMd, logPandocHtmlToMd } from './test-utils.js';
 import { deepEqual, strictEqual } from 'node:assert';
 
 setupDom();
+
+void logPandocWtToMd; // appease eslint whining
+void logPandocHtmlToMd; // appease eslint whining
 
 test('normalizeWikitext covers common and edge cases', () => {
   const cases = [
@@ -316,13 +319,13 @@ For other uses, see [](/wiki/Tensor_(disambiguation)).
 This article is about tensors on a single vector space and is not to be confused with [](/wiki/Vector_field) or [](/wiki/Tensor_field).
 
 :::figure
-[![](//upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [](/wiki/Cauchy_stress_tensor)
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [](/wiki/Cauchy_stress_tensor)
 :::`.trim();
   strictEqual(result!.md, expectedMd);
 });
 
-// Test suite: mediawiki.org / spec/HTML 2.8.0 / image cases
-describe('Extractlet: Parsoid HTML 2.8.0 Image Handling', () => {
+// https://www.mediawiki.org/wiki/Specs/HTML/2.8.0
+describe('Extractlet: Parsoid HTML 2.8.0 Spec', () => {
   // wikitext: [[File:Foobar.jpg]]
   test('1', () => {
     const html = `
@@ -535,7 +538,7 @@ caption
 </figure>`.trim();
     const expectedMd = `
 :::figure
-[![](//example.com/images/e/ea/Thumb.png)](file:///Foobar.jpg)
+[![](https://example.com/images/e/ea/Thumb.png)](file:///Foobar.jpg)
 
 Title
 :::`.trim();
@@ -551,7 +554,7 @@ Title
        width="971" height="110">
  </a>
 </span>`.trim();
-    const expectedMd = `[![](//upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)`;
+    const expectedMd = `[![](https://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)`;
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -567,7 +570,7 @@ Title
 </figure>`.trim();
     const expectedMd = `
 :::figure
-[![](//upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -584,12 +587,13 @@ Title
 </figure>`.trim();
     const expectedMd = `
 :::figure
-[![](//upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
 
   test('figure video thumb with poster and caption', () => {
+    // wikitext: [[File:Folgers.ogv|thumb|50x50px|right|caption]]
     const html = `
 <figure class="mw-halign-right" typeof="mw:File/Thumb">
   <span>
@@ -641,6 +645,7 @@ caption
   });
 
   test('video with poster only (thumbtime, no sources/tracks)', () => {
+    // wikitext: [[File:Folgers.ogv|thumbtime=1:25]]
     const html = `
 <span class="mw-default-size" typeof="mw:File" data-mw='{"thumbtime":"1:25"}'>
   <span>
@@ -661,6 +666,7 @@ caption
   });
 
   test('video with one fragmented source, poster', () => {
+    // wikitext: [[File:Folgers.ogv|start=25|end=45]]
     const html = `
 <span class="mw-default-size" typeof="mw:File" data-mw='{"starttime":"25","endtime":"45"}'>
   <span>
@@ -693,6 +699,7 @@ caption
   });
 
   test('audio with one source, no poster', () => {
+    // wikitext: [[File:Continuity proof.ogg]]
     const html = `
       <span class="mw-default-size mw-default-audio-height" typeof="mw:File">
         <span>
@@ -718,5 +725,283 @@ caption
     strictEqual(toMd(el(html)), expectedMd);
   });
 
-});
 
+  test('pdf preview with "page" option', () => {
+    // wikitext: [[File:Foobar.pdf|thumb|page=3]]
+    const html = `
+      <figure class="mw-default-size" typeof="mw:File/Thumb" data-mw='{"page":"3"}'>
+          <a href="./File:Foobar.pdf">
+              <img class="mw-file-element" resource="./File:Foobar.pdf" src="//upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Foobar.pdf/page3-220px-Foobar.pdf.jpg" height="285" width="220"/>
+          </a>
+          <figcaption>caption</figcaption>
+      </figure>
+    `.trim();
+
+    const expectedMd = `
+:::figure
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Foobar.pdf/page3-220px-Foobar.pdf.jpg)](./File:Foobar.pdf)
+
+page 3 preview
+caption
+:::`.trim();
+
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('figure for missing media with figcaption', () => {
+    // wikitext: [[File:This_image_does_not_exist_yet.jpg|thumb|caption]]
+    const html = `
+      <figure class="mw-default-size" typeof="mw:Error mw:File/Thumb" data-mw='{"errors":[{"key":"apierror-filedoesnotexist","message":"This image does not exist."}]}'>
+          <a href="./Special:FilePath/This_image_does_not_exist_yet.jpg">
+              <span class="mw-file-element mw-broken-media" resource="./File:This_image_does_not_exist_yet.jpg" data-width="220">File:This image does not exist yet.jpg</span>
+          </a>
+          <figcaption>caption</figcaption>
+      </figure>
+    `.trim();
+
+    const expectedMd = `
+:::figure
+[File:This image does not exist yet.jpg](./Special:FilePath/This_image_does_not_exist_yet.jpg)
+
+caption
+:::`.trim();
+
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('span for missing media with caption', () => {
+    // wikitext: [[File:This_image_does_not_exist_yet.jpg|caption]]
+    const html = `
+      <span class="mw-default-size" typeof="mw:Error mw:File" data-mw='{"caption":"caption","errors":[{"key":"apierror-filedoesnotexist","message":"This image does not exist."}]}'>
+        <a href="./Special:FilePath/This_image_does_not_exist_yet.jpg">
+          <span class="mw-file-element mw-broken-media" resource="./File:This_image_does_not_exist_yet.jpg">caption</span>
+        </a>
+      </span>
+    `.trim();
+
+    const expectedMd = `[caption](./Special:FilePath/This_image_does_not_exist_yet.jpg)`.trim();
+
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('span for missing media with alt text', () => {
+    // [[File:This_image_does_not_exist_yet.jpg|alt=alt text]]
+    const html = `
+      <span class="mw-default-size" typeof="mw:Error mw:File" data-mw='{"attribs":[["alt",{"txt":"alt text"}]],"errors":[{"key":"apierror-filedoesnotexist","message":"This image does not exist."}]}'>
+        <a href="./Special:FilePath/This_image_does_not_exist_yet.jpg">
+          <span class="mw-file-element mw-broken-media" resource="./File:This_image_does_not_exist_yet.jpg">alt text</span>
+        </a>
+      </span>
+    `.trim();
+
+    const expectedMd = `[alt text](./Special:FilePath/This_image_does_not_exist_yet.jpg)`;
+
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('wikilink with alternate text', () => {
+    // [[Main Page|alternate linked content]]
+    const html = `<a rel="mw:WikiLink" href="./Main_Page">alternate linked content</a>`.trim();
+    const expectedMd = `[alternate linked content](./Main_Page)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('wikilink with identical label', () => {
+    // [[Main Page]]
+    const html = `<a rel="mw:WikiLink" href="./Main_Page">Main Page</a>`.trim();
+    const expectedMd = `[](./Main_Page)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('wikilink with tail (plural)', () => {
+    // [[Potato]]es
+    const html = `<a rel="mw:WikiLink" href="./Potato">Potatoes</a>`.trim();
+    const expectedMd = `[Potatoes](./Potato)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('wikilink to non-existing page (red link)', () => {
+    // [[Non existing page]]
+    const html = `<a href="./Non_existing_page?action=edit&amp;redlink=1" title="Non existing page" rel="mw:WikiLink" class="new" typeof="mw:LocalizedAttrs" data-mw-i18n='{"title":{"lang":"x-page","key":"red-link-title","params":["Non existing page"]}}'>Non existing page</a>`.trim();
+    const expectedMd = `[](./Non_existing_page?action=edit&redlink=1)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('media link with default label', () => {
+    // [[Media:Foo.jpg]]
+    const html = `<a rel="mw:MediaLink" href="//upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg" title="Foo.jpg">Media:Foo.jpg</a>`.trim();
+    const expectedMd = `[Media:Foo.jpg](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('media link with alternate text', () => {
+    // [[Media:Foo.jpg|Link text]]
+    const html = `<a rel="mw:MediaLink" href="//upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg" title="Foo.jpg">Link text</a>`.trim();
+    const expectedMd = `[Link text](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg)`;
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('category link as metadata is not rendered', () => {
+    // [[Category:Foo]]
+    const html = '<link rel="mw:PageProp/Category" href="./Category:Foo">';
+    const expectedMd = '';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('autolinked (free) external URL', () => {
+    // http://example.com
+    const html = '<a rel="mw:ExtLink" class="external free" href="http://example.com">http://example.com/</a>';
+    const expectedMd = '[](http://example.com/)';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('numbered external link (autonumber)', () => {
+    // [http://example.com]
+    const html = '<a rel="mw:ExtLink" class="external autonumber" href="http://example.com"></a>';
+    const expectedMd = '[](http://example.com/)';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('named external link', () => {
+    // [http://example.com Link content]
+    const html = '<a rel="mw:ExtLink" class="external text" href="http://example.com">Link content</a>';
+    const expectedMd = '[Link content](http://example.com/)';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('magic ISBN link', () => {
+    // ISBN 978-1413304541
+    const html = `
+      <a rel="mw:WikiLink" href="./Special:BookSources/9781413304541">
+        ISBN 978-1413304541
+      </a>
+    `.trim();
+    const expectedMd = '[ISBN 978-1413304541](./Special:BookSources/9781413304541)';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('magic RFC link', () => {
+    // RFC 1945
+    const html = `
+      <a rel="mw:ExtLink" href="http://tools.ietf.org/html/rfc1945">
+        RFC 1945
+      </a>
+    `.trim();
+    const expectedMd = '[RFC 1945](http://tools.ietf.org/html/rfc1945)';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('magic PMID link', () => {
+    // PMID 20610307
+    const html = `
+      <a rel="mw:ExtLink" href="//www.ncbi.nlm.nih.gov/pubmed/20610307?dopt=Abstract">
+        PMID 20610307
+      </a>
+    `.trim();
+    const expectedMd = '[PMID 20610307](https://www.ncbi.nlm.nih.gov/pubmed/20610307?dopt=Abstract)';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('nowiki block preserves raw wikitext', () => {
+    // <nowiki>[[foo]]</nowiki>
+    const html = '<span typeof="mw:Nowiki">[[foo]]</span>';
+    const expectedMd = '[[foo]]';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('various mw:Entity spans', () => {
+    // const wikiText = '&nbsp; &copy; &lt; &mdash;';
+    // logPandocWtToMd(wikiText);
+    const html = `<div>
+      <span typeof="mw:Entity">&nbsp;</span>
+      <span typeof="mw:Entity">&copy;</span>
+      <span typeof="mw:Entity">&lt;</span>
+      <span typeof="mw:Entity">&mdash;</span>
+    </div>`.trim();
+    // &nbsp; is ommitted as spacing is always reduced to single space which is trimmed for root
+    const expectedMd = '© < —';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('mw:DisplaySpace span with non-breaking space', () => {
+    // HTML with mw:DisplaySpace added by Parsoid, not user content
+    const html = '<div>Text before<span typeof="mw:DisplaySpace">&nbsp;</span>and after.</div>';
+    const expectedMd = 'Text before and after.';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('Parsoid redirect links produce empty markdown', () => {
+    // const wikiText = [
+    //   '#REDIRECT [[foo]]',
+    //   '#REDIRECT [[:Category:Foo]]',
+    //   '#REDIRECT [[Category:Foo]]',
+    //   '#REDIRECT [[meatball:Foo]]',
+    //   '#REDIRECT [[:en:File:Wiki.png]]',
+    // ].join('\n');
+    // logPandocWtToMd(wikiText);
+
+    const html = `
+      <div>
+        <link rel="mw:PageProp/redirect" href="./Foo" />
+        <link rel="mw:PageProp/redirect" href="./Category:Foo" />
+        <link rel="mw:PageProp/redirect" href="http://www.usemod.com/cgi-bin/mb.pl?Foo" />
+        <link rel="mw:PageProp/redirect" href="//en.wikipedia.org/wiki/File:Wiki.png" />
+      </div>`.trim();
+
+    const expectedMd = '';
+    strictEqual(toMd(el(html)), expectedMd);
+  });
+
+  test('Parsoid mw:Transclusion with template parameters', () => {
+    // const wikiText = '{{foo|unused value|paramname=used value}}';
+    // logPandocWtToMd(wikiText);
+    const html =`
+      <body prefix="mw: http://mediawiki.org/rdf/ mwns10: http://en.wikipedia.org/wiki/Template%58">
+        <span typeof="mw:Transclusion" about="#mwt1" data-mw='{"parts": [{"template":{"target":{"wt":"foo","href":"./Template:Foo"},"params":{"1":{"wt":"unused value"},"paramname":{"wt":"used value"}},"i":0}}]}'>
+          Some text content
+        </span>
+        <table about="#mwt1">
+          <tr>
+            <td>used value</td>
+          </tr>
+        </table>
+      </body>`.trim();
+    // logPandocHtmlToMd(html);
+
+    const expectedMd = `
+Some text content
+
+|            |
+| ---------- |
+| used value |
+`.trim();
+
+    const resultMd = toMd(el(html, 'body'));
+    strictEqual(resultMd, expectedMd);
+  });
+
+  test('Parsoid mw:Annotation meta tags are ignored', () => {
+//     const wikiText = `
+// <translate>
+// One paragraph.
+
+// And another.
+// </translate>`.trim();
+
+    const html = `
+<meta typeof="mw:Annotation/translate" data-mw='{"rangeId":"mwa0","extendedRange":false,"wtOffsets":[0,11]}'/>
+<p>One paragraph.</p>
+
+<p>And another.
+</p><meta typeof="mw:Annotation/translate/End" data-mw='{"wtOffsets":[41,53]}'/>
+`.trim();
+
+    const expectedMd = `
+One paragraph.
+
+And another.`.trim();
+
+    const resultMd = toMd(el(html, 'body'));
+    strictEqual(resultMd, expectedMd);
+  });
+});
