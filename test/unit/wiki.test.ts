@@ -1005,3 +1005,67 @@ And another.`.trim();
     strictEqual(resultMd, expectedMd);
   });
 });
+
+
+// describe('MediaWiki Math rendering', () => {
+
+  // test('toHtml of <math>\\alpha</math>', () => {
+  //   // <math>\alpha</math>
+  //   const html = `
+  //     <math class="mwe-math-element mwe-math-element-inline" xmlns="http://www.w3.org/1998/Math/MathML">
+  //       <mrow data-mjx-texclass="ORD">
+  //         <mstyle displaystyle="true" scriptlevel="0">
+  //           <mi>α</mi>
+  //         </mstyle>
+  //       </mrow>
+  //     </math>`.trim();
+  //   const actual = toHtml(el(html));
+  //   const expected = `
+  //     <math xmlns="http://www.w3.org/1998/Math/MathML">
+  //       <mrow data-mjx-texclass="ORD">
+  //         <mstyle>
+  //           <mi>α</mi>
+  //         </mstyle>
+  //       </mrow>
+  //     </math>`.trim();
+  //   assertNodeEqual(actual, expected);
+  // });
+
+  // test('toMd of math alpha', () => {
+  //   // <math>\alpha</math>
+  //   const html = `
+  //     <math class="mwe-math-element mwe-math-element-inline" xmlns="http://www.w3.org/1998/Math/MathML">
+  //       <mrow data-mjx-texclass="ORD">
+  //         <mstyle displaystyle="true" scriptlevel="0">
+  //           <mi>α</mi>
+  //         </mstyle>
+  //       </mrow>
+  //     </math>`.trim();
+  //   const actual = toMd(el(html));
+  //   const expected = '';
+  //   strictEqual(actual, expected);
+  // });
+
+//   test('toHtml math var alpha', () => {
+//     // {{math|<var>&alpha;</var>}}
+//     const html = `<div>
+//         <span class="texhtml">
+//           <var>α</var>
+//         </span></div>`.trim();
+//     const actual = toHtml(el(html));
+//     const expected = '';
+//     strictEqual(actual, expected);
+//   });
+
+//   test('toMd math var alpha', () => {
+//     // {{math|<var>&alpha;</var>}}
+//     const html = `<div>
+//         <span class="texhtml">
+//           <var>α</var>
+//         </span></div>`.trim();
+//     const actual = toMd(el(html));
+//     const expected = '';
+//     strictEqual(actual, expected);
+//   });
+
+// });

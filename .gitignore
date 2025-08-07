@@ -4,3 +4,4 @@ dist-ff/
 test/scratchpad.*
 **/gen/
 .env
+vendor/

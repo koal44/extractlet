@@ -1,6 +1,7 @@
 import { describe, test } from 'node:test';
-import { notStrictEqual, strictEqual } from 'node:assert';
-import { el, setupDom, htmlify } from './test-utils.js';
+import assert, { notStrictEqual, strictEqual } from 'node:assert';
+import { el, setupDom, htmlify, assertNodeEqual, mathEl, logTranspect } from './test-utils.js';
+import { h } from '../../src/utils.js';
 
 setupDom();
 
@@ -85,3 +86,62 @@ describe('htmlify() negative cases', () => {
     notStrictEqual(htmlify(a), htmlify(b));
   });
 });
+
+describe('el helper', () => {
+  test('should support svg', () => {
+    const svg = el('<svg></svg>');
+    assert(svg !== null, 'svg should not be null');
+    const svgElement = svg?.ownerDocument?.defaultView?.SVGElement;
+    assert(svgElement !== undefined, 'SVGElement constructor should exist');
+    assert(svg instanceof svgElement, 'svg should be instanceof SVGElement');
+  });
+
+  test('should partially support MathML elements in JSDOM', () => {
+    const math = el('<math><mi>x</mi></math>');
+    assert(math !== null, 'math should not be null');
+    assert(typeof math === 'object');
+
+    const mathElementCtor = math?.ownerDocument?.defaultView?.MathMLElement;
+    assert(mathElementCtor === undefined, 'MathMLElement should be undefined');
+
+    const elementCtor = math?.ownerDocument?.defaultView?.Element;
+    assert(elementCtor !== undefined, 'Element constructor should exist');
+    assert(math instanceof elementCtor, 'math should be instanceof Element');
+
+    assert(math?.querySelector('mi')?.textContent === 'x');
+
+    assert(math.tagName === 'math', 'math tagName should be "math"');
+    assert(math.namespaceURI === 'http://www.w3.org/1998/Math/MathML', 'math namespaceURI should be MathML');
+
+    strictEqual(String(document.createElement('math')), '[object HTMLUnknownElement]', 'clone should serialize as HTMLUnknownElement');
+    strictEqual(String(document.createElement('div')), '[object HTMLDivElement]', 'div should serialize as HTMLDivElement');
+  });
+
+});
+
+test('el, h and htmlify should handle MathML', () => {
+  const math = el('<math><mi>x</mi></math>');
+  assert(math !== null, 'math should not be null');
+  strictEqual(String(math), '[object Element]');
+  strictEqual(math.namespaceURI, 'http://www.w3.org/1998/Math/MathML');
+
+  const html = htmlify(math);
+  strictEqual(html, '<math><mi>x</mi></math>');
+
+  const hMath = h('math:math', {}, h('math:mi', {}, 'x'));
+  strictEqual(htmlify(hMath), '<math><mi>x</mi></math>', 'h should create MathML element correctly');
+});
+
+test('mathEl wraps mml fragments and preserves roots', () => {
+  assertNodeEqual(mathEl('<mi>x</mi>'), mathEl('<mi>x</mi>'));
+  assertNodeEqual(mathEl('<math><mi>x</mi></math>'), mathEl('<mi>x</mi>'));
+  assertNodeEqual(mathEl('<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math>'), mathEl('<mi>x</mi>'));
+});
+
+test('transpect works', () => {
+  if (!process.env.TRANSPECT) return;
+  const mathml = '<math xmlns="http://www.w3.org/1998/Math/MathML"><mfenced><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mo>⋯</mo></mtd><mtd><mn>0</mn></mtd></mtr><mtr><mtd><mo>⋮</mo></mtd><mtd><mo>⋱</mo></mtd><mtd><mo>⋮</mo></mtd></mtr><mtr><mtd><mn>0</mn></mtd><mtd><mo>⋯</mo></mtd><mtd><mn>1</mn></mtd></mtr></mtable></mfenced></math>';
+  const expected = '\\left(\\begin{array}{ccc}\n1 & \\cdots  & 0\\\\\n\\vdots  & \\ddots  & \\vdots \\\\\n0 & \\cdots  & 1\n\\end{array}\\right)';
+  strictEqual(logTranspect(mathml), expected, 'transpect should convert MathML to TeX');
+});
+

@@ -38,7 +38,7 @@
  */
 
 
-import { log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup, createCopyButton, copyButtonCss, warn, isHTMLElement, isDocument, warnNull } from './utils.js';
+import { log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup, createCopyButton, copyButtonCss, warn, isHTML, isDoc, warnNull } from './utils.js';
 import { toHtml as _toHtml, toMd as _toMd, ToHtmlOptions, ToMdContext, ToMdElementHandler } from './core.js';
 
 export type WikiResult = {
@@ -67,7 +67,7 @@ function shouldSkip(node: Node|null): boolean {
     if (classList.contains('cite-accessibility-label')) return true;
     if (classList.contains('mw-empty-elt')) return true;
 
-    if (isHTMLElement(node)) {
+    if (isHTML(node)) {
       if (node.style.display === 'none') return true;
     }
     return false;
@@ -227,7 +227,7 @@ export class WikiNode {
     let childElems: Element[] = [];
     let curWikiNode: WikiNode|null = null;
 
-    if (isDocument(root)) {
+    if (isDoc(root)) {
       const sect0 = root.querySelector('section[data-mw-section-id="0"]');
       if (!sect0) return warnNull('No section[data-mw-section-id="0"] found in the provided document');
       const title = root.querySelector('head > title')?.textContent?.trim() ?? '';
@@ -353,7 +353,7 @@ export class WikiNode {
 
 export function parseRawIntoSections(rawText: string): {level:number, sectionNum:number, title:string, raw:string}[] {
   const sections: {level:number, sectionNum:number, title:string, raw:string}[] = [];
-  const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1\s*$/gm;
+  const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1(?:\s*<!--.*?-->)*\s*$/gm;
 
   let match;
   let lastSectionStart = 0;
@@ -466,7 +466,7 @@ function renderRaw(node: WikiNode): HTMLDivElement {
     const raw = node.raw || '';
     if (node.level === 1 || !node.raw) return raw;
 
-    const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1\s*$/;
+    const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1(?:\s*<!--.*?-->)*\s*$/;
     const lines = raw.split('\n');
     if (lines.length && sectionRegex.test(lines[0])) {
       return lines.slice(1).join('\n');

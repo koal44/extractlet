@@ -80,28 +80,31 @@ export function log(...args: unknown[]): void {
 }
 
 export function h(
-  tag: string,
-  attrs: Record<string, any> = {},
-  ...children: (string | Node | null)[]
-): HTMLElement | SVGElement {
+  tag: string, // e.g. 'div', 'svg:circle', 'math:mi'
+  attrs: Record<string, any> = {}, // e.g. { class: 'my-class', id: 'my-id', 'xlink:href': '#foo' }
+  ...children: (string | Node | null)[] // e.g. 'Hello', document.createElement('span'), null
+): HTMLElement | SVGElement | MathMLElement {
 
-  let node: HTMLElement | SVGElement;
-
-  if (typeof tag === 'string' && tag.startsWith('svg:')) {
-    node = document.createElementNS('http://www.w3.org/2000/svg', tag.slice(4));
-  } else {
-    node = document.createElement(tag);
-  }
+  const node =
+    tag.startsWith('math:') ? document.createElementNS('http://www.w3.org/1998/Math/MathML', tag.slice(5)) as MathMLElement :
+    tag.startsWith('svg:') ? document.createElementNS('http://www.w3.org/2000/svg', tag.slice(4)) as SVGElement :
+    document.createElement(tag) as HTMLElement;
 
   for (const [key, value] of Object.entries(attrs)) {
-    node.setAttribute(key, value);
+    if (key === 'xlink:href') {
+      node.setAttributeNS('http://www.w3.org/1999/xlink', 'href', String(value));
+    } else {
+      node.setAttribute(key, String(value));
+    }
   }
+  
   children.forEach(child => {
     if (typeof child === 'string') {
       node.appendChild(document.createTextNode(child));
     } else if (isNode(child)) {
       node.appendChild(child);
     }
+    // else ignore null/undefined/non-node children
   });
   return node;
 }
@@ -450,14 +453,20 @@ export function isText(node?: Node|null): node is Text {
 export function isComment(node?: Node|null): node is Comment {
   return !!node && node.nodeType === Node.COMMENT_NODE;
 }
-export function isDocument(node?: Node|null): node is Document {
+export function isDoc(node?: Node|null): node is Document {
   return !!node && node.nodeType === Node.DOCUMENT_NODE;
 }
-export function isDocumentFragment(node?: Node|null): node is DocumentFragment {
+export function isDocFrag(node?: Node|null): node is DocumentFragment {
   return !!node && node.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
 }
-export function isHTMLElement(node?: Node|null): node is HTMLElement {
+export function isHTML(node?: Node|null): node is HTMLElement {
   return !!node && isElement(node) && node.namespaceURI === 'http://www.w3.org/1999/xhtml';
+}
+export function isSVG(node?: Node|null): node is SVGElement {
+  return !!node && isElement(node) && node.namespaceURI === 'http://www.w3.org/2000/svg';
+}
+export function isMathML(node?: Node|null): node is MathMLElement {
+  return !!node && isElement(node) && node.namespaceURI === 'http://www.w3.org/1998/Math/MathML';
 }
 export function isDiv(node?: Node|null): node is HTMLDivElement {
   return !!node && isElement(node) && node.tagName.toUpperCase() === 'DIV';
@@ -588,9 +597,6 @@ export function isMap(node?: Node|null): node is HTMLMapElement {
 export function isArea(node?: Node|null): node is HTMLAreaElement {
   return !!node && isElement(node) && node.tagName.toUpperCase() === 'AREA';
 }
-export function isFormControl(node?: Node|null): node is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLButtonElement {
-  return !!node && isInput(node) || isTextArea(node) || isSelect(node) || isButton(node);
-}
 export function isForm(node?: Node|null): node is HTMLFormElement {
   return !!node && isElement(node) && node.tagName.toUpperCase() === 'FORM';
 }
@@ -609,13 +615,7 @@ export function isCode(node?: Node|null): node is HTMLElement {
 export function isBlockquote(node?: Node|null): node is HTMLQuoteElement {
   return !!node && isElement(node) && node.tagName.toUpperCase() === 'BLOCKQUOTE';
 }
-export function isSvg(node?: Node|null): node is SVGElement {
-  return !!node && isElement(node) && node.namespaceURI === 'http://www.w3.org/2000/svg';
-}
-export function isMathMl(node?: Node|null): node is Element {
-  return !!node && isElement(node) && node.namespaceURI === 'http://www.w3.org/1998/Math/MathML';
-}
-export function isCustomElement(node?: Node|null): node is HTMLElement {
+export function isCustom(node?: Node|null): node is HTMLElement {
   return !!node && isElement(node) && node.tagName.includes('-');
 }
 export function isSup(node?: Node|null): node is HTMLElement {

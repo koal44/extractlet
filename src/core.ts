@@ -1,4 +1,4 @@
-import { isCaptionSimilar, isElement, isHTMLElement, isImage, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isUList, lastUrlSegment, log, toPascalCase } from './utils.js';
+import { isCaptionSimilar, isElement, isHTML, isImage, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isUList, lastUrlSegment, log, toPascalCase } from './utils.js';
 
 export type ToHtmlElementHandler = (node: Element, opts: ToHtmlOptions) => { skip?: boolean; node?: Node };
 
@@ -50,7 +50,7 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
   if (result?.node) return result.node;
 
   // --- default handling for HTML elements ---
-  const clone = document.createElement(node.tagName.toLowerCase());
+  const clone = document.createElementNS(node.namespaceURI || 'http://www.w3.org/1999/xhtml', node.tagName);
 
   for (const attr of node.attributes) {
     const name = attr.name.toLowerCase();
@@ -68,6 +68,7 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
         clone.setAttribute('title', attr.value.replace(/\s+/g, ' ').trim());
         break;
       }
+      case 'xmlns':
       case 'rowspan':
       case 'colspan':
       case name.startsWith('data-') && name: {
@@ -82,7 +83,7 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
         break;
       }
       case 'style': {
-        if (isHTMLElement(node)) {
+        if (isHTML(node) && isHTML(clone)) {
           copyStyleAttr(clone, node, keepStyles);
         }
         break;

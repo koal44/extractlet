@@ -7,3 +7,11 @@
 //     // Add other methods and properties as needed
 //   }
 // };
+
+declare module "saxon-js" {
+  const saxonJS: {
+    transform: (...args: any[]) => any;  // (Optionally, you can expand as you learn the API)
+    [key: string]: any;
+  };
+  export default saxonJS;
+}

@@ -142,7 +142,7 @@ function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; 
 
   // display the original MathJax LaTeX content
   if (isScript(node)) { // non-MathJax scripts have already been filtered out
-    const math = document.createElement('math');
+    const math = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
     math.textContent = node.textContent;
     return { node: math };
   }
