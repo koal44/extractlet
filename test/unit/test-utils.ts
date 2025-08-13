@@ -2,9 +2,6 @@ import { JSDOM } from 'jsdom';
 import { strictEqual } from 'node:assert';
 import { escapeHtml, isElement, isHTML, isNode, isText, log } from '../../src/utils';
 import { execSync } from 'node:child_process';
-import path from 'node:path';
-import saxonJS from 'saxon-js';
-import { existsSync, readFileSync } from 'node:fs';
 
 export function setupDom() {
   const dom = new JSDOM();
@@ -124,71 +121,4 @@ export function logPandocWtToMd(input: string): void {
     const out = execSync(`pandoc -f mediawiki -t ${flavor}`, { input }).toString();
     log(`--- Output ${flavor} ---\n${out}`, { jsonifyStrings: false });
   }
-}
-
-/**
- * Integration Notes: Patching Transpect XSLT (MathML-to-TeX) for Node.js/SaxonJS
- *
- * Required patches to make vendor/mml2tex/xsl/mml2tex.xsl work in Node:
- *
- *   1. [PATCH] Ensure mode invocation:
- *      Add template to apply-templates in mode="mathml2tex" at the root:
- *        <xsl:template match="/">
- *          <xsl:apply-templates mode="mathml2tex"/>
- *        </xsl:template>
- *
- *   2. [PATCH] Remove/disable any remote XSLT dependencies:
- *      Comment out unreachable <xsl:import> (e.g., colors.xsl from HTTP).
- *      <!-- <xsl:import href="http://transpect.io/xslt-util/colors/xsl/colors.xsl"/> -->
- *
- *   3. [PATCH] Remove/rewrite references to functions missing after (2):
- *      If a function (e.g., tr:color-hex-rgb-to-keyword) is used only to map colors,
- *      replace conditional with the fallback clause only.
- *      <xsl:value-of select="concat('\textcolor{color-', upper-case(substring-after((@mathcolor, @color)[1], '#')), '}{')"/>
- *
- */
-
-/**
- * Transform MathML (or XML) to TeX using the Transpect XSLT, asynchronously.
- * 
- * @param input XML string to transform
- * @returns Promise<string | undefined> The transformation result as a string, or undefined if not configured.
- * 
- * PATCHES needed for Transpect compatibility:
- *  1. Comment out XSL import of colors.xsl if network fetch fails.
- *  2. Patch or disable color mapping fallback code.
- *  3. Ensure the top-level template applies templates in mathml2tex mode:
- *     <xsl:template match="/"><xsl:apply-templates mode="mathml2tex"/></xsl:template>
- */
-export function logTranspect(input: string): string|undefined {
-  // console.log('saxonJS keys:', Object.keys(saxonJS));
-  // console.log('saxonJS.XPath keys:', Object.keys(saxonJS.XPath));
-
-  if (!process?.env?.TRANSPECT) return;
-  const xslPath = path.resolve(process.env.TRANSPECT);
-  if (!xslPath.endsWith('.xsl')) throw new Error(`.env.TRANSPECT must point to an .xsl file, got: ${xslPath}`);
-  if (!existsSync(xslPath))  throw new Error(`File not found: ${xslPath}`);
-  
-  const xslContent = readFileSync(xslPath, 'utf8');
-
-  const result = saxonJS.XPath.evaluate(
-    `transform(
-        map {
-          'source-node': parse-xml($xml),
-          'stylesheet-text': $xslt,
-          'delivery-format': 'serialized',
-          'stylesheet-base-uri': $baseuri
-        }
-    )?output`,
-    [],
-    {
-      params: {
-        xml: input,
-        xslt: xslContent,
-        baseuri: "file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mml2tex/xsl/",
-      },
-    }
-  );
-
-  return result; // return the result of the transformation
 }

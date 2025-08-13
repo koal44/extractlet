@@ -115,10 +115,19 @@ function getNormalizedUrl(node: Element, attr: 'href'|'src'): string {
   const url = node.getAttribute(attr)?.trim();
   if (!url) return '';
   if (url.startsWith('#')) return url;
-  if (url.startsWith('javascript:')) return '#';
-  if (url.startsWith('//')) return `https:${url}`;
-  // Prefer browser-resolved property if present
-  return ((node as any)[attr]).trim() || url;
+  if (url.toLowerCase().startsWith('javascript:')) return '#';
+  if (url.startsWith('//')) return `https:${url}`; // assume protocol-relative URLs are HTTPS
+  
+  // --- resolve relative urls ---
+  // prefer browser-resolved property
+  const nodeAttr = (node as any)[attr];
+  if (typeof nodeAttr === 'string') return nodeAttr.trim();
+  // otherwise resolve using doc's base uri
+  try {
+    return new URL(url, node.ownerDocument?.baseURI).href;
+  } catch {
+    return url;
+  }
 }
 
 export function copyStyleAttr(dest: HTMLElement, src: HTMLElement, keepStyles: KeepStyles) {

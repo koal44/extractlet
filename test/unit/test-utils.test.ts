@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert, { notStrictEqual, strictEqual } from 'node:assert';
-import { el, setupDom, htmlify, assertNodeEqual, mathEl, logTranspect } from './test-utils.js';
+import { el, setupDom, htmlify, assertNodeEqual, mathEl } from './test-utils.js';
 import { h } from '../../src/utils.js';
 
 setupDom();
@@ -137,11 +137,3 @@ test('mathEl wraps mml fragments and preserves roots', () => {
   assertNodeEqual(mathEl('<math><mi>x</mi></math>'), mathEl('<mi>x</mi>'));
   assertNodeEqual(mathEl('<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math>'), mathEl('<mi>x</mi>'));
 });
-
-test('transpect works', () => {
-  if (!process.env.TRANSPECT) return;
-  const mathml = '<math xmlns="http://www.w3.org/1998/Math/MathML"><mfenced><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mo>⋯</mo></mtd><mtd><mn>0</mn></mtd></mtr><mtr><mtd><mo>⋮</mo></mtd><mtd><mo>⋱</mo></mtd><mtd><mo>⋮</mo></mtd></mtr><mtr><mtd><mn>0</mn></mtd><mtd><mo>⋯</mo></mtd><mtd><mn>1</mn></mtd></mtr></mtable></mfenced></math>';
-  const expected = '\\left(\\begin{array}{ccc}\n1 & \\cdots  & 0\\\\\n\\vdots  & \\ddots  & \\vdots \\\\\n0 & \\cdots  & 1\n\\end{array}\\right)';
-  strictEqual(logTranspect(mathml), expected, 'transpect should convert MathML to TeX');
-});
-

@@ -11,6 +11,19 @@ type TSFile = {
   patchPolyfill?: boolean;
 };
 
+import util from 'node:util';
+function logActive(label: string) {
+  const handles = (process as any)._getActiveHandles?.() ?? [];
+  const requests = (process as any)._getActiveRequests?.() ?? [];
+  console.log(`\n=== ${label} ===`);
+  console.log(`Active handles: ${handles.length}`);
+  for (const h of handles) console.log('-',  util.inspect(h, { depth: 1 }));
+  console.log(`Active requests: ${requests.length}`);
+  for (const r of requests) console.log('-',  util.inspect(r, { depth: 1 }));
+  console.log('=================\n');
+}
+setTimeout(() => { logActive('Post-build dump'); }, 10000).unref();
+
 const tsFiles: TSFile[] = [
   { input: 'src/background.ts', output: 'dist/background.js', format: 'esm', patchPolyfill: true },
   { input: 'src/extractlet.ts', output: 'dist/extractlet.js', format: 'iife' },
@@ -75,7 +88,12 @@ async function bundleSource({ input, output, format }: TSFile): Promise<void> {
     external: ['webextension-polyfill'],
     plugins: [typescript()],
   });
-  await bundle.write({ file: output, format, globals, sourcemap: false });
-  console.log(`Bundled ${output}`);
+
+  try {
+    await bundle.write({ file: output, format, globals, sourcemap: false });
+    console.log(`Bundled ${output}`);
+  } finally {
+    await bundle.close();
+  }
 }
 
