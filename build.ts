@@ -29,6 +29,7 @@ const tsFiles: TSFile[] = [
   { input: 'src/extractlet.ts', output: 'dist/extractlet.js', format: 'iife' },
   { input: 'src/wiki-page.ts', output: 'dist/wiki-page.js', format: 'iife' },
   { input: 'src/se-page.ts', output: 'dist/se-page.js', format: 'iife' },
+  { input: 'src/hub-page.ts', output: 'dist/hub-page.js', format: 'iife' },
 ];
 
 // -- bundle and patch polyfill imports
@@ -96,4 +97,3 @@ async function bundleSource({ input, output, format }: TSFile): Promise<void> {
     await bundle.close();
   }
 }
-

@@ -21,6 +21,7 @@ browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runti
     return;
   }
   switch (msg.type) {
+    case 'hubResult':
     case 'wikiResult':
     case 'seResult': {
       const uuid = crypto.randomUUID();

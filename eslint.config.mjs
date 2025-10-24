@@ -33,7 +33,7 @@ export default tseslint.config(
         'objects': 'always-multiline',
         'imports': 'always-multiline',
         'exports': 'always-multiline',
-        'functions': 'never'
+        'functions': 'only-multiline'
       }],
       'arrow-spacing': ['warn', { before: true, after: true }],
       'object-curly-spacing': ['warn', 'always'],

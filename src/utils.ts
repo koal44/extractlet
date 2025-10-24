@@ -698,3 +698,23 @@ export function lastUrlSegment(url: string): string {
   return decodeURIComponent(clean.split('/').pop() || '');
 }
 
+export function formatDateWithRelative(iso?: string | null): string {
+  if (!iso) return 'unknown-date';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return 'invalid-date';
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const ymd = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  // --- relative ---
+  const diffMs = Date.now() - d.getTime();
+  const diffDays = Math.round(diffMs / 86400000); // 1 day = 86400000 ms
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+  let rel: string;
+  if (Math.abs(diffDays) < 30) rel = rtf.format(-diffDays, 'day');
+  else if (Math.abs(diffDays) < 365) rel = rtf.format(-Math.round(diffDays / 30), 'month');
+  else rel = rtf.format(-Math.round(diffDays / 365), 'year');
+
+  return `${ymd} (${rel})`;
+}
