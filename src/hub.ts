@@ -54,31 +54,190 @@
  * - Canonical URL: link[rel="canonical"] is resolved against document.baseURI for absolute form.
  */
 
-
-
-
 import { h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript, htmlToElementK, htmlToElement, formatDateWithRelative } from './utils.js';
 import { toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdElementHandler } from './core.js';
 
 export type HubResult = {
   permaLink: string;
-  issueTitle: string | null;
-  authorPost: Post;
+  title: string;
   posts: Post[];
 };
 
 export type Post = {
-  contributor: Contributor | null;
-  bodyHtml: string | null;
-  bodyMd: string;
+  contributor?: Contributor;
+  bodyHtml?: string;
+  bodyMd?: string;
   pageId?: string;
 }
 
 export type Contributor = {
-  author: string | null;
-  timestamp: string | null;
-  editor: string | null;
+  author?: string;
+  timestamp?: string;
+  editor?: string;
 };
+
+type SectionId = 'permaLink' | 'title' | 'firstPost' | 'posts';
+type DomainId = 'issue' | 'pr' | 'disc' | 'all';
+type MapFn = (v: string, doc?: Document) => string;
+// type Attr = 'href' | 'src' | 'datetime' | 'textContent';
+type Locator = { sel: string; attr?: string; map?: MapFn };
+type ByDomain = Partial<Record<DomainId, Locator[]>>;
+type FieldSection = Record<string, ByDomain>;
+
+const SCRAPERS: { [S in SectionId]: FieldSection } = {
+  // scrapePermaUrl()
+  permaLink: {
+    link: {
+      all: [
+        { sel: 'head > link[rel="canonical"]', attr: 'href' },
+        { sel: '#repo-content-turbo-frame', attr: 'src' },
+      ],
+    },
+  },
+
+  // scrapeTitle()
+  title: {
+    title: {
+      issue: [{ sel: 'bdi[data-testid="issue-title"]', attr: 'textContent' }],
+    },
+  },
+
+  // scrapeFirstPost()
+  firstPost: {
+    author: {
+      issue: [{ sel: 'div[data-testid="issue-viewer-issue-container"] [data-testid="issue-body-header-author"]' }],
+    },
+    pageId: {
+      issue: [
+        { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"]',
+          attr: 'href', map: s => (s.includes('#') ? s.split('#')[1] : s) }],
+    },
+    createdAt: {
+      issue: [{ sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] relative-time', attr: 'datetime' }],
+    },
+    editedBy: {
+      issue: [{ sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] + span a' }],
+    },
+    bodyViewer: {
+      issue: [{ sel: 'div[data-testid="issue-viewer-issue-container"] div[data-testid="issue-body-viewer"]' }],
+    },
+  },
+
+  // scrapePosts()
+  posts: {
+    items: {
+      issue: [{ sel: 'div[data-testid="issue-timeline-container"] > *' }],
+    },
+    author: {
+      issue: [{ sel: 'div[data-testid="comment-header"] a[data-testid="avatar-link"]', attr: 'textContent' }],
+    },
+    createdAt: {
+      issue: [{ sel: 'div[data-testid="comment-header"] relative-time', attr: 'datetime' }],
+    },
+    pageId: {
+      issue: [{ sel: 'div[data-testid="comment-header"]', attr: 'id' }],
+    },
+    bodyViewer: {
+      issue: [{ sel: 'div[data-testid="markdown-body"]' }],
+    },
+  },
+};
+
+function pickEl(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: ParentNode): Element | undefined {
+    // domain-first, then 'all'
+  const byDomain = SCRAPERS[section]?.[field]?.[domain] ?? [];
+  const byAll = SCRAPERS[section]?.[field]?.all ?? [];
+  const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
+
+  for (const { sel } of specs) {
+    const el = (scope ?? doc).querySelector(sel);
+    if (el) return el;
+  }
+  return undefined;
+}
+
+function pickEls(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: ParentNode): Element[] {
+    // domain-first, then 'all'
+  const byDomain = SCRAPERS[section]?.[field]?.[domain] ?? [];
+  const byAll = SCRAPERS[section]?.[field]?.all ?? [];
+  const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
+
+  for (const { sel } of specs) {
+    const els = (scope ?? doc).querySelectorAll(sel);
+    if (els.length > 0) return [...els];
+  }
+  return [];
+}
+
+function pickVal(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: ParentNode): string | undefined {
+    // domain-first, then 'all'
+  const byDomain = SCRAPERS[section]?.[field]?.[domain] ?? [];
+  const byAll = SCRAPERS[section]?.[field]?.all ?? [];
+  const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
+
+  for (const { sel, attr, map } of specs) {
+    const el = (scope ?? doc).querySelector(sel);
+    if (!el) continue;
+    let val = attr === 'textContent' || attr === undefined // default to textContent
+      ? (el as HTMLElement).textContent?.trim() ?? undefined
+      : el.getAttribute(attr)?.trim() ?? undefined;
+    if (!val) continue;
+    val = map ? map(val, doc).trim() : val;
+    if (val) return val;
+  }
+  return undefined;
+}
+
+function scrapePermaUrl(doc: Document): string | undefined {
+  const link = pickVal(doc, 'permaLink', 'link', 'all');
+  return link ? new URL(link, doc.baseURI).href : undefined;
+}
+
+function scrapeTitle(doc: Document, domain: DomainId): string | undefined {
+  const title = pickVal(doc, 'title', 'title', domain);
+  return title;
+}
+
+function scrapeFirstPost(doc: Document, domain: DomainId): Post {
+  const author    = pickVal(doc, 'firstPost', 'author',    domain);
+  const pageId    = pickVal(doc, 'firstPost', 'pageId',    domain);
+  const createdAt = pickVal(doc, 'firstPost', 'createdAt', domain);
+  const editedBy  = pickVal(doc, 'firstPost', 'editedBy',  domain);
+
+  const contributor: Contributor = {
+    author,
+    timestamp: createdAt,
+    editor: editedBy,
+  };
+
+  const bodyViewer = pickEl(doc, 'firstPost', 'bodyViewer', domain);
+  const bodyHtml   = bodyViewer ? toHtml<Element>(bodyViewer).outerHTML : undefined;
+  const bodyMd     = bodyViewer ? toMd(bodyViewer) : undefined;
+
+  return { contributor, bodyHtml, bodyMd, pageId };
+}
+
+function scrapePosts(doc: Document, domain: DomainId): Post[] {
+  const items = pickEls(doc, 'posts', 'items', domain);
+
+  const posts: Post[] = [];
+  for (const item of items) {
+    const author    = pickVal(doc, 'posts', 'author',     domain, item);
+    const createdAt = pickVal(doc, 'posts', 'createdAt',  domain, item);
+    const pageId    = pickVal(doc, 'posts', 'pageId',     domain, item);
+    const bodyEl    = pickEl(doc,  'posts', 'bodyViewer', domain, item);
+
+    if (!author && !createdAt && !bodyEl) continue; // ignore non-comment events
+
+    const contributor: Contributor = { author, timestamp: createdAt, editor: undefined };
+    const bodyHtml = bodyEl ? toHtml<Element>(bodyEl).outerHTML : undefined;
+    const bodyMd   = bodyEl ? toMd(bodyEl) : undefined;
+
+    posts.push({ contributor, bodyHtml, bodyMd, pageId });
+  }
+
+  return posts;
+}
 
 function shouldSkip(node: Node|null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
@@ -124,88 +283,13 @@ export function toHtml<T extends Node>(node: Node|null): T {
   return _toHtml(node, { toHtmlElementHandler: toHtmlElemHandler }) as T;
 }
 
-function getPermaUrl(doc: Document): string | null {
-  const canonical = doc.querySelector('head > link[rel="canonical"]') as HTMLLinkElement|null;
-  return canonical ? new URL(canonical.href, doc.baseURI).href : null;
-}
-
-function scrapeIssueTitle(doc: Document): string | null {
-  const t1 = doc.querySelector('bdi[data-testid="issue-title"]')?.textContent?.trim();
-  if (t1) return t1;
-  return null;
-}
-
-function scrapeAuthorPost(doc: Document): Post | null {
-  const issueContainer = doc.querySelector('div[data-testid="issue-viewer-issue-container"]');
-  if (!issueContainer) return null;
-  const authorElem = issueContainer.querySelector('[data-testid="issue-body-header-author"]');
-  const author = authorElem?.textContent?.trim() || null;
-  const linkElem = issueContainer.querySelector<HTMLAnchorElement>('a[data-testid="issue-body-header-link"]');
-  // href="https://github.com/antlr/antlr4/issues/4218#issue-1651242529"
-  // want #issue-1651242529
-  const pageId = linkElem?.href.split('#')[1];
-
-  const createdAt = linkElem?.querySelector('relative-time')?.getAttribute('datetime') || null;
-  let editedBy: string | null = null;
-  const siblingSpan = linkElem?.nextElementSibling;
-  if (siblingSpan) {
-    const editorAnchor = siblingSpan.querySelector('a');
-    if (editorAnchor) {
-      editedBy = editorAnchor.textContent?.trim() || null;
-    }
-  }
-  const contributor: Contributor = {
-    author,
-    timestamp: createdAt,
-    editor: editedBy,
-  };
-  const bodyViewer = issueContainer.querySelector('div[data-testid="issue-body-viewer"]');
-  const bodyHtml = toHtml<Element>(bodyViewer).outerHTML || null;
-  const bodyMd = toMd(bodyViewer);
-  return {
-    contributor,
-    bodyHtml,
-    bodyMd,
-    pageId,
-  };
-}
-
-function scrapePosts(doc: Document): Post[] {
-  const timelineContainer = doc.querySelector('div[data-testid="issue-timeline-container"]');
-  if (!timelineContainer) return [];
-  const posts: Post[] = [];
-  const commentItems = timelineContainer.children;
-  for (const item of commentItems) {
-    const header = item.querySelector('div[data-testid="comment-header"]');
-    if (!header) continue;
-    const authorAnchor = header.querySelector('a[data-testid="avatar-link"]');
-    const author = authorAnchor?.textContent?.trim() || null;
-    const createdAt = header.querySelector('relative-time')?.getAttribute('datetime') || null;
-    const contributor: Contributor = {
-      author,
-      timestamp: createdAt,
-      editor: null,
-    };
-    const bodyViewer = item.querySelector('div[data-testid="markdown-body"]');
-    const bodyHtml = toHtml<Element>(bodyViewer).outerHTML || null;
-    const bodyMd = toMd(bodyViewer);
-    posts.push({
-      contributor,
-      bodyHtml,
-      bodyMd,
-      pageId: header.id,
-    });
-  }
-  return posts;
-}
-
 function buildPosts(data: HubResult, doc: Document): HTMLElement {
   const div = h('div', { class: 'posts' }) as HTMLDivElement;
-  [data.authorPost, ...data.posts].forEach(function(post, idx) {
+  data.posts.forEach(function(post, idx) {
     const postNode = h('div', { class: 'post' });
     div.appendChild(postNode);
 
-    const postTitle = h('h2', { class: 'post-title' }, idx === 0 ? 'Issue' : `Response ${idx}`);
+    const postTitle = h('h2', { class: 'post-title' }, idx === 0 ? 'Initial Post' : `Comment ${idx}`);
     const copyButton = buildCopyButton(doc, data, idx);
     const postHeading = h('div', { class: 'post-heading' }, postTitle, copyButton);
     postNode.appendChild(postHeading);
@@ -224,15 +308,15 @@ function buildPostView(post:Post, viewMode:'html'|'md', doc:Document): HTMLDivEl
   };
   const mode = modes[viewMode];
 
-  function renderBody(str: string): Node|string|null {
+  function renderBody(str?: string): Node | string | null {
     switch (viewMode) {
       case 'html': return htmlToElement(str, doc);
-      case 'md': return str;
+      case 'md': return str ?? null;
       default: throw new Error(`Unknown mode: ${viewMode}`);
     }
   }
 
-  const postBodyStr = post[mode.key] ?? '';
+  const postBodyStr = post[mode.key];
   const postBody = renderBody(postBodyStr);
   const bodyDiv = h('div', { class: 'post-body' }, postBody);
 
@@ -249,38 +333,37 @@ function contribLine(p: Post): string {
 }
 
 function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
-  // postIdx: -1 = all, 0 = Issue (authorPost), >=1 = Response N from pageData.posts (1-based in label)
-  const allPosts: Post[] = [pageData.authorPost, ...pageData.posts];
+  const allPosts = pageData.posts;
 
   if (postIdx < -1 || postIdx >= allPosts.length) {
     throw new Error('Invalid postIdx: ' + postIdx);
   }
 
   const isAll = postIdx === -1;
-  const isIssue = postIdx === 0;
-  const isResponse = postIdx >= 1;
+  const isOp = postIdx === 0;
+  const isComment = postIdx >= 1;
 
   const responseTxt =
     isAll      ? 'Copied All!' :
-    isIssue    ? 'Copied Issue!' :
-    isResponse ? `Copied Response ${postIdx}!` : '';
+    isOp       ? 'Copied Post!' :
+    isComment  ? `Copied Comment ${postIdx}!` : '';
 
   const hintTxt =
     isAll      ? 'Copy all posts' :
-    isIssue    ? 'Copy issue' :
-    isResponse ? `Copy response ${postIdx}` : '';
+    isOp       ? 'Copy post' :
+    isComment  ? `Copy comment ${postIdx}` : '';
 
   const copyArr: string[] = [];
 
   if (isAll) {
     copyArr.push(
       '===========================================',
-      '        Extractlet · GitHub Issue',
+      '           Extractlet · GitHub',
       '===========================================\n'
     );
   }
 
-  if (pageData.issueTitle) copyArr.push(`Title: ${pageData.issueTitle ?? '(untitled)'}`);
+  if (pageData.title) copyArr.push(`Title: ${pageData.title ?? '(untitled)'}`);
   const url = isAll ? pageData.permaLink : allPosts[postIdx].pageId ? `${pageData.permaLink}#${allPosts[postIdx].pageId}` : pageData.permaLink;
   if (url) copyArr.push(`URL: ${url}`);
 
@@ -289,7 +372,7 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
     if (isAll && idx === 0) copyArr.push(''); // pre-amble \n post0
     if (isAll) copyArr.push(''); // postN \n postN+1
 
-    const postType = idx === 0 ? 'Issue' : `Response ${idx}`;
+    const postType = idx === 0 ? 'Post' : `Comment ${idx}`;
     const heading = isAll ? `❖❖ ${postType} ❖❖` : `Post: ${postType}`;
 
     copyArr.push(heading, '');
@@ -305,35 +388,49 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
   return createCopyButton(copyTxt, responseTxt, hintTxt);
 }
 
+function detectDomain(url: string): Exclude<DomainId, 'all'> | undefined {
+  //   /owner/repo/issues/123
+  //   /owner/repo/pull/456
+  //   /owner/repo/discussions/789
+  const u = new URL(url);
+  const p = u.pathname.split('/').filter(Boolean); // ["owner","repo","issues","123"]
+  const kind = p[2];
+  if (kind === 'issues') return 'issue';
+  if (kind === 'pull') return 'pr';
+  if (kind === 'discussions') return 'disc';
+}
+
 export function extractFromDoc(root: Document = document): HubResult | undefined {
-  const permaUrl = getPermaUrl(root);
-  if (!permaUrl) {
+  const permaLink = scrapePermaUrl(root);
+  if (!permaLink) {
     console.warn('[extractFromDoc] No base URL found in the document');
     return;
   }
 
-  const issueTitle = scrapeIssueTitle(root);
-
-  const authorPost = scrapeAuthorPost(root);
-  if (!authorPost) {
-    console.warn('[extractFromDoc] No author post data found in the document');
+  const domain = detectDomain(permaLink);
+  if (!domain) {
+    console.debug('[extractFromDoc] Unable to detect GitHub domain for', permaLink);
     return;
   }
 
-  const posts = scrapePosts(root);
+  const title  = scrapeTitle(root, domain) ?? '???';
+  const first  = scrapeFirstPost(root, domain);
+  const others = scrapePosts(root, domain);
 
-  return {
-    permaLink: permaUrl,
-    issueTitle: issueTitle,
-    authorPost: authorPost,
-    posts: posts,
-  };
+  // NOTE: if `first` is naturally in `others[0]`, then `first` really should be `undefined`. do not de-dupe.
+
+  const posts = [
+    ...(first ? [first] : []),
+    ...others,
+  ];
+
+  return { permaLink, title, posts };
 }
 
 export function createPage(pageData: HubResult, doc: Document): void {
   injectCss(multiToggleCss, { id: 'multi-toggle-css', doc });
   injectCss(copyButtonCss, { id: 'copy-button-css', doc });
-  const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · GitHub Issue');
+  const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · GitHub Page');
   const copyAllButton = buildCopyButton(doc, pageData);
   const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
   doc.body.appendChild(topBar);

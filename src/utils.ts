@@ -144,12 +144,13 @@ export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
-export function htmlToElement(html:string, doc: Document = document): Element|null {
+export function htmlToElement(str?: string, doc: Document = document): Element | null {
+  if (!str || !str.trim()) return null;
   const template = doc.createElement('template');
-  template.innerHTML = html.trim();
+  template.innerHTML = str.trim();
   if (template.content.children.length !== 1) {
     // throw new Error(`html must contain exactly one element: ${html}`);
-    console.warn(`html must contain exactly one element: ${html}`);
+    console.warn(`html must contain exactly one element: ${str}`);
     return null;
   }
   return template.content.firstElementChild;
