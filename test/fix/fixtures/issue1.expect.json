@@ -1,0 +1,22 @@
+{
+  "baseUrl": "https://github.com/antlr/antlr4/issues/4848",
+  "expect": {
+    "permalink": "https://github.com/antlr/antlr4/issues/4848",
+    "title": "Performance questions regarding C++ target",
+    "totalPosts": 10,
+    "posts": [
+      {
+        "author": "Duttenheim",
+        "postId": "issue-3130032756",
+        "bodyMd": "Hello! I am using ANTLR to parse",
+        "bodyHtml": "Hello! I am using ANTLR to parse"
+      },
+      {
+        "author": "kaby76",
+        "postId": "issuecomment-2955808059",
+        "bodyMd": "You might want to first resolve ambiguity",
+        "bodyHtml": "You might want to first resolve ambiguity"
+      }
+    ]
+  }
+}

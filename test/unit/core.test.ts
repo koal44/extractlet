@@ -1,8 +1,7 @@
-import { test } from 'node:test';
 import { strictEqual } from 'node:assert';
+import { test } from 'vitest';
 import { toHtml, toMd } from '../../src/core.js';
 import { el, assertNodeEqual, setupDom, logPandocHtmlToMd } from './test-utils.js';
-//import { log, lOpts } from '../../src/utils.js';
 
 setupDom();
 
@@ -465,7 +464,9 @@ test('toMd ol simple', () => {
 test('toMd double spaced list', () => {
   const html = '<div><ul><li><p>Item 1</p></li><li><p>Item 2</p></li></ul></div>';
   const result = toMd(el(html));
-  const expected = '- Item 1\n\n- Item 2';
+  const expected = `
+- Item 1
+- Item 2`.trim();
   strictEqual(result, expected);
 });
 
@@ -478,10 +479,9 @@ test('toMd list with two paragraphs', () => {
 </ul>
 </div>`;
   const result = toMd(el(html));
-  const expected = 
-`- Para 1
-
-  Para 2`;
+  const expected = `
+- Para 1
+  Para 2`.trim();
   strictEqual(result, expected);
 });
 
@@ -504,10 +504,8 @@ test('toMd deep list with paragraphs', () => {
   const expected = 
 `
 - Li1 Para1
-
   Li1 Para2
   - Li2 Para1
-
     Li2 Para2
 `.trim();
   strictEqual(result, expected);
@@ -540,11 +538,8 @@ test('toMd nest list with variable bullet length', () => {
 7. Item 7
 8. Item 8
 9. Item 9 Para1
-
    Item 9 Para2
-
 10. Item 10 Para1
-
     Item 10 Para2`.trim();
   strictEqual(result, expected);
 });
@@ -562,8 +557,7 @@ test('toMd nested list', () => {
   </ul>
 </div>`;
   const result = toMd(el(html));
-  const expected = 
-`
+  const expected = `
 - Indented 0 spaces.
   - indented 2 or more spaces.
 - 0 spaces again.`.trim();
@@ -1016,69 +1010,132 @@ test('toMd blockquote with ruler', () => {
 });
 
 test('toMd list advanced', () => {
-  const html = `<div><ol>
-<li>
-<p>Lists in a list item:</p>
-<ul>
-<li>Indented 3 spaces.
-<ul>
-<li>indented 5 spaces.</li>
-</ul>
-</li>
-<li>3 spaces again.</li>
-</ul>
-</li>
-<li>
-<p>Multiple paragraphs in a list items:
+  const html = `
+<div>
+  <ol>
+    <li>
+      <p>Lists in a list item:</p>
+      <ul>
+        <li>Indented 3 spaces.
+          <ul>
+            <li>indented 5 spaces.</li>
+          </ul>
+        </li>
+        <li>3 spaces again.</li>
+      </ul>
+    </li>
+    <li>
+      <p>Multiple paragraphs in a list items:
 It's best to indent the paragraphs four spaces
 You can get away with three, but it can get
 confusing when you nest other things.
 Stick to four.</p>
-<p>We indented the first line an extra space to align
+      <p>We indented the first line an extra space to align
 it with these paragraphs. In real use, we might do
 that to the entire list so that all items line up.</p>
-<p>This paragraph is still part of the list item, but it looks messy to humans. So it's a good idea to wrap your nested paragraphs manually, as we did with the first two.</p>
-</li>
-<li>
-<p>Blockquotes in a list item:</p>
-<blockquote>
-<p>Skip a line and
+      <p>This paragraph is still part of the list item, but it looks messy to humans. So it's a good idea to wrap your nested paragraphs manually, as we did with the first two.</p>
+    </li>
+    <li>
+      <p>Blockquotes in a list item:</p>
+      <blockquote>
+        <p>Skip a line and
 indent the &gt;'s four spaces.</p>
-</blockquote>
-</li>
-<li>
-<p>Preformatted text in a list item:</p>
+      </blockquote>
+    </li>
+    <li>
+      <p>Preformatted text in a list item:</p>
 <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"> <span class="hljs-title class_">Skip</span> a line and indent eight spaces.
  <span class="hljs-title class_">That</span><span class="hljs-string">'s four spaces for the list
  and four to trigger the code block.</span></code></pre>
-</li>
-</ol>
+    </li>
+  </ol>
 </div>`;
   const result = toMd(el(html));
+  // console.log('result:\n', result);
   const expected = `
 1. Lists in a list item:
    - Indented 3 spaces.
      - indented 5 spaces.
    - 3 spaces again.
 2. Multiple paragraphs in a list items: It's best to indent the paragraphs four spaces You can get away with three, but it can get confusing when you nest other things. Stick to four.
-
    We indented the first line an extra space to align it with these paragraphs. In real use, we might do that to the entire list so that all items line up.
-
    This paragraph is still part of the list item, but it looks messy to humans. So it's a good idea to wrap your nested paragraphs manually, as we did with the first two.
-
 3. Blockquotes in a list item:
-
    > Skip a line and indent the >'s four spaces.
-
 4. Preformatted text in a list item:
-
    \`\`\`
    Skip a line and indent eight spaces.
     That's four spaces for the list
     and four to trigger the code block.
-   \`\`\``.trim();
+   \`\`\`
+`.trim();
   strictEqual(result, expected);
 });
+// test('toMd list advanced', () => {
+//   const html = `<div><ol>
+// <li>
+// <p>Lists in a list item:</p>
+// <ul>
+// <li>Indented 3 spaces.
+// <ul>
+// <li>indented 5 spaces.</li>
+// </ul>
+// </li>
+// <li>3 spaces again.</li>
+// </ul>
+// </li>
+// <li>
+// <p>Multiple paragraphs in a list items:
+// It's best to indent the paragraphs four spaces
+// You can get away with three, but it can get
+// confusing when you nest other things.
+// Stick to four.</p>
+// <p>We indented the first line an extra space to align
+// it with these paragraphs. In real use, we might do
+// that to the entire list so that all items line up.</p>
+// <p>This paragraph is still part of the list item, but it looks messy to humans. So it's a good idea to wrap your nested paragraphs manually, as we did with the first two.</p>
+// </li>
+// <li>
+// <p>Blockquotes in a list item:</p>
+// <blockquote>
+// <p>Skip a line and
+// indent the &gt;'s four spaces.</p>
+// </blockquote>
+// </li>
+// <li>
+// <p>Preformatted text in a list item:</p>
+// <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"> <span class="hljs-title class_">Skip</span> a line and indent eight spaces.
+//  <span class="hljs-title class_">That</span><span class="hljs-string">'s four spaces for the list
+//  and four to trigger the code block.</span></code></pre>
+// </li>
+// </ol>
+// </div>`;
+//   const result = toMd(el(html));
+//   const expected = `
+// 1. Lists in a list item:
+//    - Indented 3 spaces.
+//      - indented 5 spaces.
+//    - 3 spaces again.
+
+// 2. Multiple paragraphs in a list items: It's best to indent the paragraphs four spaces You can get away with three, but it can get confusing when you nest other things. Stick to four.
+
+//    We indented the first line an extra space to align it with these paragraphs. In real use, we might do that to the entire list so that all items line up.
+
+//    This paragraph is still part of the list item, but it looks messy to humans. So it's a good idea to wrap your nested paragraphs manually, as we did with the first two.
+
+// 3. Blockquotes in a list item:
+
+//    > Skip a line and indent the >'s four spaces.
+
+// 4. Preformatted text in a list item:
+
+//    \`\`\`
+//    Skip a line and indent eight spaces.
+//     That's four spaces for the list
+//     and four to trigger the code block.
+//    \`\`\``.trim();
+//   strictEqual(result, expected);
+// });
 
 test('toMd stackoverflow help style', () => {
   const html = `<div><h1>StackOverflow Advanced List Example</h1>
@@ -1124,17 +1181,11 @@ test('toMd stackoverflow help style', () => {
    - Level 2
      - Level 3
 2. Multiple paragraphs:
-
    Paragraph 1 of item 2.
-
    Paragraph 2 of item 2.
-
 3. Blockquote:
-
    > Quoted inside a list.
-
 4. Code block:
-
    \`\`\`
    function foo() {
      return "bar";
@@ -1469,14 +1520,15 @@ test('toMd div with two spans', () => {
 });
 
 test('toMd listitem with two paragraphs', () => {
-  const html = `<li>
-    <p>Para 1</p>
-    <p>Para 2</p>
-  </li>`;
+  const html = `
+<li>
+  <p>Para 1</p>
+  <p>Para 2</p>
+</li>`.trim();
   const result = toMd(el(html));
+  console.log(result);
   const expected = `
 - Para 1
-
   Para 2`.trim();
   strictEqual(result, expected);
 });

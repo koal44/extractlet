@@ -20,7 +20,7 @@
  *       *[data-testid="issue-body-header-author"] → OP author handle (textContent)
  *
  *       a[data-testid="issue-body-header-link"]   → Header link (permalink to OP)
- *         href                                    → contains fragment "#issue-<N>" (used to compute pageId)
+ *         href                                    → contains fragment "#issue-<N>" (used to compute postId)
  *         relative-time[datetime]                 → OP created timestamp (ISO in @datetime)
  *       span (optional; sibling of the anchor)    → "edited by …" container
  *         a                                       → Editor username (textContent)
@@ -36,7 +36,7 @@
  *   div[data-testid="issue-timeline-container"]   → Wraps all timeline items (comments/events)
  *     > *                                         → Each direct child is one timeline item
  *       div[data-testid="comment-header"]         → Comment header (author + time + id)
- *         id                                      → "issuecomment-<N>" (stored as pageId; combine with canonical URL for fragment link)
+ *         id                                      → "issuecomment-<N>" (stored as postId; combine with canonical URL for fragment link)
  *         a[data-testid="avatar-link"]            → Comment author handle (textContent)
  *         relative-time[datetime]                 → Comment timestamp (ISO in @datetime)
  *
@@ -45,7 +45,7 @@
  *         ...                                     → Rendered HTML content of the comment
  *
  * Notes:
- * - pageId mapping (what the scraper persists):
+ * - postId mapping (what the scraper persists):
  *   - OP: extracted from a[data-testid="issue-body-header-link"].href fragment (e.g., "issue-1651242529").
  *   - Comment: taken from div[data-testid="comment-header"].id (e.g., "issuecomment-1493698400").
  * - All timestamps are read from <relative-time datetime="...">; prefer @datetime over text.
@@ -55,7 +55,7 @@
  */
 
 import { h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript, htmlToElementK, htmlToElement, formatDateWithRelative } from './utils.js';
-import { toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdElementHandler } from './core.js';
+import { toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdElementHandler, ToMdContext } from './core.js';
 
 export type HubResult = {
   permaLink: string;
@@ -67,7 +67,7 @@ export type Post = {
   contributor?: Contributor;
   bodyHtml?: string;
   bodyMd?: string;
-  pageId?: string;
+  postId?: string;
 }
 
 export type Contributor = {
@@ -78,8 +78,7 @@ export type Contributor = {
 
 type SectionId = 'permaLink' | 'title' | 'firstPost' | 'posts';
 type DomainId = 'issue' | 'pr' | 'disc' | 'all';
-type MapFn = (v: string, doc?: Document) => string;
-// type Attr = 'href' | 'src' | 'datetime' | 'textContent';
+type MapFn = (v: string, doc: Document, scope?: ParentNode) => string;
 type Locator = { sel: string; attr?: string; map?: MapFn };
 type ByDomain = Partial<Record<DomainId, Locator[]>>;
 type FieldSection = Record<string, ByDomain>;
@@ -90,7 +89,9 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
     link: {
       all: [
         { sel: 'head > link[rel="canonical"]', attr: 'href' },
+        // { sel: 'meta[property="og:url"]', attr: 'content' }, // unverified
         { sel: '#repo-content-turbo-frame', attr: 'src' },
+        // { sel: 'react-app[initial-path]', attr: 'initial-path' }, // unverified
       ],
     },
   },
@@ -99,98 +100,215 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
   title: {
     title: {
       issue: [{ sel: 'bdi[data-testid="issue-title"]', attr: 'textContent' }],
+      all: [
+        { sel: 'h1.gh-header-title > bdi.markdown-title', attr: 'textContent' },
+        { sel: 'head > title', attr: 'textContent' },
+      ],
     },
   },
 
   // scrapeFirstPost()
   firstPost: {
     author: {
-      issue: [{ sel: 'div[data-testid="issue-viewer-issue-container"] [data-testid="issue-body-header-author"]' }],
-    },
-    pageId: {
       issue: [
-        { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"]',
-          attr: 'href', map: s => (s.includes('#') ? s.split('#')[1] : s) }],
+        { sel: 'div[data-testid="issue-viewer-issue-container"] [data-testid="issue-body-header-author"]' },
+      ],
+      pr: [
+        { sel: 'div[id^="issue-"] a.author', attr: 'textContent' },
+      ],
+      disc: [
+        { sel: 'div[id^="discussion-"] a[data-hovercard-type="user"]', attr: 'href',
+          map: v => v.split('/').filter(Boolean).pop() || v },
+      ],
+    },
+    postId: {
+      issue: [
+          { 
+            sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"]',
+            attr: 'href', map: s => (s.includes('#') ? s.split('#')[1] : s),
+          },
+        ],
+      pr: [
+        { sel: 'div[id^="issue-"]', attr: 'id' },
+      ],
+      disc: [
+        { sel: 'div[id^="discussion-"]', attr: 'id' },
+      ],
     },
     createdAt: {
-      issue: [{ sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] relative-time', attr: 'datetime' }],
+      issue: [
+        { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] relative-time', attr: 'datetime' },
+      ],
+      pr: [
+        { sel: 'div[id^="issue-"] .timeline-comment-header relative-time', attr: 'datetime' },
+      ],
+      disc: [
+        { sel: 'div[id^="discussion-"] h2 relative-time', attr: 'datetime' },
+      ],
     },
     editedBy: {
-      issue: [{ sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] + span a' }],
+      issue: [
+        { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] + span a' },
+      ],
     },
     bodyViewer: {
-      issue: [{ sel: 'div[data-testid="issue-viewer-issue-container"] div[data-testid="issue-body-viewer"]' }],
+      issue: [
+        { sel: 'div[data-testid="issue-viewer-issue-container"] div[data-testid="issue-body-viewer"]' },
+      ],
+      pr: [
+        { sel: 'div[id^="issue-"] .comment-body' },
+      ],
+      disc: [
+        { sel: 'div[id^="discussion-"] .comment-body' },
+      ],
     },
   },
 
   // scrapePosts()
   posts: {
     items: {
-      issue: [{ sel: 'div[data-testid="issue-timeline-container"] > *' }],
+      issue: [
+        { sel: 'div[data-testid="issue-timeline-container"] > *' },
+      ],
+      pr: [
+        { sel: 'div[id^="issuecomment-"]' },
+      ],
+      disc: [
+        { sel: 'div[id^="discussioncomment-"]' },
+      ],
     },
     author: {
-      issue: [{ sel: 'div[data-testid="comment-header"] a[data-testid="avatar-link"]', attr: 'textContent' }],
+      issue: [
+        { sel: ':scope div[data-testid="comment-header"] a[data-testid="avatar-link"]', attr: 'textContent' },
+      ],
+      pr: [
+        { sel: ':scope .timeline-comment-header a.author', attr: 'textContent' },
+      ],
+      disc: [
+        { sel: ':scope a[data-hovercard-type="user"]', attr: 'href',
+          map: v => v.split('/').filter(Boolean).pop() || v },
+      ],
     },
     createdAt: {
-      issue: [{ sel: 'div[data-testid="comment-header"] relative-time', attr: 'datetime' }],
+      issue: [
+        { sel: ':scope div[data-testid="comment-header"] relative-time', attr: 'datetime' },
+      ],
+      pr: [
+        { sel: ':scope .timeline-comment-header relative-time', attr: 'datetime' },
+      ],
+      disc: [
+        { sel: ':scope relative-time', attr: 'datetime' },
+      ],
     },
-    pageId: {
-      issue: [{ sel: 'div[data-testid="comment-header"]', attr: 'id' }],
+    postId: {
+      issue: [
+        { sel: ':scope div[data-testid="comment-header"]', attr: 'id' },
+      ],
+      pr: [
+        { sel: ':scope', attr: 'id' },
+      ],
+      disc: [
+        { sel: ':scope', attr: 'id' },
+      ],
     },
     bodyViewer: {
-      issue: [{ sel: 'div[data-testid="markdown-body"]' }],
+      issue: [
+        { sel: ':scope div[data-testid="markdown-body"]' },
+      ],
+      pr: [
+        { sel: ':scope .comment-body' },
+      ],
+      disc: [
+        { sel: ':scope .comment-body' },
+      ],
     },
   },
 };
 
-function pickEl(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: ParentNode): Element | undefined {
+function pickEl(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: Element): Element | undefined {
     // domain-first, then 'all'
   const byDomain = SCRAPERS[section]?.[field]?.[domain] ?? [];
   const byAll = SCRAPERS[section]?.[field]?.all ?? [];
   const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
 
   for (const { sel } of specs) {
+    if (sel === ':scope') {
+      if (scope) return scope;
+      else continue;
+    }
     const el = (scope ?? doc).querySelector(sel);
     if (el) return el;
   }
   return undefined;
 }
 
-function pickEls(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: ParentNode): Element[] {
+function pickEls(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: Element): Element[] {
     // domain-first, then 'all'
   const byDomain = SCRAPERS[section]?.[field]?.[domain] ?? [];
   const byAll = SCRAPERS[section]?.[field]?.all ?? [];
   const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
 
   for (const { sel } of specs) {
+    if (sel === ':scope') {
+      if (scope) return [scope];
+      else continue;
+    }
     const els = (scope ?? doc).querySelectorAll(sel);
     if (els.length > 0) return [...els];
   }
   return [];
 }
 
-function pickVal(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: ParentNode): string | undefined {
+function pickVal(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: Element): string | undefined {
     // domain-first, then 'all'
   const byDomain = SCRAPERS[section]?.[field]?.[domain] ?? [];
   const byAll = SCRAPERS[section]?.[field]?.all ?? [];
   const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
 
   for (const { sel, attr, map } of specs) {
-    const el = (scope ?? doc).querySelector(sel);
+    const el = sel === ':scope' ? scope : (scope ?? doc).querySelector(sel);
     if (!el) continue;
-    let val = attr === 'textContent' || attr === undefined // default to textContent
-      ? (el as HTMLElement).textContent?.trim() ?? undefined
+    let val = attr === 'textContent' || attr === undefined // defaults to textContent
+      ? el.textContent?.trim() ?? undefined
       : el.getAttribute(attr)?.trim() ?? undefined;
     if (!val) continue;
-    val = map ? map(val, doc).trim() : val;
+    val = map ? map(val, doc, scope).trim() : val;
     if (val) return val;
   }
   return undefined;
 }
 
+export function matchGithubUrl(str: string, withHash = false): string | null {
+  try {
+    const u = new URL(str, 'https://github.com');
+    if (u.hostname !== 'github.com') return null;
+
+    const m = u.pathname.match(/^\/([^/]+)\/([^/]+)\/(issues|pull|discussions)\/(\d+)(?:\/.*)?$/);
+    if (!m) return null;
+
+    const [, owner, repo, kind, id] = m;
+    const base = `https://github.com/${owner}/${repo}/${kind}/${id}`;
+    return withHash && u.hash ? `${base}${u.hash}` : base;
+  } catch {
+    return null;
+  }
+}
+
+function detectDomain(str: string): Exclude<DomainId, 'all'> | undefined  {
+  //   /owner/repo/issues/123
+  //   /owner/repo/pull/456
+  //   /owner/repo/discussions/789
+  const u = new URL(str);
+  if (u.pathname.includes('/pull/')) return 'pr';
+  if (u.pathname.includes('/issues/')) return 'issue';
+  if (u.pathname.includes('/discussions/')) return 'disc';
+}
+
 function scrapePermaUrl(doc: Document): string | undefined {
-  const link = pickVal(doc, 'permaLink', 'link', 'all');
-  return link ? new URL(link, doc.baseURI).href : undefined;
+  const link = pickVal(doc, 'permaLink', 'link', 'all') ?? doc.baseURI;
+  const href = new URL(link, doc.baseURI).href;
+  const detected = matchGithubUrl(href, false);
+  if (detected) return detected;
 }
 
 function scrapeTitle(doc: Document, domain: DomainId): string | undefined {
@@ -200,7 +318,7 @@ function scrapeTitle(doc: Document, domain: DomainId): string | undefined {
 
 function scrapeFirstPost(doc: Document, domain: DomainId): Post {
   const author    = pickVal(doc, 'firstPost', 'author',    domain);
-  const pageId    = pickVal(doc, 'firstPost', 'pageId',    domain);
+  const postId    = pickVal(doc, 'firstPost', 'postId',    domain);
   const createdAt = pickVal(doc, 'firstPost', 'createdAt', domain);
   const editedBy  = pickVal(doc, 'firstPost', 'editedBy',  domain);
 
@@ -211,10 +329,10 @@ function scrapeFirstPost(doc: Document, domain: DomainId): Post {
   };
 
   const bodyViewer = pickEl(doc, 'firstPost', 'bodyViewer', domain);
-  const bodyHtml   = bodyViewer ? toHtml<Element>(bodyViewer).outerHTML : undefined;
+  const bodyHtml   = bodyViewer ? toHtml(bodyViewer)?.outerHTML : undefined;
   const bodyMd     = bodyViewer ? toMd(bodyViewer) : undefined;
 
-  return { contributor, bodyHtml, bodyMd, pageId };
+  return { contributor, bodyHtml, bodyMd, postId: postId };
 }
 
 function scrapePosts(doc: Document, domain: DomainId): Post[] {
@@ -224,16 +342,17 @@ function scrapePosts(doc: Document, domain: DomainId): Post[] {
   for (const item of items) {
     const author    = pickVal(doc, 'posts', 'author',     domain, item);
     const createdAt = pickVal(doc, 'posts', 'createdAt',  domain, item);
-    const pageId    = pickVal(doc, 'posts', 'pageId',     domain, item);
+    const postId    = pickVal(doc, 'posts', 'postId',     domain, item);
     const bodyEl    = pickEl(doc,  'posts', 'bodyViewer', domain, item);
 
-    if (!author && !createdAt && !bodyEl) continue; // ignore non-comment events
+    const isComment = author || createdAt || bodyEl;
+    if (!isComment) continue;
 
     const contributor: Contributor = { author, timestamp: createdAt, editor: undefined };
-    const bodyHtml = bodyEl ? toHtml<Element>(bodyEl).outerHTML : undefined;
+    const bodyHtml = bodyEl ? toHtml(bodyEl)?.outerHTML : undefined;
     const bodyMd   = bodyEl ? toMd(bodyEl) : undefined;
 
-    posts.push({ contributor, bodyHtml, bodyMd, pageId });
+    posts.push({ contributor, bodyHtml, bodyMd, postId: postId });
   }
 
   return posts;
@@ -261,26 +380,70 @@ function shouldSkip(node: Node|null): boolean {
 
 const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
   if (shouldSkip(node)) return { skip: true };
-  const tagName = node.tagName.toUpperCase();
-  // switch (tagName) {
+  const tag = node.tagName.toUpperCase();
+  if (node.matches?.('td.comment-body')) {
+    const md = gc(node, 'block', 'normal');
+    return { md };
+  }
+  if (node.matches?.('em, i')) {
+    return { md:`_${gc(node, 'inline', 'normal')}_` }; // use _..._ rather than *...*
+  }
+  if (node.matches?.('br')) return { md: '\n' }; // ???
+  if (node.matches('input[type="checkbox"]')) {
+    return { md: node.hasAttribute('checked') ? '[x] ' : '[ ] ' };
+  }
+
+  if (node.matches?.('a.user-mention, a.issue-link')) {
+    return { md: node.textContent ?? '' };
+  }
+
+
+
+  // if (node.matches('ol, ul')) {
+  //   const startIndex = +(node.getAttribute('start') || '1');
+  //   const md = gc(node, 'list', 'normal', { os: startIndex }) + '\n\n';
+  //   return { md };
+  // }
+  // if (node.matches?.('ul, ol')) {
+  //   // Let core compute full list formatting (bullets, indentation, nested items)
+  //   let md = gc(node, 'list', 'normal');
+
+  //   // If this list sits at block scope (parent not LI), make sure there is a blank line after.
+  //   if (node.parentElement?.tagName.toUpperCase() !== 'LI') {
+  //     if (!/\n\n$/.test(md)) md = md.replace(/\n?$/, '\n\n');
+  //   }
+
+  //   return { md };
   // }
 
   return {};
 };
 
-export function toMd(node: Node|null) {
-  return _toMd(node, { toMdElementHandler: toMdElemHandler });
+export function toMd(node: Node | null, ctx: ToMdContext = {}): string {
+  return _toMd(node, { ...ctx, toMdElementHandler: toMdElemHandler });
 }
+// export function toMd(node: Node|null) {
+//   return _toMd(node, { toMdElementHandler: toMdElemHandler });
+// }
 
 function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
   if (shouldSkip(node)) return { skip: true };
   if (!isElement(node)) throw new Error('toHtmlElemHandler called with non-element node');
 
+  // td.comment-body => convert to div to avoid table context issues
+  if (node.matches?.('td.comment-body')) {
+    const tmp = toHtml(node, { ..._ctx, skipHandler: true }) as Element;
+    const div = document.createElement('div');
+    while (tmp.firstChild) div.appendChild(tmp.firstChild);
+    return { node: div };
+  }
+
   return {};
 }
 
-export function toHtml<T extends Node>(node: Node|null): T {
-  return _toHtml(node, { toHtmlElementHandler: toHtmlElemHandler }) as T;
+export function toHtml(node: Element, opts?: ToHtmlOptions): Element | null;
+export function toHtml(node: Node | null, opts: ToHtmlOptions = {}): Node | null {
+  return _toHtml(node, { ...opts, toHtmlElementHandler: toHtmlElemHandler });
 }
 
 function buildPosts(data: HubResult, doc: Document): HTMLElement {
@@ -364,7 +527,7 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
   }
 
   if (pageData.title) copyArr.push(`Title: ${pageData.title ?? '(untitled)'}`);
-  const url = isAll ? pageData.permaLink : allPosts[postIdx].pageId ? `${pageData.permaLink}#${allPosts[postIdx].pageId}` : pageData.permaLink;
+  const url = isAll ? pageData.permaLink : allPosts[postIdx].postId ? `${pageData.permaLink}#${allPosts[postIdx].postId}` : pageData.permaLink;
   if (url) copyArr.push(`URL: ${url}`);
 
   allPosts.forEach((post, idx) => {
@@ -388,22 +551,10 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
   return createCopyButton(copyTxt, responseTxt, hintTxt);
 }
 
-function detectDomain(url: string): Exclude<DomainId, 'all'> | undefined {
-  //   /owner/repo/issues/123
-  //   /owner/repo/pull/456
-  //   /owner/repo/discussions/789
-  const u = new URL(url);
-  const p = u.pathname.split('/').filter(Boolean); // ["owner","repo","issues","123"]
-  const kind = p[2];
-  if (kind === 'issues') return 'issue';
-  if (kind === 'pull') return 'pr';
-  if (kind === 'discussions') return 'disc';
-}
-
 export function extractFromDoc(root: Document = document): HubResult | undefined {
   const permaLink = scrapePermaUrl(root);
   if (!permaLink) {
-    console.warn('[extractFromDoc] No base URL found in the document');
+    console.debug('[extractFromDoc] No base URL found in the document');
     return;
   }
 
@@ -418,6 +569,8 @@ export function extractFromDoc(root: Document = document): HubResult | undefined
   const others = scrapePosts(root, domain);
 
   // NOTE: if `first` is naturally in `others[0]`, then `first` really should be `undefined`. do not de-dupe.
+  // actually this might be wrong, as we fallback logic isn't grouped by domain, rather it's simply an array of fallbacks
+  // so maybe one DOM variant has a first but another doesn't. so we will prolly need to de-dupe after all.
 
   const posts = [
     ...(first ? [first] : []),

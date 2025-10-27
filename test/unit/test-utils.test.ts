@@ -1,4 +1,5 @@
-import { describe, test } from 'node:test';
+// import { describe, test } from 'node:test';
+import { describe, test } from 'vitest';
 import assert, { notStrictEqual, strictEqual } from 'node:assert';
 import { el, setupDom, htmlify, assertNodeEqual, mathEl } from './test-utils.js';
 import { h } from '../../src/utils.js';

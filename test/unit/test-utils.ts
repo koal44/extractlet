@@ -2,6 +2,8 @@ import { JSDOM } from 'jsdom';
 import { strictEqual } from 'node:assert';
 import { escapeHtml, isElement, isHTML, isNode, isText, log } from '../../src/utils';
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 export function setupDom() {
   const dom = new JSDOM();
@@ -121,4 +123,14 @@ export function logPandocWtToMd(input: string): void {
     const out = execSync(`pandoc -f mediawiki -t ${flavor}`, { input }).toString();
     log(`--- Output ${flavor} ---\n${out}`, { jsonifyStrings: false });
   }
+}
+
+export type FixOpts = {
+  baseUrl?: string;
+};
+
+export function loadFixtureDoc(name: string, { baseUrl = 'https://example.com' }: FixOpts = {}): Document {
+  const html = readFileSync(resolve(__dirname, '..', 'fix', 'fixtures', name), 'utf8');
+  const dom = new JSDOM(html, { url: baseUrl, contentType: 'text/html' });
+  return dom.window.document;
 }

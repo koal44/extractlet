@@ -11,7 +11,7 @@ type KeepStyles = boolean | Set<string>;
 
 type GlueMode = 'block' | 'list' | 'li' | 'inline'
 type WhitespaceMode = 'normal' | 'pre' | 'pre-line'
-type GlueChildrenOptions = { os?: number; qd?: number; lc?: string; }
+type GlueChildrenOptions = { os?: number; qd?: number; lc?: string; inLI?: boolean };
 type GlueChildrenFn = (n: Node, glueMode: GlueMode, ws?: WhitespaceMode, opts?: GlueChildrenOptions, innerCtx?: ToMdContext) => string;
 
 export type ToMdElementHandler = (node: Element, ctx: ToMdContext, glueChildren: GlueChildrenFn) => { skip?: boolean; md?: string };
@@ -24,6 +24,7 @@ export type ToMdContext = {
   toMdElementHandler?: ToMdElementHandler;
   skipHandler?: boolean;
   dedupeCaption?: string;
+  inListItem?: boolean;
 }
 
 export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
@@ -162,10 +163,11 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
     isRoot = true,
     toMdElementHandler: elementHandler,
     skipHandler = false,
+    inListItem = false,
   } = ctx;
 
   const glueChildren: GlueChildrenFn = (n, glueMode, ws = 'normal', opts = {}, ctx2 = ctx) => {
-    const { os = olStart, qd = quoteDepth, lc = lastChar } = opts;
+    const { os = olStart, qd = quoteDepth, lc = lastChar, inLI = inListItem } = opts;
     const prevLc:string = lc;
     const result:string[] = [];
     let localLc = lc;
@@ -198,7 +200,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
         // log(`[glue][child][text].md-after: '${md}'`);
       }
       else if (isElement(child)) {
-        md = toMd(child, { ...ctx2, isRoot: false, lastChar: localLc, olStart: os, quoteDepth: qd });
+        md = toMd(child, { ...ctx2, isRoot: false, lastChar: localLc, olStart: os, quoteDepth: qd, inListItem: inLI });
       }
 
       const isCurBlock = md.startsWith('\n');
@@ -233,9 +235,15 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
     let glued = result.join('');
     // log(`[glue] glued-before: '${glued}'`);
     
+    // console.log('inLI:', inLI);
     const displayModes = {
-      block:  { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
-      list:   { prefix: '\n',   suffix: '',     trimStart: true,  trimEnd: true },
+      block: inLI
+            ? { prefix: '\n\n', suffix: '\n',   trimStart: true,  trimEnd: true }
+            : { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
+      // block:  { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
+      list: inLI
+            ? { prefix: '\n',   suffix: '',     trimStart: true,  trimEnd: true }
+            : { prefix: '\n',   suffix: '\n\n', trimStart: true,  trimEnd: true },
       li:     { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
       inline: { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
     };
@@ -370,7 +378,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
           '- ';
         const pad = ' '.repeat(bullet.length);
 
-        result = glueChildren(node, 'li', 'normal');
+        result = glueChildren(node, 'li', 'normal', { inLI: true });
 
         //log(`toMd.LI node=${node.tagName}, index=${index}, listType=${listType}, olStart=${olStart}`);
         //log(`toMd.LI.result-before: "${result}"`);

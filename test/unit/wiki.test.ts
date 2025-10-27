@@ -1,5 +1,6 @@
 /* eslint-disable no-irregular-whitespace */
-import { describe, test } from 'node:test';
+// import { describe, test } from 'node:test';
+import { describe, test } from 'vitest';
 import { normalizeWikitext, parseRawIntoSections, toHtml, toMd, WikiNode } from '../../src/wiki.js';
 import { el, assertNodeEqual, setupDom, logPandocWtToMd, logPandocHtmlToMd } from './test-utils.js';
 import { deepEqual, strictEqual } from 'node:assert';
