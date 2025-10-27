@@ -11,20 +11,30 @@ type KeepStyles = boolean | Set<string>;
 
 type GlueMode = 'block' | 'list' | 'li' | 'inline'
 type WhitespaceMode = 'normal' | 'pre' | 'pre-line'
-type GlueChildrenOptions = { os?: number; qd?: number; lc?: string; inLI?: boolean };
-type GlueChildrenFn = (n: Node, glueMode: GlueMode, ws?: WhitespaceMode, opts?: GlueChildrenOptions, innerCtx?: ToMdContext) => string;
 
-export type ToMdElementHandler = (node: Element, ctx: ToMdContext, glueChildren: GlueChildrenFn) => { skip?: boolean; md?: string };
+type GlueChildrenFn = (
+  n: Node,
+  glueMode: GlueMode,
+  ws?: WhitespaceMode,
+  opts?: Partial<ToMdContext>,
+  // innerCtx?: ToMdContext
+) => string;
+
+export type ToMdElementHandler = (
+  node: Element,
+  ctx: ToMdContext,
+  glueChildren: GlueChildrenFn
+) => { skip?: boolean; md?: string };
 
 export type ToMdContext = {
-  olStart?: number;
-  quoteDepth?: number;
-  lastChar?: string;
-  isRoot?: boolean;
+  olStart: number;
+  quoteDepth: number;
+  lastChar: string;
+  isRoot: boolean;
   toMdElementHandler?: ToMdElementHandler;
-  skipHandler?: boolean;
-  dedupeCaption?: string;
-  inListItem?: boolean;
+  skipHandler: boolean;
+  dedupeCaption: string;
+  inListItem: boolean;
 }
 
 export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
@@ -155,116 +165,91 @@ export function copyStyleAttr(dest: HTMLElement, src: HTMLElement, keepStyles: K
   if (styleString) dest.setAttribute('style', styleString);
 }
 
-export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
-  const {
-    olStart = 1,
-    quoteDepth = 0,
-    lastChar = '',
-    isRoot = true,
-    toMdElementHandler: elementHandler,
-    skipHandler = false,
-    inListItem = false,
-  } = ctx;
+export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): string {
+  const ctx: ToMdContext = {
+    ...initCtx,
+    isRoot: initCtx.isRoot ?? true,
+    skipHandler: initCtx.skipHandler ?? false,
+    olStart: initCtx.olStart ?? 1,
+    quoteDepth: initCtx.quoteDepth ?? 0,
+    lastChar: initCtx.lastChar ?? '',
+    dedupeCaption: initCtx.dedupeCaption ?? '',
+    inListItem: initCtx.inListItem ?? false,
+  };
 
-  const glueChildren: GlueChildrenFn = (n, glueMode, ws = 'normal', opts = {}, ctx2 = ctx) => {
-    const { os = olStart, qd = quoteDepth, lc = lastChar, inLI = inListItem } = opts;
-    const prevLc:string = lc;
-    const result:string[] = [];
-    let localLc = lc;
-    // log(`[glue] node: <${(n as any).tagName || n.nodeName}> mode=${glueMode}, ws=${ws}, #children=${n.childNodes.length}, lc='${lc}'`);
+  const glueChildren: GlueChildrenFn = (node, glueMode, wsMode = 'normal', extrCtx = {}) => {
+    const gcx: ToMdContext = { ...ctx, ...extrCtx };
 
-    const children = n.childNodes;
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i];
-      // log( `[glue][child] idx=${i}, type=${child.nodeType === 3 ? "TEXT" : child.nodeName}, localLc='${localLc}', content='${child.textContent}'`);
+    const parts: string[] = [];
+    const entryChar: string = gcx.lastChar;
+    let ch = gcx.lastChar;
+
+    const childNodes = node.childNodes;
+    for (let i = 0; i < childNodes.length; i++) {
+      const child = childNodes[i];
       let md = '';
       if (isText(child)) {
         md = child.textContent!;
-        // log(`[glue][child][text].md-pre: '${md}'`);
         if (/^\s*$/.test(md)) { // all whitespace
-          if (!/\s/.test(localLc) && (glueMode === 'inline' || i !== children.length - 1)) {
+          if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1)) {
             md = ' ';
-            localLc = md;
-            // log(`[glue][child][text][push-space] localLc='${localLc}', md='${md}'`);
-            result.push(md);
+            ch = md;
+            parts.push(md);
           }
           continue;
         }
 
-        switch (ws) {
+        switch (wsMode) {
           case 'normal': md = md.replace(/\s+/g, ' '); break;
           case 'pre': break;
           case 'pre-line': md = md.replace(/[ \t]+/g, ' '); break;
-          default: throw new Error(`Unsupported whitespace mode: ${ws}`);
+          default: throw new Error(`Unsupported whitespace mode: ${wsMode}`);
         }
-        // log(`[glue][child][text].md-after: '${md}'`);
       }
       else if (isElement(child)) {
-        md = toMd(child, { ...ctx2, isRoot: false, lastChar: localLc, olStart: os, quoteDepth: qd, inListItem: inLI });
+        md = toMd(child, { ...gcx, isRoot: false, lastChar: ch });
       }
 
-      const isCurBlock = md.startsWith('\n');
-      const prevChild = result.length > 0 ? result[result.length - 1] : '';
-      const isPrevBlock = prevChild.endsWith('\n');
-      const hasLeadingSemanticIndentation = glueMode === 'li' || glueMode === 'list';
+      const curIsBlock = md.startsWith('\n');
+      const prevPart = parts.length > 0 ? parts[parts.length - 1] : '';
+      const prevIsBlock = prevPart.endsWith('\n');
+      const keepStartIndent = glueMode === 'li' || glueMode === 'list';
 
-      const shouldTrimCurStart =
-        !hasLeadingSemanticIndentation
-        && (isPrevBlock || (!isCurBlock && /\s/.test(localLc)));
-      const shouldTrimPrevEnd = !shouldTrimCurStart && isCurBlock && result.length > 0;
+      const trimCurStart = !keepStartIndent && (prevIsBlock || (!curIsBlock && /\s/.test(ch)));
+      const trimPrevEnd = !trimCurStart && curIsBlock && parts.length > 0;
 
-      // log(`[glue][child] shouldTrimCurStart=${shouldTrimCurStart}, shouldTrimPrevEnd=${shouldTrimPrevEnd}, md='${md}'`);
+      if (trimCurStart) md = md.trimStart();
+      if (trimPrevEnd) parts[parts.length - 1] = parts[parts.length - 1].trimEnd();
 
-      if (shouldTrimCurStart) {
-        md = md.trimStart();
-      }
-      if (shouldTrimPrevEnd) {
-        // log(`[glue][child] is trimming prev!`);
-        // log(`[glue][child] prev-before: '${result[result.length - 1]}'`);
-        result[result.length - 1] = result[result.length - 1].trimEnd();
-        // log(`[glue][child] prev-after: '${result[result.length - 1]}'`);
-      }
-
-      // log(`[glue][child] pushing md: '${md}'`);
-      result.push(md);
-      localLc = md.length > 0 ? md[md.length - 1] : localLc;
+      parts.push(md);
+      ch = md.length > 0 ? md[md.length - 1] : ch;
     }
-
-    // log(`[glue][children-ended] <${(n as any).tagName || n.nodeName}> glueMode='${glueMode}' localLc='${localLc}'`);
-    // log(`[glue] result before join:`, result);
-    let glued = result.join('');
-    // log(`[glue] glued-before: '${glued}'`);
     
-    // console.log('inLI:', inLI);
-    const displayModes = {
-      block: inLI
+    const layoutRules = {
+      block: gcx.inListItem
             ? { prefix: '\n\n', suffix: '\n',   trimStart: true,  trimEnd: true }
             : { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
-      // block:  { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
-      list: inLI
+      list: gcx.inListItem
             ? { prefix: '\n',   suffix: '',     trimStart: true,  trimEnd: true }
             : { prefix: '\n',   suffix: '\n\n', trimStart: true,  trimEnd: true },
       li:     { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
       inline: { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
     };
-    const { prefix, suffix, trimStart, trimEnd } = displayModes[glueMode];
-    const prefixSafe = prevLc === '\n' ? '' : prefix;
-    // log(`[glue] prefix: '${prefix}', suffix: '${suffix}', prefixSafe: '${prefixSafe}'`);
+    const { prefix, suffix, trimStart, trimEnd } = layoutRules[glueMode];
+    const safePrefix = entryChar === '\n' ? '' : prefix;
 
-    glued = trimStart ? glued.trimStart() : glued;
-    glued = trimEnd ? glued.trimEnd() : glued;
+    let glued = parts.join('');
+    if (trimStart) glued = glued.trimStart();
+    if (trimEnd) glued = glued.trimEnd();
 
-    glued = glued ? `${prefixSafe}${glued}${suffix}` : '';
-
-    // log(`[glue] glued-after: '${glued}'`);
-    return glued;
+    return glued ? `${safePrefix}${glued}${suffix}` : '';
   };
 
   if (!node || !isElement(node)) return '';
 
   // --- handle site-specific elements ---
-  const siteResult = !skipHandler && elementHandler
-    ? elementHandler(node, ctx, glueChildren)
+  const siteResult = !ctx.skipHandler && ctx.toMdElementHandler
+    ? ctx.toMdElementHandler(node, ctx, glueChildren)
     : null;
   if (siteResult?.skip) return '';
   let result = '';
@@ -287,7 +272,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
       case 'SPAN':
       case 'NOBR': {
         result = glueChildren(node, 'inline', 'normal');
-        result = lastChar === ' ' ? result.trimStart() : result;
+        result = ctx.lastChar === ' ' ? result.trimStart() : result;
         break;
       }
 
@@ -314,29 +299,20 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
       }
 
       case 'A': {
-        //let href = ((node as HTMLAnchorElement).href || node.getAttribute('href') || '').trim();
-        let href = getNormalizedUrl(node, 'href');
-        href = decodeURIComponent(href);
-        const hrefSeg = lastUrlSegment(href);
-        let title = (node.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
-        const dedupeCtx = title ? { dedupeCaption: title, ...ctx } : ctx;
-        let aText = glueChildren(node, 'inline', 'normal', {}, dedupeCtx).trim();
+        const safeDecode = (u: string) => { try { return decodeURIComponent(u); } catch { return u; } };
+        const href = safeDecode(getNormalizedUrl(node, 'href'));
+        const lastSeg = lastUrlSegment(href);
+        let toolTip = (node.getAttribute('title') ?? '').replace(/\s+/g, ' ').trim();
+        let linkText = glueChildren(node, 'inline', 'normal', (toolTip ? { dedupeCaption: toolTip } : {})).trim();
 
         // dedupe. text—Markdown is final output; LLMs/humans don’t need repeated info. (prefer figcaption > href > aText > title)
-        const isTitleDupe = 
-          isCaptionSimilar(title, aText) ||
-          isCaptionSimilar(title, ctx.dedupeCaption)||
-          isCaptionSimilar(title, hrefSeg) ||
-          isCaptionSimilar(title, href);
-        const isATextDupe =
-          isCaptionSimilar(aText, ctx.dedupeCaption) ||
-          isCaptionSimilar(aText, hrefSeg) ||
-          isCaptionSimilar(aText, href);
-        title = isTitleDupe ? '' : title;
-        aText = isATextDupe ? '' : aText;
+        const toolTipIsDupe = [linkText, ctx.dedupeCaption, lastSeg, href].some(o => isCaptionSimilar(toolTip, o));
+        const linkTextIsDupe = [ctx.dedupeCaption, lastSeg, href].some(o => isCaptionSimilar(linkText, o));
 
-        title = title ? ` "${title}"` : '';
-        result = href ? `[${aText}](${href}${title})` : aText;
+        toolTip = toolTip && !toolTipIsDupe ? ` "${toolTip}"` : '';
+        linkText = linkText && !linkTextIsDupe ? linkText : '';
+        result = href ? `[${linkText}](${href}${toolTip})` : linkText;
+
         break;
       }
 
@@ -360,13 +336,13 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
       case 'UL':
       case 'OL': {
         const startIndex = +(node.getAttribute('start') || '1');
-        result = glueChildren(node, 'list', 'normal', { os: startIndex });
+        result = glueChildren(node, 'list', 'normal', { olStart: startIndex });
         break;
       }
 
       case 'LI': {
         // Determine bullet (e.g., "1. ", "- ")
-        let index = olStart;
+        let index = ctx.olStart;
         for (let sibling = node.previousSibling; sibling; sibling = sibling.previousSibling) {
           if (isListItem(sibling)) {
             index++;
@@ -378,7 +354,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
           '- ';
         const pad = ' '.repeat(bullet.length);
 
-        result = glueChildren(node, 'li', 'normal', { inLI: true });
+        result = glueChildren(node, 'li', 'normal', { inListItem: true });
 
         //log(`toMd.LI node=${node.tagName}, index=${index}, listType=${listType}, olStart=${olStart}`);
         //log(`toMd.LI.result-before: "${result}"`);
@@ -431,7 +407,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
       }
 
       case 'BLOCKQUOTE': {
-        result = glueChildren(node, 'block', 'normal', { qd: quoteDepth + 1 });
+        result = glueChildren(node, 'block', 'normal', { quoteDepth: ctx.quoteDepth + 1 });
         //log(`toMd: blockquote content before formatting: "${result}"`);
         //log(`toMd.blockquote: quoteDepth=${quoteDepth}`);
         const bqPrefix = result.match(new RegExp('^\\n*'))?.[0] ?? '';
@@ -647,7 +623,7 @@ export function toMd(node:Node|null, ctx:ToMdContext = {}): string {
   }
 
   // log(`toMd: result for ${node.tagName} is "${result}"`);
-  return isRoot
+  return ctx.isRoot
     ? result.trim()
     : result;
 }

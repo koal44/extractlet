@@ -116,7 +116,7 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
       return { md };
     }
     case 'BLOCKQUOTE': {
-      let md = gc(node, 'block', 'normal', { qd: (ctx.quoteDepth ?? 0) + 1 });
+      let md = gc(node, 'block', 'normal', { quoteDepth: (ctx.quoteDepth ?? 0) + 1 });
       const isSpoiler = node.classList.contains('spoiler');
       const marker = isSpoiler ? '>!' : '>';
       const bqPrefix = md.match(new RegExp('^\\n*'))?.[0] ?? '';

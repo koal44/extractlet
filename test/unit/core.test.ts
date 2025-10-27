@@ -1526,7 +1526,6 @@ test('toMd listitem with two paragraphs', () => {
   <p>Para 2</p>
 </li>`.trim();
   const result = toMd(el(html));
-  console.log(result);
   const expected = `
 - Para 1
   Para 2`.trim();

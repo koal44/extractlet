@@ -108,7 +108,7 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, _gc) => {
   return {};
 };
 
-export function toMd(node: Node|null, ctx: ToMdContext = {}): string {
+export function toMd(node: Node|null, ctx: Partial<ToMdContext> = {}): string {
   return _toMd(node, { ...ctx, toMdElementHandler: toMdElemHandler });
 }
 
