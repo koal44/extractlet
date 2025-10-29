@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
 // import { describe, test } from 'node:test';
 import { describe, test } from 'vitest';
 import assert, { notStrictEqual, strictEqual } from 'node:assert';
@@ -55,8 +56,8 @@ describe('htmlify()', () => {
   });
 
   test('handles custom styles', () => {
-    const html = el('<div style="color: red; --size: 100px, width: var(--size); --foo: bar"></div>') as HTMLElement;
-    const actual = htmlify(html!);
+    const html = el('<div style="color: red; --size: 100px, width: var(--size); --foo: bar"></div>');
+    const actual = htmlify(html);
     const expected = '<div style="--foo: bar; --size: 100px, width: var(--size); color: red;"></div>';
     strictEqual(actual, expected);
   });
@@ -92,7 +93,7 @@ describe('el helper', () => {
   test('should support svg', () => {
     const svg = el('<svg></svg>');
     assert(svg !== null, 'svg should not be null');
-    const svgElement = svg?.ownerDocument?.defaultView?.SVGElement;
+    const svgElement = svg.ownerDocument.defaultView?.SVGElement;
     assert(svgElement !== undefined, 'SVGElement constructor should exist');
     assert(svg instanceof svgElement, 'svg should be instanceof SVGElement');
   });
@@ -102,14 +103,14 @@ describe('el helper', () => {
     assert(math !== null, 'math should not be null');
     assert(typeof math === 'object');
 
-    const mathElementCtor = math?.ownerDocument?.defaultView?.MathMLElement;
+    const mathElementCtor = math.ownerDocument.defaultView?.MathMLElement;
     assert(mathElementCtor === undefined, 'MathMLElement should be undefined');
 
-    const elementCtor = math?.ownerDocument?.defaultView?.Element;
+    const elementCtor = math.ownerDocument.defaultView?.Element;
     assert(elementCtor !== undefined, 'Element constructor should exist');
     assert(math instanceof elementCtor, 'math should be instanceof Element');
 
-    assert(math?.querySelector('mi')?.textContent === 'x');
+    assert(math.querySelector('mi')?.textContent === 'x');
 
     assert(math.tagName === 'math', 'math tagName should be "math"');
     assert(math.namespaceURI === 'http://www.w3.org/1998/Math/MathML', 'math namespaceURI should be MathML');

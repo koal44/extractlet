@@ -48,7 +48,7 @@ test('toHtml preserves escaped html', () => {
       </p>
     </div>`.trim();
 
-    assertNodeEqual(result, expected);
+  assertNodeEqual(result, expected);
 });
 
 test('toMd collapse linebreaks', () => {
@@ -501,7 +501,7 @@ test('toMd deep list with paragraphs', () => {
 </ul>
 </div>`.trim();
   const result = toMd(el(html));
-  const expected = 
+  const expected =
 `
 - Li1 Para1
   Li1 Para2
@@ -527,7 +527,7 @@ test('toMd nest list with variable bullet length', () => {
 </ol>
 </div>`;
   const result = toMd(el(html));
-  const expected = 
+  const expected =
 `
 1. Item 1
 2. Item 2
@@ -561,11 +561,11 @@ test('toMd nested list', () => {
 - Indented 0 spaces.
   - indented 2 or more spaces.
 - 0 spaces again.`.trim();
-    strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd nested list wild', () => {
-    const html = `
+  const html = `
 <div>
   <h1>Nested List Wild</h1>
   <ul>
@@ -588,8 +588,8 @@ test('toMd nested list wild', () => {
     <li>h</li>
   </ul>
 </div>`;
-    const result = toMd(el(html));
-    const expected = 
+  const result = toMd(el(html));
+  const expected =
 `# Nested List Wild
 
 - a
@@ -641,8 +641,8 @@ test('toMd h1 p pre code and inline code mix', () => {
 <p>bar <code>function bye() { console.log("bye-bye!") }</code>
 baz</p>
 </div>`.trim();
-    const result = toMd(el(html));
-    const expected  = 
+  const result = toMd(el(html));
+  const expected  =
 `# code block
 
 foo
@@ -653,7 +653,7 @@ def hello():
 \`\`\`
 
 bar \`function bye() { console.log("bye-bye!") }\` baz`;
-    strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd complex mixed markup case', () => {
@@ -671,7 +671,7 @@ It contains a manual line break above.</p>
 <p>Final paragraph.</p>
 </div>`;
   const result = toMd(el(html));
-  const expected = 
+  const expected =
 `# Header One
 
 This is the first paragraph. It has *italic* text, **bold** text, and ***both***.
@@ -919,7 +919,7 @@ one is part <span class="hljs-keyword">of</span> the blockquote designator.
 });
 
 test('toMd blockquote with anchor', () => {
-    const html = `<div><blockquote>
+  const html = `<div><blockquote>
 <p>Check out <a href="https://example.com">this link</a> with <strong>bold</strong> and <code>code</code>.</p>
 </blockquote>
 </div>`;
@@ -958,7 +958,7 @@ test('toMd blockquote with header', () => {
 > ## Important
 > 
 > Pay attention to this header.`.trim();
-    strictEqual(result, expected);
+  strictEqual(result, expected);
 });
 
 test('toMd blockquote with code block', () => {
@@ -1390,7 +1390,7 @@ test('toMd table complex', () => {
 </tbody>
 </table></div></div>`;
 
-// logPandocHtmlToMd(html);
+  // logPandocHtmlToMd(html);
 
   const expected = `
 | Name **bold** | Description       | Code Sample      | Misc          |
@@ -1503,7 +1503,7 @@ test('toMd divs block separation', () => {
 });
 
 test('toMd anchor with escaped url', () => {
-  const html = `<a href="https://en.wikipedia.org/wiki/Stress%E2%80%93energy_tensor" title="Stress–energy tensor">stress–energy tensor</a>`;
+  const html = '<a href="https://en.wikipedia.org/wiki/Stress%E2%80%93energy_tensor" title="Stress–energy tensor">stress–energy tensor</a>';
   const result = toMd(el(html));
   const expected = '[](https://en.wikipedia.org/wiki/Stress–energy_tensor)';
   strictEqual(result, expected);

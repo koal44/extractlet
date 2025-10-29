@@ -115,7 +115,7 @@ test('toHtml snippets', () => {
 </div>`;
 
   const actual = toHtml(el(html));
-  const expected =`
+  const expected = `
 <div>
   <p>check this out!</p>
   <p>
@@ -163,7 +163,7 @@ test('toMd snippets', () => {
 </div>`;
 
   const result = toMd(el(html));
-  const expected =`
+  const expected = `
 check this out!
 
 <!-- begin snippet: -->

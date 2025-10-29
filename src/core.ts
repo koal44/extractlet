@@ -1,49 +1,51 @@
-import { isCaptionSimilar, isElement, isHTML, isImage, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isUList, lastUrlSegment, log, toPascalCase } from './utils.js';
+import { hasOfType, isNumberish, isString, parseJsonAs } from './typing.js';
+import {
+  isCaptionSimilar, isElement, isHTML, isImage, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isUList, lastUrlSegment, log, toPascalCase,
+} from './utils.js';
 
-export type ToHtmlElementHandler = (node: Element, opts: ToHtmlOptions) => { skip?: boolean; node?: Node };
+export type ToHtmlElementHandler = (
+  elem: Element,
+  ctx: ToHtmlContext
+) => { skip?: boolean; node?: Node; };
 
-export type ToHtmlOptions = {
-  toHtmlElementHandler?: ToHtmlElementHandler;
-  skipHandler?: boolean;
-  keepStyles?: KeepStyles;
-}
-type KeepStyles = boolean | Set<string>;
+export type ToHtmlContext = {
+  elementHandler?: ToHtmlElementHandler;       // optional per-element override handler
+  skipCustomHandler: boolean;                  // skip custom handling for this subtree
+  allowStyles: ReadonlySet<string> | boolean;  // style allowlist or true/false for all/none
+};
 
-type GlueMode = 'block' | 'list' | 'li' | 'inline'
-type WhitespaceMode = 'normal' | 'pre' | 'pre-line'
-
-type GlueChildrenFn = (
-  n: Node,
-  glueMode: GlueMode,
-  ws?: WhitespaceMode,
+type GlueChildren = (
+  node: Node,
+  glueMode: 'block' | 'list' | 'listItem' | 'inline',
+  wsMode?: 'normal' | 'pre' | 'pre-line',
   opts?: Partial<ToMdContext>,
-  // innerCtx?: ToMdContext
 ) => string;
 
 export type ToMdElementHandler = (
-  node: Element,
+  elem: Element,
   ctx: ToMdContext,
-  glueChildren: GlueChildrenFn
-) => { skip?: boolean; md?: string };
+  glueChildren: GlueChildren
+) => { skip?: boolean; md?: string; };
 
 export type ToMdContext = {
-  olStart: number;
-  quoteDepth: number;
-  lastChar: string;
-  isRoot: boolean;
-  toMdElementHandler?: ToMdElementHandler;
-  skipHandler: boolean;
-  dedupeCaption: string;
-  inListItem: boolean;
-}
+  elementHandler?: ToMdElementHandler;  // optional per-element override handler
+  skipCustomHandler: boolean;           // skip custom handling for this subtree
+  isRoot: boolean;                      // true only for top-level call (whitespace handling)
+  deCaption: string;                    // caption dedupe token for figures/tables
+  inListItem: boolean;                  // inside a list item (<li>)
+  olStart: number;                      // starting index for ordered list
+  quoteDepth: number;                   // current blockquote nesting level
+  lastChar: string;                     // last emitted char (spacing state, internal)
+};
 
-export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
+export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
+  const ctx: ToHtmlContext = {
+    ...opts,
+    skipCustomHandler: opts.skipCustomHandler ?? false,
+    allowStyles: opts.allowStyles ?? new Set(),
+  };
+
   if (!node) return null;
-  const {
-    toHtmlElementHandler: elementHandler,
-    skipHandler = false,
-    keepStyles = new Set(),
-  } = opts;
 
   if (isText(node)) {
     return document.createTextNode(node.textContent!);
@@ -54,8 +56,8 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
   }
 
   // --- handle site-specific elements ---
-  const result = !skipHandler && elementHandler
-    ? elementHandler(node, opts)
+  const result = !ctx.skipCustomHandler && ctx.elementHandler
+    ? ctx.elementHandler(node, ctx)
     : null;
   if (result?.skip) return null;
   if (result?.node) return result.node;
@@ -95,7 +97,7 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
       }
       case 'style': {
         if (isHTML(node) && isHTML(clone)) {
-          copyStyleAttr(clone, node, keepStyles);
+          copyStyleAttr(clone, node, ctx.allowStyles);
         }
         break;
       }
@@ -105,52 +107,53 @@ export function toHtml(node:Node|null, opts:ToHtmlOptions = {}): Node|null {
   }
 
   for (const child of node.childNodes) {
-    const childNode = toHtml(child, { ...opts, skipHandler: false });
+    const childNode = toHtml(child, { ...opts, skipCustomHandler: false });
     if (childNode) clone.appendChild(childNode);
   }
 
   return clone;
 }
 
-export function copyHrefAttr(dest: Element, src: Element) {
+function copyHrefAttr(dest: Element, src: Element) {
   const val = getNormalizedUrl(src, 'href');
   if (val) dest.setAttribute('href', val);
 }
 
-export function copySrcAttr(dest: Element, src: Element) {
+function copySrcAttr(dest: Element, src: Element) {
   const val = getNormalizedUrl(src, 'src');
   if (val) dest.setAttribute('src', val);
 }
 
-function getNormalizedUrl(node: Element, attr: 'href'|'src'): string {
+function getNormalizedUrl(node: Element, attr: 'href' | 'src'): string {
   const url = node.getAttribute(attr)?.trim();
   if (!url) return '';
   if (url.startsWith('#')) return url;
   if (url.toLowerCase().startsWith('javascript:')) return '#';
   if (url.startsWith('//')) return `https:${url}`; // assume protocol-relative URLs are HTTPS
-  
+
   // --- resolve relative urls ---
   // prefer browser-resolved property
-  const nodeAttr = (node as any)[attr];
-  if (typeof nodeAttr === 'string') return nodeAttr.trim();
+  if (hasOfType(node, attr, isString)) {
+    return node[attr].trim();
+  }
   // otherwise resolve using doc's base uri
   try {
-    return new URL(url, node.ownerDocument?.baseURI).href;
+    return new URL(url, node.ownerDocument.baseURI).href;
   } catch {
     return url;
   }
 }
 
-export function copyStyleAttr(dest: HTMLElement, src: HTMLElement, keepStyles: KeepStyles) {
+function copyStyleAttr(dest: HTMLElement, src: HTMLElement, allowStyles: boolean | ReadonlySet<string>) {
   if (!src.hasAttribute('style')) return; // check only one of these?
-  if (keepStyles === false) return;
-  if (keepStyles === true) {
+  if (allowStyles === false) return;
+  if (allowStyles === true) {
     dest.setAttribute('style', src.getAttribute('style')!);
     return;
   }
 
   const keep = new Set([
-    ...keepStyles,
+    ...allowStyles,
     'display', 'clear',
     ...(isImage(src) ? ['width', 'height'] : []),
   ]);
@@ -165,20 +168,20 @@ export function copyStyleAttr(dest: HTMLElement, src: HTMLElement, keepStyles: K
   if (styleString) dest.setAttribute('style', styleString);
 }
 
-export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): string {
+export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): string {
   const ctx: ToMdContext = {
-    ...initCtx,
-    isRoot: initCtx.isRoot ?? true,
-    skipHandler: initCtx.skipHandler ?? false,
-    olStart: initCtx.olStart ?? 1,
-    quoteDepth: initCtx.quoteDepth ?? 0,
-    lastChar: initCtx.lastChar ?? '',
-    dedupeCaption: initCtx.dedupeCaption ?? '',
-    inListItem: initCtx.inListItem ?? false,
+    ...opts,
+    isRoot: opts.isRoot ?? true,
+    skipCustomHandler: opts.skipCustomHandler ?? false,
+    olStart: opts.olStart ?? 1,
+    quoteDepth: opts.quoteDepth ?? 0,
+    lastChar: opts.lastChar ?? '',
+    deCaption: opts.deCaption ?? '',
+    inListItem: opts.inListItem ?? false,
   };
 
-  const glueChildren: GlueChildrenFn = (node, glueMode, wsMode = 'normal', extrCtx = {}) => {
-    const gcx: ToMdContext = { ...ctx, ...extrCtx };
+  const glueChildren: GlueChildren = (node, glueMode, wsMode = 'normal', opts = {}) => {
+    const gcx: ToMdContext = { ...ctx, ...opts };
 
     const parts: string[] = [];
     const entryChar: string = gcx.lastChar;
@@ -203,7 +206,7 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
           case 'normal': md = md.replace(/\s+/g, ' '); break;
           case 'pre': break;
           case 'pre-line': md = md.replace(/[ \t]+/g, ' '); break;
-          default: throw new Error(`Unsupported whitespace mode: ${wsMode}`);
+          default: throw new Error(`Unsupported whitespace mode: ${String(wsMode)}`);
         }
       }
       else if (isElement(child)) {
@@ -213,7 +216,7 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
       const curIsBlock = md.startsWith('\n');
       const prevPart = parts.length > 0 ? parts[parts.length - 1] : '';
       const prevIsBlock = prevPart.endsWith('\n');
-      const keepStartIndent = glueMode === 'li' || glueMode === 'list';
+      const keepStartIndent = glueMode === 'listItem' || glueMode === 'list';
 
       const trimCurStart = !keepStartIndent && (prevIsBlock || (!curIsBlock && /\s/.test(ch)));
       const trimPrevEnd = !trimCurStart && curIsBlock && parts.length > 0;
@@ -224,18 +227,20 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
       parts.push(md);
       ch = md.length > 0 ? md[md.length - 1] : ch;
     }
-    
-    const layoutRules = {
+
+    const glueRules = {
       block: gcx.inListItem
-            ? { prefix: '\n\n', suffix: '\n',   trimStart: true,  trimEnd: true }
-            : { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
+        ? { prefix: '\n\n', suffix: '\n',   trimStart: true,  trimEnd: true }
+        : { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
       list: gcx.inListItem
-            ? { prefix: '\n',   suffix: '',     trimStart: true,  trimEnd: true }
-            : { prefix: '\n',   suffix: '\n\n', trimStart: true,  trimEnd: true },
-      li:     { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
-      inline: { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
+        ? { prefix: '\n',   suffix: '',     trimStart: true,  trimEnd: true }
+        : { prefix: '\n',   suffix: '\n\n', trimStart: true,  trimEnd: true },
+      listItem:
+        { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
+      inline:
+        { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
     };
-    const { prefix, suffix, trimStart, trimEnd } = layoutRules[glueMode];
+    const { prefix, suffix, trimStart, trimEnd } = glueRules[glueMode];
     const safePrefix = entryChar === '\n' ? '' : prefix;
 
     let glued = parts.join('');
@@ -248,8 +253,8 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
   if (!node || !isElement(node)) return '';
 
   // --- handle site-specific elements ---
-  const siteResult = !ctx.skipHandler && ctx.toMdElementHandler
-    ? ctx.toMdElementHandler(node, ctx, glueChildren)
+  const siteResult = !ctx.skipCustomHandler && ctx.elementHandler
+    ? ctx.elementHandler(node, ctx, glueChildren)
     : null;
   if (siteResult?.skip) return '';
   let result = '';
@@ -303,11 +308,11 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
         const href = safeDecode(getNormalizedUrl(node, 'href'));
         const lastSeg = lastUrlSegment(href);
         let toolTip = (node.getAttribute('title') ?? '').replace(/\s+/g, ' ').trim();
-        let linkText = glueChildren(node, 'inline', 'normal', (toolTip ? { dedupeCaption: toolTip } : {})).trim();
+        let linkText = glueChildren(node, 'inline', 'normal', (toolTip ? { deCaption: toolTip } : {})).trim();
 
         // dedupe. text—Markdown is final output; LLMs/humans don’t need repeated info. (prefer figcaption > href > aText > title)
-        const toolTipIsDupe = [linkText, ctx.dedupeCaption, lastSeg, href].some(o => isCaptionSimilar(toolTip, o));
-        const linkTextIsDupe = [ctx.dedupeCaption, lastSeg, href].some(o => isCaptionSimilar(linkText, o));
+        const toolTipIsDupe = [linkText, ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(toolTip, o));
+        const linkTextIsDupe = [ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(linkText, o));
 
         toolTip = toolTip && !toolTipIsDupe ? ` "${toolTip}"` : '';
         linkText = linkText && !linkTextIsDupe ? linkText : '';
@@ -332,7 +337,7 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
         result = '\n\n---\n\n';
         break;
       }
-      
+
       case 'UL':
       case 'OL': {
         const startIndex = +(node.getAttribute('start') || '1');
@@ -354,13 +359,13 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
           '- ';
         const pad = ' '.repeat(bullet.length);
 
-        result = glueChildren(node, 'li', 'normal', { inListItem: true });
+        result = glueChildren(node, 'listItem', 'normal', { inListItem: true });
 
         //log(`toMd.LI node=${node.tagName}, index=${index}, listType=${listType}, olStart=${olStart}`);
         //log(`toMd.LI.result-before: "${result}"`);
         // Normalize leading/trailing newlines
         result = result.startsWith('\n\n') ? result.slice(2) : result;
-        result = result.endsWith('\n') ? result : result + '\n';
+        result = result.endsWith('\n') ? result : `${result}\n`;
 
         const leadingWs = result.match(/^(\n*)/)?.[0] ?? '';
         const trailingWs = result.match(/(\n*)$/)?.[0] ?? '';
@@ -379,7 +384,7 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
         }
 
         // Indent all lines after line breaks
-        result = lines.map(line =>
+        result = lines.map((line) =>
           line.startsWith('\n') ? line + pad : line
         ).join('');
         // log(`toMd.LI.result-split-join: "${result}"`);
@@ -398,7 +403,7 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
       }
 
       case 'CODE': {
-        const fence = 
+        const fence =
           isPre(node.parentNode) ? '' :
           node.textContent?.includes('`') ? '``' :
           '`';
@@ -408,19 +413,16 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
 
       case 'BLOCKQUOTE': {
         result = glueChildren(node, 'block', 'normal', { quoteDepth: ctx.quoteDepth + 1 });
-        //log(`toMd: blockquote content before formatting: "${result}"`);
-        //log(`toMd.blockquote: quoteDepth=${quoteDepth}`);
         const bqPrefix = result.match(new RegExp('^\\n*'))?.[0] ?? '';
         const bqSuffix = result.match(/\n*$/)?.[0] ?? '';
 
         result = result.slice(bqPrefix.length, result.length - bqSuffix.length);
-        result = result.split('\n').map(line => `> ${line}`).join('\n');
+        result = result.split('\n').map((line) => `> ${line}`).join('\n');
         result = bqPrefix + result + bqSuffix;
         break;
       }
 
       case 'IMG': {
-        //let src = (node as HTMLImageElement).src || node.getAttribute('src') || '';
         let src = getNormalizedUrl(node, 'src');
         src = decodeURIComponent(src);
         const srcSeg = lastUrlSegment(src);
@@ -428,8 +430,8 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
         let title = (node.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
 
         // dedupe. text—Markdown is final output; LLMs/humans don’t need repeated info. (prefer figcaption > src > alt > title)
-        const isTitleDupe = isCaptionSimilar(title, alt) || isCaptionSimilar(title, ctx.dedupeCaption) || isCaptionSimilar(title, srcSeg);
-        const isAltDupe = isCaptionSimilar(alt, ctx.dedupeCaption) || isCaptionSimilar(alt, srcSeg); // TODO: consider not deduping alt
+        const isTitleDupe = isCaptionSimilar(title, alt) || isCaptionSimilar(title, ctx.deCaption) || isCaptionSimilar(title, srcSeg);
+        const isAltDupe = isCaptionSimilar(alt, ctx.deCaption) || isCaptionSimilar(alt, srcSeg); // TODO: consider not deduping alt
         title = isTitleDupe ? '' : title;
         alt = isAltDupe ? '' : alt;
 
@@ -451,26 +453,26 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
       }
 
       case 'TABLE': {
-        const table = [];
+        const table: string[][] = [];
         const rows = [...node.querySelectorAll('tr')];
-        const nCols = Math.max(...rows.map(row => row.children.length));
-        const headerRow = rows.find(r => [...r.children].some(cell => isTableHeader(cell)));
+        const nCols = Math.max(...rows.map((row) => row.children.length), 0);
+        const headerRow = rows.find((r) => [...r.children].some((cell) => isTableHeader(cell)));
         const minColWidth = 3; // Minimum column width for table cells
 
         // add header row
         if (headerRow) {
-          table.push([...headerRow.children].filter(c => isTableHeader(c) || isTableCell(c)).map(c => toMd(c, ctx).trim()));
+          table.push([...headerRow.children].filter((c) => isTableHeader(c) || isTableCell(c)).map((c) => toMd(c, ctx).trim()));
         } else {
-          table.push(new Array(nCols).fill(''));
+          table.push(Array<string>(nCols).fill(''));
         }
 
         // add separator row
-        table.push(new Array(nCols).fill(''));
+        table.push(Array<string>(nCols).fill(''));
 
         // add data rows
         for (const row of rows) {
           if (row === headerRow) continue; // skip header row as it's already added
-          table.push([...row.children].filter(c => isTableHeader(c) || isTableCell(c)).map(c => toMd(c, ctx).trim()));
+          table.push([...row.children].filter((c) => isTableHeader(c) || isTableCell(c)).map((c) => toMd(c, ctx).trim()));
         }
 
         //log('DEBUG table array of arrays:', table);
@@ -480,21 +482,22 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
             widths[i] = Math.max(widths[i], cell.length);
           });
           return widths;
-        }, new Array(nCols).fill(minColWidth));
+        }, Array<number>(nCols).fill(minColWidth));
 
+        const rowParts: string[] = [];
         for (let i = 0; i < table.length; i++) {
           const row = table[i];
           if (row.length !== nCols) {
             log(`WARNING: Row ${i} has ${row.length} columns, expected ${nCols}`);
           }
 
+          const colParts: string[] = [];
           for (let j = 0; j < nCols; j++) {
             let cell = row[j] ?? 'ERR';
             const width = colWidths[j];
 
             let leftMark = ' ';
             let rightMark = ' ';
-            const endWall = j === nCols - 1 ? '|\n' : '';
 
             if (i === 1) { // separator row
               const style = headerRow?.children[j]?.getAttribute('style') ?? '';
@@ -507,12 +510,12 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
               cell = cell.padEnd(width, ' ');
             }
 
-            //log(`toMd.TABLE: cell[${i}][${j}](width=${cell.length}, expected=${width}) = "${cell}" `);
-            result += `|${leftMark}${cell}${rightMark}${endWall}`;
+            colParts.push(`${leftMark}${cell}${rightMark}`);
           }
+          rowParts.push(`|${colParts.join('|')}|`);
         }
 
-        result = `\n\n${result}\n\n`;
+        result = `\n\n${rowParts.join('\n')}\n\n`;
         break;
       }
 
@@ -535,17 +538,14 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
         const parts = [];
         for (const child of node.childNodes) {
           if (captionNode && child === captionNode) continue;
-          parts.push(toMd(child, { ...ctx, dedupeCaption: caption }));
+          parts.push(toMd(child, { ...ctx, deCaption: caption }));
         }
 
         // data-mw attribute handling (e.g. for PDF pages in Wikimedia Commons)
-        const dataAttr = node.getAttribute('data-mw') || '{}';
-        let data;
-        try {
-          data = JSON.parse(dataAttr);
-        } catch (e) {
-          log(`WARNING: Failed to parse data-mw attribute: ${dataAttr}`, e);
-        }
+        const dataAttr = node.getAttribute('data-mw') ?? '{}';
+        type MwData = { page?: number; };
+        const isMwData = (u: unknown): u is MwData => hasOfType(u, 'page', isNumberish);
+        const data = parseJsonAs<MwData>(dataAttr, isMwData);
 
         const fullCaption = [];
         if (data?.page) fullCaption.push(`page ${data.page} preview`);
@@ -554,7 +554,7 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
         const body = [];
         body.push('\n\n:::figure');
         if (parts.length) body.push(parts.filter(Boolean).join('\n'));
-        if (fullCaption.length) body.push('\n' + fullCaption.join('\n'));
+        if (fullCaption.length) body.push(`\n${fullCaption.join('\n')}`);
         body.push(':::\n\n');
 
         result = body.join('\n');
@@ -608,7 +608,7 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
           result += `**Subtitles:**\n${tracks.map((t) => `- [${t.alt}](${t.url})`).join('\n')}\n\n`;
         }
 
-        result = result.trim(); 
+        result = result.trim();
         break;
       }
 
@@ -618,7 +618,7 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
         // result = node.outerHTML || '';
         break;
       }
-    
+
     }
   }
 
@@ -626,4 +626,45 @@ export function toMd(node: Node | null, initCtx: Partial<ToMdContext> = {} ): st
   return ctx.isRoot
     ? result.trim()
     : result;
+}
+
+export type Locator = { sel: string; attr?: string; map?: MapFn; };
+export type MapFn = (v: string, doc: Document, scope?: ParentNode) => string;
+
+export function pickEl(specs: readonly Locator[], doc: Document, scope?: Element): Element | undefined {
+  for (const { sel } of specs) {
+    if (sel === ':scope') {
+      if (scope) return scope;
+      else continue;
+    }
+    const el = (scope ?? doc).querySelector(sel);
+    if (el) return el;
+  }
+  return undefined;
+}
+
+export function pickEls(specs: readonly Locator[], doc: Document, scope?: Element): Element[] {
+  for (const { sel } of specs) {
+    if (sel === ':scope') {
+      if (scope) return [scope];
+      else continue;
+    }
+    const els = (scope ?? doc).querySelectorAll(sel);
+    if (els.length > 0) return [...els];
+  }
+  return [];
+}
+
+export function pickVal(specs: readonly Locator[], doc: Document, scope?: Element): string | undefined {
+  for (const { sel, attr, map } of specs) {
+    const el = sel === ':scope' ? scope : (scope ?? doc).querySelector(sel);
+    if (!el) continue;
+    let val = attr === 'textContent' || attr === undefined // defaults to textContent
+      ? el.textContent?.trim() ?? undefined
+      : el.getAttribute(attr)?.trim() ?? undefined;
+    if (!val) continue;
+    val = map ? map(val, doc, scope).trim() : val;
+    if (val) return val;
+  }
+  return undefined;
 }

@@ -1,8 +1,11 @@
 /* eslint-disable no-restricted-properties */
 import fs from 'node:fs/promises';
-import { rollup, ModuleFormat } from 'rollup';
+import type { ModuleFormat } from 'rollup';
+import { rollup } from 'rollup';
 import typescript from '@rollup/plugin-typescript';
-import { cp } from 'node:fs/promises';
+import {
+  hasOfType, hasProp, isArray, isNonEmptyString, isNumber, isFunction,
+} from './src/typing';
 
 type TSFile = {
   input: string;
@@ -11,18 +14,33 @@ type TSFile = {
   patchPolyfill?: boolean;
 };
 
-import util from 'node:util';
-function logActive(label: string) {
-  const handles = (process as any)._getActiveHandles?.() ?? [];
-  const requests = (process as any)._getActiveRequests?.() ?? [];
-  console.log(`\n=== ${label} ===`);
-  console.log(`Active handles: ${handles.length}`);
-  for (const h of handles) console.log('-',  util.inspect(h, { depth: 1 }));
-  console.log(`Active requests: ${requests.length}`);
-  for (const r of requests) console.log('-',  util.inspect(r, { depth: 1 }));
-  console.log('=================\n');
+if (process.env.DUMP_HANDLES) {
+  setTimeout(() => {
+    // report: {activeHandles: [...], activeRequests: [...], otherProps...}
+    // activeHandles: {fd?: number, hasRef?: () => boolean, constructor: {name: string}, ...}
+    const rep = process.report.getReport();
+    const handles = hasOfType(rep, 'activeHandles', isArray) ? rep.activeHandles : [];
+    const requests = hasOfType(rep, 'activeRequests', isArray) ? rep.activeRequests : [];
+
+    const summarize = (xs: unknown[]) =>
+      xs.map((x) => {
+        // const t = hasProp(x, 'constructor') && hasOfType(x.constructor, 'name', isNonEmptyString)
+        const t = hasOfType(x, ['constructor', 'name'], isNonEmptyString)
+          ? x.constructor.name
+          : typeof x;
+        // file descriptors / timers often expose helpful props:
+        const fd = hasOfType(x, 'fd', isNumber) ? x.fd : undefined;
+        const refed = hasOfType(x, 'hasRef', isFunction) ? Boolean(x.hasRef()) : undefined;
+        return { type: t, fd, refed };
+      });
+
+    console.log('\n=== Active (diagnostic report) ===');
+    console.log('handles:', handles.length, summarize(handles));
+    console.log('requests:', requests.length, summarize(requests));
+    console.log('==================================\n');
+  }, 10_000).unref();
 }
-setTimeout(() => { logActive('Post-build dump'); }, 10000).unref();
+
 
 const tsFiles: TSFile[] = [
   { input: 'src/background.ts', output: 'dist/background.js', format: 'esm', patchPolyfill: true },
@@ -41,26 +59,27 @@ for (const tsFile of tsFiles) {
 }
 
 // --- copy public assets ---
-await cp('public', 'dist', { recursive: true, force: true });
-await cp(
+await fs.cp('public', 'dist', { recursive: true, force: true });
+await fs.cp(
   'node_modules/webextension-polyfill/dist/browser-polyfill.js',
   'dist/browser-polyfill.js',
   { force: true }
 );
 
 // --- copy dist to dist-ff ---
-await cp('dist', 'dist-ff', { recursive: true, force: true });
+await fs.cp('dist', 'dist-ff', { recursive: true, force: true });
 
 // --- patch manifest.json for chrome/firefox incompatibilities ---
-const ffManifest = JSON.parse(await fs.readFile('dist-ff/manifest.json', 'utf8'));
-if (ffManifest.background && ffManifest.background.service_worker) {
-  delete ffManifest.background.service_worker;
+const ffManifest = JSON.parse(await fs.readFile('dist-ff/manifest.json', 'utf8')) as unknown;
+if (hasProp(ffManifest, ['background', 'service_worker'])) {
+  delete (ffManifest.background as { service_worker?: unknown; }).service_worker;
   await fs.writeFile('dist-ff/manifest.json', JSON.stringify(ffManifest, null, 2));
   console.log('Patched manifest.json for Firefox in dist-ff');
 }
-const manifest = JSON.parse(await fs.readFile('dist/manifest.json', 'utf8'));
-if (manifest.background && manifest.background.scripts) {
-  delete manifest.background.scripts;
+
+const manifest = JSON.parse(await fs.readFile('dist/manifest.json', 'utf8')) as unknown;
+if (hasProp(manifest, ['background', 'scripts'])) {
+  delete (manifest.background as { scripts?: unknown; }).scripts;
   await fs.writeFile('dist/manifest.json', JSON.stringify(manifest, null, 2));
   console.log('Patched manifest.json for Chrome/other in dist');
 }

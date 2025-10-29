@@ -1,16 +1,16 @@
 /**
  * DOM Reference
- * 
+ *
  * div#question-header
  *   a.question-hyperlink                         → Question title
- * 
+ *
  * div#question
  * div#answers > div.answer#answer-XXXX
  *   div.post-layout
  *     div.votecell
  *       div[itemprop="upvoteCount"][data-value]  → Upvote count
  *     div.s-prose                                → Post body (question or answer)
- *     div.post-signature.owner                   → Contributor (Question Author) 
+ *     div.post-signature.owner                   → Contributor (Question Author)
  *     div.post-signature                         → Contributor (Answer Author or Editor)
  *       div.user-info
  *         span.relativetime[title]               → Timestamp
@@ -25,14 +25,17 @@
  *           a.comment-user                       → Contributor (Comment Author)
  *           span.comment-date
  *             span.relativetime-clean[title]     → Timestamp
- * 
+ *
  */
 
-import { h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript, htmlToElementK, htmlToElement } from './utils.js';
-import { toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdElementHandler } from './core.js';
+import {
+  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript, htmlToElementK, htmlToElement,
+} from './utils.js';
+import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext } from './core.js';
+import { toHtml as _toHtml, toMd as _toMd } from './core.js';
 
 type Contributor = {
-  contributorType: 'author'|'editor'|'commenter';
+  contributorType: 'author' | 'editor' | 'commenter';
   isOwner: boolean;
   timestamp: string;
   name: string;
@@ -41,14 +44,14 @@ type Contributor = {
 }
 
 type Comment = {
-  bodyHtml: string|null;
+  bodyHtml: string | null;
   bodyMd: string;
   contributors: Contributor[];
   vote: number;
 }
 
 type Post = {
-  bodyHtml: string|null;
+  bodyHtml: string | null;
   bodyMd: string;
   contributors: Contributor[];
   comments: Comment[];
@@ -56,11 +59,11 @@ type Post = {
 }
 
 export type SEResult = {
-  permaLink: string;
+  permalink: string;
   posts: Post[];
 }
 
-function shouldSkip(node: Node|null): boolean {
+function shouldSkip(node: Node | null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
   if (isText(node)) return false; // Text nodes are never skipped
 
@@ -72,7 +75,7 @@ function shouldSkip(node: Node|null): boolean {
     if (isScript(node)) {
       const isLateX = /MathJax/.test(id) || aType.startsWith('math/tex');
       if (isLateX) return false;
-      return true; 
+      return true;
     }
 
     if (/MathJax/.test(id) || /MJX|MathJax/.test(className)) {
@@ -102,8 +105,8 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
     case 'PRE': {
       let md = gc(node, 'inline', 'pre');
       md = md.replace(/\n*$/, '\n');
-      
-      const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
+
+      const lang = [...node.classList].find((cls) => cls.startsWith('lang-'))?.slice(5) || '';
       if (
         lang
         && ['js', 'css', 'html'].includes(lang)
@@ -116,14 +119,14 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
       return { md };
     }
     case 'BLOCKQUOTE': {
-      let md = gc(node, 'block', 'normal', { quoteDepth: (ctx.quoteDepth ?? 0) + 1 });
+      let md = gc(node, 'block', 'normal', { quoteDepth: ctx.quoteDepth + 1 });
       const isSpoiler = node.classList.contains('spoiler');
       const marker = isSpoiler ? '>!' : '>';
       const bqPrefix = md.match(new RegExp('^\\n*'))?.[0] ?? '';
       const bqSuffix = md.match(/\n*$/)?.[0] ?? '';
 
       md = md.slice(bqPrefix.length, md.length - bqSuffix.length);
-      md = md.split('\n').map(line => `${marker} ${line}`).join('\n');
+      md = md.split('\n').map((line) => `${marker} ${line}`).join('\n');
       md = bqPrefix + md + bqSuffix;
       return { md };
     }
@@ -132,11 +135,11 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
   return {};
 };
 
-export function toMd(node: Node|null) {
-  return _toMd(node, { toMdElementHandler: toMdElemHandler });
+export function toMd(node: Node | null, opts: Partial<ToHtmlContext> = {}) {
+  return _toMd(node, { ...opts, elementHandler: toMdElemHandler });
 }
 
-function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
+const toHtmlElemHandler: ToHtmlElementHandler = (node, _ctx) => {
   if (shouldSkip(node)) return { skip: true };
   if (!isElement(node)) throw new Error('toHtmlElemHandler called with non-element node');
 
@@ -148,13 +151,13 @@ function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; 
   }
 
   return {};
+};
+
+export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}) {
+  return _toHtml(node, { ...opts, elementHandler: toHtmlElemHandler });
 }
 
-export function toHtml(node: Node|null) {
-  return _toHtml(node, { toHtmlElementHandler: toHtmlElemHandler });
-}
-
-function scrapeFallbackName(userNode:Element|null) {
+function scrapeFallbackName(userNode: Element | null) {
   let name = userNode?.querySelector(':scope > span[itemprop="name"]')?.textContent?.trim() ?? '';
 
   // fallback to text content if still no name
@@ -170,7 +173,7 @@ function scrapeFallbackName(userNode:Element|null) {
   return { name, userId: -1, username: '' };
 }
 
-function scrapeUserInfo(userNode:Element|null) {
+function scrapeUserInfo(userNode: Element | null) {
   const name = userNode?.textContent?.trim() ?? '';
   const href = userNode?.getAttribute('href');
   const match = href?.match(/\/users\/(\d+)/);
@@ -180,7 +183,7 @@ function scrapeUserInfo(userNode:Element|null) {
   return { name, userId, username };
 }
 
-export function scrapePostContributor(signatureNode:Element|null): Contributor {
+export function scrapePostContributor(signatureNode: Element | null): Contributor {
   const timestamp = signatureNode?.querySelector('.relativetime')?.getAttribute('title')?.split(',')[0].trim() ?? '';
   const isOwner = signatureNode?.classList.contains('owner') ?? false; // OP of the entire post
   const contributorType = signatureNode?.querySelector('.user-details')?.getAttribute('itemprop') === 'author' ? 'author' : 'editor';
@@ -192,7 +195,7 @@ export function scrapePostContributor(signatureNode:Element|null): Contributor {
   return { contributorType, isOwner, timestamp, ...userInfo };
 }
 
-function scrapeCommentContributor(commentItem:Element): Contributor {
+function scrapeCommentContributor(commentItem: Element): Contributor {
   const timestamp = commentItem.querySelector('.relativetime-clean')?.getAttribute('title')?.split(',')[0].trim() ?? '';
   const userNode = commentItem.querySelector('a.comment-user');
   const { name, userId, username } = scrapeUserInfo(userNode);
@@ -200,15 +203,15 @@ function scrapeCommentContributor(commentItem:Element): Contributor {
   return { contributorType: 'commenter', isOwner: false, timestamp, name, userId, username };
 }
 
-function scrapePostVote(postLayout:Element) {
-  const voteNode = postLayout.querySelector('div.votecell div[itemprop="upvoteCount"]') as HTMLDivElement | null;
-  const vote = voteNode?.dataset?.value ?? voteNode?.textContent ?? '';
+function scrapePostVote(postLayout: Element) {
+  const voteNode = postLayout.querySelector<HTMLDivElement>('div.votecell div[itemprop="upvoteCount"]');
+  const vote = voteNode?.dataset.value ?? voteNode?.textContent ?? '';
   const n = parseInt(vote.trim(), 10);
 
   return Number.isFinite(n) ? n : 0;
 }
 
-function scrapeCommentVote(commentItem:Element) {
+function scrapeCommentVote(commentItem: Element) {
   const scoreNode = commentItem.querySelector('div.comment-score span');
   const vote = scoreNode?.textContent ?? '';
   const n = parseInt(vote.trim(), 10);
@@ -216,11 +219,11 @@ function scrapeCommentVote(commentItem:Element) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function scrapePosts(root:Document): Post[] {
+function scrapePosts(root: Document): Post[] {
   const postLayouts = root.querySelectorAll('.post-layout');
-  const posts:Post[] = [];
+  const posts: Post[] = [];
 
-  postLayouts.forEach(postLayout => {
+  postLayouts.forEach((postLayout) => {
     // Extract post body
     const postBodyNode = toHtml(postLayout.querySelector('.s-prose'));
     const bodyHtml = postBodyNode instanceof Element  ? postBodyNode.outerHTML : null;
@@ -228,7 +231,7 @@ function scrapePosts(root:Document): Post[] {
 
     // Extract contributors
     const signatureNodes = postLayout.querySelectorAll('.post-signature');
-    const contributors = Array.from(signatureNodes).map(sig =>
+    const contributors = Array.from(signatureNodes).map((sig) =>
       scrapePostContributor(sig)
     );
 
@@ -236,7 +239,7 @@ function scrapePosts(root:Document): Post[] {
 
     // Extract comments
     const commentNodes = postLayout.querySelectorAll('ul.comments-list li');
-    const comments = Array.from(commentNodes).map(li => {
+    const comments = Array.from(commentNodes).map((li) => {
       const bodySpan = toHtml(li.querySelector('div.comment-body > span.comment-copy'));
       const bodyHtml = bodySpan instanceof Element ? bodySpan.outerHTML : null;
       const bodyMd = toMd(bodySpan);
@@ -252,15 +255,15 @@ function scrapePosts(root:Document): Post[] {
   return posts;
 }
 
-function scrapePermaLink(root:Document): HTMLAnchorElement|null {
+function scrapePermaLink(root: Document): HTMLAnchorElement | null {
   const qLink = root.querySelector('#question-header a.question-hyperlink');
   const clone = toHtml(qLink);
   return isAnchor(clone) ? clone : null;
 }
 
-function buildCopyButton(doc:Document, pageData:SEResult, postIdx = -1) {
+function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
   if (postIdx < -1 || postIdx >= pageData.posts.length) {
-    throw new Error('Invalid postIdx: ' + postIdx);
+    throw new Error(`Invalid postIdx: ${postIdx}`);
   }
   const isAll = postIdx === -1;
   const isQuestion = postIdx === 0;
@@ -285,11 +288,11 @@ function buildCopyButton(doc:Document, pageData:SEResult, postIdx = -1) {
       '===========================================\n'
     );
 
-    if (pageData.permaLink) {
-      const permaLinkNode = htmlToElementK(pageData.permaLink, 'a');
+    if (pageData.permalink) {
+      const permalinkNode = htmlToElementK(pageData.permalink, 'a');
       copyArr.push(
-        `Title: ${permaLinkNode?.textContent?.trim()}`,
-        `URL:   ${permaLinkNode?.getAttribute('href')}\n`);
+        `Title: ${permalinkNode?.textContent?.trim()}`,
+        `URL:   ${permalinkNode?.getAttribute('href')}\n`);
     }
   }
 
@@ -312,42 +315,42 @@ function buildCopyButton(doc:Document, pageData:SEResult, postIdx = -1) {
     copyArr.push('');
   });
 
-  const copyTxt = copyArr.join('\n').trimEnd() + '\n';
+  const copyTxt = `${copyArr.join('\n').trimEnd()}\n`;
   return createCopyButton(copyTxt, responseTxt, hintTxt);
 }
 
-function buildContribsAndVotes(contributors:Contributor[], voteCount:number): string {
-  if (!contributors || contributors.length === 0) return '';
+function buildContribsAndVotes(contributors: Contributor[], voteCount: number): string {
+  if (contributors.length === 0) return '';
 
   // Sort once, newest first
   const contribsSorted = contributors.slice().sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
-  const selected:Contributor[] = [];
+  const selected: Contributor[] = [];
 
   // Find most recent owner (if any), and treat as author
-  const owner = contribsSorted.find(c => c.isOwner);
+  const owner = contribsSorted.find((c) => c.isOwner);
   if (owner) {
     selected.push(owner);
   }
 
   // If no owner, find most recent author
   if (!owner) {
-    const author = contribsSorted.find(c => c.contributorType === 'author' && !c.isOwner);
+    const author = contribsSorted.find((c) => c.contributorType === 'author' && !c.isOwner);
     if (author) {
       selected.push(author);
     }
   }
 
   // Find most recent editor (if any), regardless of owner/author
-  const editor = contribsSorted.find(c => c.contributorType === 'editor' && !c.isOwner);
+  const editor = contribsSorted.find((c) => c.contributorType === 'editor' && !c.isOwner);
   if (editor) {
     selected.push(editor);
   }
 
   // If any commenter present, override with just most recent commenter
-  const commenter = contribsSorted.find(c => c.contributorType === 'commenter');
+  const commenter = contribsSorted.find((c) => c.contributorType === 'commenter');
   if (commenter) {
     selected.length = 0; // Shouldn't be necessary, but just in case
     selected.push(commenter);
@@ -359,7 +362,7 @@ function buildContribsAndVotes(contributors:Contributor[], voteCount:number): st
       ? selected[0].name
       : rawName;
     const name = fallbackName.replace(/\s+/g, '-');
-    const date = (c.timestamp?.split?.(' ')[0]) ?? 'unknown-date';
+    const date = c.timestamp.trim() ? c.timestamp.split(' ')[0] : 'unknown-date';
     return { name, date };
   });
 
@@ -381,7 +384,7 @@ function buildContribsAndVotes(contributors:Contributor[], voteCount:number): st
   return `[[ ${contribsText} | ${voteText} ]]`;
 }
 
-function buildPosts(data:SEResult, doc:Document): HTMLElement {
+function buildPosts(data: SEResult, doc: Document): HTMLElement {
   const div = h('div', { class: 'posts' }) as HTMLDivElement;
   data.posts.forEach(function(post, idx) {
     const postNode = h('div', { class: 'post' });
@@ -399,21 +402,21 @@ function buildPosts(data:SEResult, doc:Document): HTMLElement {
   return div;
 }
 
-function buildPostView(post:Post, viewMode:'html'|'md', doc:Document): HTMLDivElement {
-  const modes:Record<'html'|'md', { key:'bodyHtml'|'bodyMd'; class:string }> = {
+function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTMLDivElement {
+  const modes: Record<'html' | 'md', { key: 'bodyHtml' | 'bodyMd'; class: string; }> = {
     html: { key: 'bodyHtml', class: 'html-view' },
     md:   { key: 'bodyMd',   class: 'md-view'   },
   };
   const mode = modes[viewMode];
 
-  function renderBody(str: string): Node|string|null {
+  function renderBody(str: string): Node | string | null {
     switch (viewMode) {
       case 'html': return htmlToElement(str, doc);
       case 'md': return str;
-      default: throw new Error(`Unknown mode: ${viewMode}`);
+      default: throw new Error(`Unknown mode: ${String(viewMode)}`);
     }
   }
-  
+
 
   const postBodyStr = post[mode.key] ?? '';
   const postBody = renderBody(postBodyStr);
@@ -438,23 +441,23 @@ function buildPostView(post:Post, viewMode:'html'|'md', doc:Document): HTMLDivEl
   return h('div', { class: mode.class }, bodyDiv, postContribsDiv, commentsDiv) as HTMLDivElement;
 }
 
-export function extractFromDoc(root: Document = document): SEResult|undefined {
+export function extractFromDoc(root: Document = document): SEResult | undefined {
   const posts = scrapePosts(root);
   if (posts.length === 0) {
     alert('No posts found on this page.');
     return;
   }
 
-  const permaLink = scrapePermaLink(root)?.outerHTML || '';
+  const permalink = scrapePermaLink(root)?.outerHTML || '';
   const result: SEResult = {
     posts,
-    permaLink,
+    permalink,
   };
 
   return result;
 }
 
-export function createPage(pageData: SEResult, doc:Document): void {
+export function createPage(pageData: SEResult, doc: Document): void {
   injectCss(multiToggleCss, { id: 'multi-toggle-css', doc });
   injectCss(copyButtonCss, { id: 'copy-button-css', doc });
   const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · Stack Exchange');
@@ -462,10 +465,10 @@ export function createPage(pageData: SEResult, doc:Document): void {
   const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
   doc.body.appendChild(topBar);
 
-  if (pageData.permaLink) {
-    const permaLinkNode = htmlToElementK(pageData.permaLink, 'a', doc);
-    const permaLinkDiv = h('div', { class: 'perma-link' }, permaLinkNode);
-    doc.body.appendChild(permaLinkDiv);
+  if (pageData.permalink) {
+    const permalinkNode = htmlToElementK(pageData.permalink, 'a', doc);
+    const permalinkDiv = h('div', { class: 'perma-link' }, permalinkNode);
+    doc.body.appendChild(permalinkDiv);
   }
 
   const viewToggle = createMultiToggle({

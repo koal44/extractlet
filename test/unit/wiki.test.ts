@@ -146,7 +146,7 @@ test('toHtml Tensor Para1 Sentence1', () => {
 
   // HTML for first sentence:
   const html = '<p>A tensor may be represented as a (potentially multidimensional) array.</p>';
-  
+
   // For initial sanity, just check roundtrip basic content.
   const result = toHtml(el(html));
   // Adjust as needed: your expected could be the same string or a normalized version.
@@ -336,7 +336,7 @@ describe('Extractlet: Parsoid HTML 2.8.0 Spec', () => {
        width="1941" height="220">
  </a>
 </span>`.trim();
-    const expectedMd = `[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)`;
+    const expectedMd = '[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -349,7 +349,7 @@ describe('Extractlet: Parsoid HTML 2.8.0 Spec', () => {
        width="1941" height="220">
  </span>
 </span>`.trim();
-    const expectedMd = `![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)`;
+    const expectedMd = '![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -381,7 +381,7 @@ caption
        width="50" height="6">
  </a>
 </span>`.trim();
-    const expectedMd = `[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)`;
+    const expectedMd = '[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -395,7 +395,7 @@ caption
        width="89" height="10">
  </a>
 </span>`.trim();
-    const expectedMd = `[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")`.trim();
+    const expectedMd = '[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")'.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -408,7 +408,7 @@ caption
        width="50" height="6">
  </a>
 </span>`.trim();
-    const expectedMd = `[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")`.trim();
+    const expectedMd = '[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")'.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -555,7 +555,7 @@ Title
        width="971" height="110">
  </a>
 </span>`.trim();
-    const expectedMd = `[![](https://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)`;
+    const expectedMd = '[![](https://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -661,7 +661,7 @@ caption
   </span>
 </span>`.trim();
 
-    const expectedMd = `**Poster:** ![Poster](//upload.wikimedia.org/wikipedia/commons/thumb/9/94/Folgers.ogv/seek%3D59-Folgers.ogv.jpg)`;
+    const expectedMd = '**Poster:** ![Poster](//upload.wikimedia.org/wikipedia/commons/thumb/9/94/Folgers.ogv/seek%3D59-Folgers.ogv.jpg)';
 
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -694,7 +694,7 @@ caption
 **Poster:** ![Poster](//upload.wikimedia.org/wikipedia/commons/thumb/9/94/Folgers.ogv/seek%3D25-Folgers.ogv.jpg)
 `.trim();
 
-  // Single source (with #t= fragment), poster, no tracks.
+    // Single source (with #t= fragment), poster, no tracks.
     strictEqual(toMd(el(html)), expectedMd);
 
   });
@@ -780,7 +780,7 @@ caption
       </span>
     `.trim();
 
-    const expectedMd = `[caption](./Special:FilePath/This_image_does_not_exist_yet.jpg)`.trim();
+    const expectedMd = '[caption](./Special:FilePath/This_image_does_not_exist_yet.jpg)'.trim();
 
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -795,50 +795,50 @@ caption
       </span>
     `.trim();
 
-    const expectedMd = `[alt text](./Special:FilePath/This_image_does_not_exist_yet.jpg)`;
+    const expectedMd = '[alt text](./Special:FilePath/This_image_does_not_exist_yet.jpg)';
 
     strictEqual(toMd(el(html)), expectedMd);
   });
 
   test('wikilink with alternate text', () => {
     // [[Main Page|alternate linked content]]
-    const html = `<a rel="mw:WikiLink" href="./Main_Page">alternate linked content</a>`.trim();
-    const expectedMd = `[alternate linked content](./Main_Page)`;
+    const html = '<a rel="mw:WikiLink" href="./Main_Page">alternate linked content</a>'.trim();
+    const expectedMd = '[alternate linked content](./Main_Page)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
   test('wikilink with identical label', () => {
     // [[Main Page]]
-    const html = `<a rel="mw:WikiLink" href="./Main_Page">Main Page</a>`.trim();
-    const expectedMd = `[](./Main_Page)`;
+    const html = '<a rel="mw:WikiLink" href="./Main_Page">Main Page</a>'.trim();
+    const expectedMd = '[](./Main_Page)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
   test('wikilink with tail (plural)', () => {
     // [[Potato]]es
-    const html = `<a rel="mw:WikiLink" href="./Potato">Potatoes</a>`.trim();
-    const expectedMd = `[Potatoes](./Potato)`;
+    const html = '<a rel="mw:WikiLink" href="./Potato">Potatoes</a>'.trim();
+    const expectedMd = '[Potatoes](./Potato)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
   test('wikilink to non-existing page (red link)', () => {
     // [[Non existing page]]
-    const html = `<a href="./Non_existing_page?action=edit&amp;redlink=1" title="Non existing page" rel="mw:WikiLink" class="new" typeof="mw:LocalizedAttrs" data-mw-i18n='{"title":{"lang":"x-page","key":"red-link-title","params":["Non existing page"]}}'>Non existing page</a>`.trim();
-    const expectedMd = `[](./Non_existing_page?action=edit&redlink=1)`;
+    const html = '<a href="./Non_existing_page?action=edit&amp;redlink=1" title="Non existing page" rel="mw:WikiLink" class="new" typeof="mw:LocalizedAttrs" data-mw-i18n=\'{"title":{"lang":"x-page","key":"red-link-title","params":["Non existing page"]}}\'>Non existing page</a>'.trim();
+    const expectedMd = '[](./Non_existing_page?action=edit&redlink=1)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
   test('media link with default label', () => {
     // [[Media:Foo.jpg]]
-    const html = `<a rel="mw:MediaLink" href="//upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg" title="Foo.jpg">Media:Foo.jpg</a>`.trim();
-    const expectedMd = `[Media:Foo.jpg](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg)`;
+    const html = '<a rel="mw:MediaLink" href="//upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg" title="Foo.jpg">Media:Foo.jpg</a>'.trim();
+    const expectedMd = '[Media:Foo.jpg](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
   test('media link with alternate text', () => {
     // [[Media:Foo.jpg|Link text]]
-    const html = `<a rel="mw:MediaLink" href="//upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg" title="Foo.jpg">Link text</a>`.trim();
-    const expectedMd = `[Link text](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg)`;
+    const html = '<a rel="mw:MediaLink" href="//upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg" title="Foo.jpg">Link text</a>'.trim();
+    const expectedMd = '[Link text](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -956,7 +956,7 @@ caption
   test('Parsoid mw:Transclusion with template parameters', () => {
     // const wikiText = '{{foo|unused value|paramname=used value}}';
     // logPandocWtToMd(wikiText);
-    const html =`
+    const html = `
       <body prefix="mw: http://mediawiki.org/rdf/ mwns10: http://en.wikipedia.org/wiki/Template%58">
         <span typeof="mw:Transclusion" about="#mwt1" data-mw='{"parts": [{"template":{"target":{"wt":"foo","href":"./Template:Foo"},"params":{"1":{"wt":"unused value"},"paramname":{"wt":"used value"}},"i":0}}]}'>
           Some text content
@@ -982,13 +982,6 @@ Some text content
   });
 
   test('Parsoid mw:Annotation meta tags are ignored', () => {
-//     const wikiText = `
-// <translate>
-// One paragraph.
-
-// And another.
-// </translate>`.trim();
-
     const html = `
 <meta typeof="mw:Annotation/translate" data-mw='{"rangeId":"mwa0","extendedRange":false,"wtOffsets":[0,11]}'/>
 <p>One paragraph.</p>
@@ -1010,42 +1003,42 @@ And another.`.trim();
 
 // describe('MediaWiki Math rendering', () => {
 
-  // test('toHtml of <math>\\alpha</math>', () => {
-  //   // <math>\alpha</math>
-  //   const html = `
-  //     <math class="mwe-math-element mwe-math-element-inline" xmlns="http://www.w3.org/1998/Math/MathML">
-  //       <mrow data-mjx-texclass="ORD">
-  //         <mstyle displaystyle="true" scriptlevel="0">
-  //           <mi>α</mi>
-  //         </mstyle>
-  //       </mrow>
-  //     </math>`.trim();
-  //   const actual = toHtml(el(html));
-  //   const expected = `
-  //     <math xmlns="http://www.w3.org/1998/Math/MathML">
-  //       <mrow data-mjx-texclass="ORD">
-  //         <mstyle>
-  //           <mi>α</mi>
-  //         </mstyle>
-  //       </mrow>
-  //     </math>`.trim();
-  //   assertNodeEqual(actual, expected);
-  // });
+// test('toHtml of <math>\\alpha</math>', () => {
+//   // <math>\alpha</math>
+//   const html = `
+//     <math class="mwe-math-element mwe-math-element-inline" xmlns="http://www.w3.org/1998/Math/MathML">
+//       <mrow data-mjx-texclass="ORD">
+//         <mstyle displaystyle="true" scriptlevel="0">
+//           <mi>α</mi>
+//         </mstyle>
+//       </mrow>
+//     </math>`.trim();
+//   const actual = toHtml(el(html));
+//   const expected = `
+//     <math xmlns="http://www.w3.org/1998/Math/MathML">
+//       <mrow data-mjx-texclass="ORD">
+//         <mstyle>
+//           <mi>α</mi>
+//         </mstyle>
+//       </mrow>
+//     </math>`.trim();
+//   assertNodeEqual(actual, expected);
+// });
 
-  // test('toMd of math alpha', () => {
-  //   // <math>\alpha</math>
-  //   const html = `
-  //     <math class="mwe-math-element mwe-math-element-inline" xmlns="http://www.w3.org/1998/Math/MathML">
-  //       <mrow data-mjx-texclass="ORD">
-  //         <mstyle displaystyle="true" scriptlevel="0">
-  //           <mi>α</mi>
-  //         </mstyle>
-  //       </mrow>
-  //     </math>`.trim();
-  //   const actual = toMd(el(html));
-  //   const expected = '';
-  //   strictEqual(actual, expected);
-  // });
+// test('toMd of math alpha', () => {
+//   // <math>\alpha</math>
+//   const html = `
+//     <math class="mwe-math-element mwe-math-element-inline" xmlns="http://www.w3.org/1998/Math/MathML">
+//       <mrow data-mjx-texclass="ORD">
+//         <mstyle displaystyle="true" scriptlevel="0">
+//           <mi>α</mi>
+//         </mstyle>
+//       </mrow>
+//     </math>`.trim();
+//   const actual = toMd(el(html));
+//   const expected = '';
+//   strictEqual(actual, expected);
+// });
 
 //   test('toHtml math var alpha', () => {
 //     // {{math|<var>&alpha;</var>}}

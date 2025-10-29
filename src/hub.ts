@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // TODO: Add support for PRs and Discussions
 // TODO: Add support for auto-expanding long comment threads
 
@@ -54,11 +53,14 @@
  * - Canonical URL: link[rel="canonical"] is resolved against document.baseURI for absolute form.
  */
 
-import { h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript, htmlToElementK, htmlToElement, formatDateWithRelative } from './utils.js';
-import { toHtml as _toHtml, ToHtmlOptions, toMd as _toMd, ToMdElementHandler, ToMdContext } from './core.js';
+import {
+  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, htmlToElementK, htmlToElement, formatDateWithRelative,
+} from './utils.js';
+import type { ToHtmlContext, ToMdElementHandler, ToMdContext, ToHtmlElementHandler, Locator } from './core.js';
+import { toHtml as _toHtml, toMd as _toMd, pickEl, pickEls, pickVal } from './core.js';
 
 export type HubResult = {
-  permaLink: string;
+  permalink: string;
   title: string;
   posts: Post[];
 };
@@ -76,16 +78,23 @@ export type Contributor = {
   editor?: string;
 };
 
-type SectionId = 'permaLink' | 'title' | 'firstPost' | 'posts';
-type DomainId = 'issue' | 'pr' | 'disc' | 'all';
-type MapFn = (v: string, doc: Document, scope?: ParentNode) => string;
-type Locator = { sel: string; attr?: string; map?: MapFn };
-type ByDomain = Partial<Record<DomainId, Locator[]>>;
-type FieldSection = Record<string, ByDomain>;
+// function getLocators<S extends keyof Section>(section: keyof Section, field: keyof Section[S], domain: DomainId): Locator[] {
+//   // domain-first, then 'all'
+//   const foo = SCRAPERS[section][field];
+//   const byDomain = SCRAPERS[section][field][domain] ?? [];
+//   const byAll = SCRAPERS[section]?.[field]?.all ?? [];
+//   const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
+//   return specs;
+// }
 
-const SCRAPERS: { [S in SectionId]: FieldSection } = {
+type PageSection = 'permalink' | 'title' | 'firstPost' | 'posts';
+type SectionFields = Record<string, DomainLocators | undefined>;
+type DomainLocators = Partial<Record<DomainId, Locator[]>>;
+type DomainId = 'issue' | 'pr' | 'discussion' | 'all';
+
+const SCRAPERS: Record<PageSection, SectionFields> = {
   // scrapePermaUrl()
-  permaLink: {
+  permalink: {
     link: {
       all: [
         { sel: 'head > link[rel="canonical"]', attr: 'href' },
@@ -116,22 +125,24 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
       pr: [
         { sel: 'div[id^="issue-"] a.author', attr: 'textContent' },
       ],
-      disc: [
-        { sel: 'div[id^="discussion-"] a[data-hovercard-type="user"]', attr: 'href',
-          map: v => v.split('/').filter(Boolean).pop() || v },
+      discussion: [
+        {
+          sel: 'div[id^="discussion-"] a[data-hovercard-type="user"]', attr: 'href',
+          map: (v) => v.split('/').filter(Boolean).pop() || v,
+        },
       ],
     },
     postId: {
       issue: [
-          { 
-            sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"]',
-            attr: 'href', map: s => (s.includes('#') ? s.split('#')[1] : s),
-          },
-        ],
+        {
+          sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"]',
+          attr: 'href', map: (s) => (s.includes('#') ? s.split('#')[1] : s),
+        },
+      ],
       pr: [
         { sel: 'div[id^="issue-"]', attr: 'id' },
       ],
-      disc: [
+      discussion: [
         { sel: 'div[id^="discussion-"]', attr: 'id' },
       ],
     },
@@ -142,7 +153,7 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
       pr: [
         { sel: 'div[id^="issue-"] .timeline-comment-header relative-time', attr: 'datetime' },
       ],
-      disc: [
+      discussion: [
         { sel: 'div[id^="discussion-"] h2 relative-time', attr: 'datetime' },
       ],
     },
@@ -158,7 +169,7 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
       pr: [
         { sel: 'div[id^="issue-"] .comment-body' },
       ],
-      disc: [
+      discussion: [
         { sel: 'div[id^="discussion-"] .comment-body' },
       ],
     },
@@ -173,7 +184,7 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
       pr: [
         { sel: 'div[id^="issuecomment-"]' },
       ],
-      disc: [
+      discussion: [
         { sel: 'div[id^="discussioncomment-"]' },
       ],
     },
@@ -184,9 +195,11 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
       pr: [
         { sel: ':scope .timeline-comment-header a.author', attr: 'textContent' },
       ],
-      disc: [
-        { sel: ':scope a[data-hovercard-type="user"]', attr: 'href',
-          map: v => v.split('/').filter(Boolean).pop() || v },
+      discussion: [
+        {
+          sel: ':scope a[data-hovercard-type="user"]', attr: 'href',
+          map: (v) => v.split('/').filter(Boolean).pop() || v,
+        },
       ],
     },
     createdAt: {
@@ -196,7 +209,7 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
       pr: [
         { sel: ':scope .timeline-comment-header relative-time', attr: 'datetime' },
       ],
-      disc: [
+      discussion: [
         { sel: ':scope relative-time', attr: 'datetime' },
       ],
     },
@@ -207,7 +220,7 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
       pr: [
         { sel: ':scope', attr: 'id' },
       ],
-      disc: [
+      discussion: [
         { sel: ':scope', attr: 'id' },
       ],
     },
@@ -218,64 +231,24 @@ const SCRAPERS: { [S in SectionId]: FieldSection } = {
       pr: [
         { sel: ':scope .comment-body' },
       ],
-      disc: [
+      discussion: [
         { sel: ':scope .comment-body' },
       ],
     },
   },
-};
+} as const;
 
-function pickEl(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: Element): Element | undefined {
-    // domain-first, then 'all'
-  const byDomain = SCRAPERS[section]?.[field]?.[domain] ?? [];
-  const byAll = SCRAPERS[section]?.[field]?.all ?? [];
-  const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
-
-  for (const { sel } of specs) {
-    if (sel === ':scope') {
-      if (scope) return scope;
-      else continue;
-    }
-    const el = (scope ?? doc).querySelector(sel);
-    if (el) return el;
+function getLocators(section: PageSection, field: string, domain: DomainId): Locator[] {
+  // NOTE: we cheated with 'string' type to bypass TS checks, so let's
+  // check that field actually exists in SCRAPERS[section]
+  if (!(field in SCRAPERS[section])) {
+    console.warn(`getLocators: field "${field}" does not exist in SCRAPERS[${section}]`);
+    return [];
   }
-  return undefined;
-}
-
-function pickEls(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: Element): Element[] {
-    // domain-first, then 'all'
-  const byDomain = SCRAPERS[section]?.[field]?.[domain] ?? [];
-  const byAll = SCRAPERS[section]?.[field]?.all ?? [];
-  const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
-
-  for (const { sel } of specs) {
-    if (sel === ':scope') {
-      if (scope) return [scope];
-      else continue;
-    }
-    const els = (scope ?? doc).querySelectorAll(sel);
-    if (els.length > 0) return [...els];
-  }
-  return [];
-}
-
-function pickVal(doc: Document, section: SectionId, field: string, domain: DomainId, scope?: Element): string | undefined {
-    // domain-first, then 'all'
-  const byDomain = SCRAPERS[section]?.[field]?.[domain] ?? [];
-  const byAll = SCRAPERS[section]?.[field]?.all ?? [];
-  const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
-
-  for (const { sel, attr, map } of specs) {
-    const el = sel === ':scope' ? scope : (scope ?? doc).querySelector(sel);
-    if (!el) continue;
-    let val = attr === 'textContent' || attr === undefined // defaults to textContent
-      ? el.textContent?.trim() ?? undefined
-      : el.getAttribute(attr)?.trim() ?? undefined;
-    if (!val) continue;
-    val = map ? map(val, doc, scope).trim() : val;
-    if (val) return val;
-  }
-  return undefined;
+  const byDomain = SCRAPERS[section][field]?.[domain] ?? [];
+  const byAll = SCRAPERS[section][field]?.['all'] ?? [];
+  const locs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
+  return locs;
 }
 
 export function matchGithubUrl(str: string, withHash = false): string | null {
@@ -301,26 +274,28 @@ function detectDomain(str: string): Exclude<DomainId, 'all'> | undefined  {
   const u = new URL(str);
   if (u.pathname.includes('/pull/')) return 'pr';
   if (u.pathname.includes('/issues/')) return 'issue';
-  if (u.pathname.includes('/discussions/')) return 'disc';
+  if (u.pathname.includes('/discussions/')) return 'discussion';
 }
 
 function scrapePermaUrl(doc: Document): string | undefined {
-  const link = pickVal(doc, 'permaLink', 'link', 'all') ?? doc.baseURI;
+  const link = pickVal(getLocators('permalink', 'link', 'all'), doc) ?? doc.baseURI;
   const href = new URL(link, doc.baseURI).href;
   const detected = matchGithubUrl(href, false);
   if (detected) return detected;
 }
 
 function scrapeTitle(doc: Document, domain: DomainId): string | undefined {
-  const title = pickVal(doc, 'title', 'title', domain);
+  const title = pickVal(getLocators('title', 'title', domain), doc);
   return title;
 }
 
-function scrapeFirstPost(doc: Document, domain: DomainId): Post {
-  const author    = pickVal(doc, 'firstPost', 'author',    domain);
-  const postId    = pickVal(doc, 'firstPost', 'postId',    domain);
-  const createdAt = pickVal(doc, 'firstPost', 'createdAt', domain);
-  const editedBy  = pickVal(doc, 'firstPost', 'editedBy',  domain);
+function scrapeFirstPost(doc: Document, domain: DomainId): Post | undefined {
+  const author    = pickVal(getLocators('firstPost', 'author',    domain), doc);
+  const postId    = pickVal(getLocators('firstPost', 'postId',    domain), doc);
+  const createdAt = pickVal(getLocators('firstPost', 'createdAt', domain), doc);
+  const editedBy  = pickVal(getLocators('firstPost', 'editedBy',  domain), doc);
+
+  if (!author && !createdAt && !postId) return undefined;
 
   const contributor: Contributor = {
     author,
@@ -328,7 +303,7 @@ function scrapeFirstPost(doc: Document, domain: DomainId): Post {
     editor: editedBy,
   };
 
-  const bodyViewer = pickEl(doc, 'firstPost', 'bodyViewer', domain);
+  const bodyViewer = pickEl(getLocators('firstPost', 'bodyViewer', domain), doc);
   const bodyHtml   = bodyViewer ? toHtml(bodyViewer)?.outerHTML : undefined;
   const bodyMd     = bodyViewer ? toMd(bodyViewer) : undefined;
 
@@ -336,14 +311,14 @@ function scrapeFirstPost(doc: Document, domain: DomainId): Post {
 }
 
 function scrapePosts(doc: Document, domain: DomainId): Post[] {
-  const items = pickEls(doc, 'posts', 'items', domain);
+  const items = pickEls(getLocators('posts', 'items', domain), doc);
 
   const posts: Post[] = [];
   for (const item of items) {
-    const author    = pickVal(doc, 'posts', 'author',     domain, item);
-    const createdAt = pickVal(doc, 'posts', 'createdAt',  domain, item);
-    const postId    = pickVal(doc, 'posts', 'postId',     domain, item);
-    const bodyEl    = pickEl(doc,  'posts', 'bodyViewer', domain, item);
+    const author    = pickVal(getLocators('posts', 'author',     domain), doc, item);
+    const createdAt = pickVal(getLocators('posts', 'createdAt',  domain), doc, item);
+    const postId    = pickVal(getLocators('posts', 'postId',     domain), doc, item);
+    const bodyEl    =  pickEl(getLocators('posts', 'bodyViewer', domain), doc, item);
 
     const isComment = author || createdAt || bodyEl;
     if (!isComment) continue;
@@ -358,19 +333,19 @@ function scrapePosts(doc: Document, domain: DomainId): Post[] {
   return posts;
 }
 
-function shouldSkip(node: Node|null): boolean {
+function shouldSkip(node: Node | null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
   if (isText(node)) return false; // Text nodes are never skipped
 
   if (isElement(node)) {
-    const id = node.id || '';
-    const className = node.className || '';
-    const aType = node.getAttribute('type') || '';
+    // const id = node.id || '';
+    // const className = node.className || '';
+    // const aType = node.getAttribute('type') || '';
     const tagName = node.tagName.toUpperCase();
 
     if (tagName.includes('CLIPBOARD')) return true;
     if (node.matches('tool-bar, tool-tip')) return true;
-    if (['toolbar','tooltip'].includes(node.getAttribute('role') ?? '')) return true;
+    if (['toolbar', 'tooltip'].includes(node.getAttribute('role') ?? '')) return true;
 
     return false;
   }
@@ -380,70 +355,46 @@ function shouldSkip(node: Node|null): boolean {
 
 const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
   if (shouldSkip(node)) return { skip: true };
-  const tag = node.tagName.toUpperCase();
-  if (node.matches?.('td.comment-body')) {
+  if (node.matches('td.comment-body')) {
     const md = gc(node, 'block', 'normal');
     return { md };
   }
-  if (node.matches?.('em, i')) {
-    return { md:`_${gc(node, 'inline', 'normal')}_` }; // use _..._ rather than *...*
+  if (node.matches('em, i')) {
+    return { md: `_${gc(node, 'inline', 'normal')}_` }; // use _..._ rather than *...*
   }
-  if (node.matches?.('br')) return { md: '\n' }; // ???
+  if (node.matches('br')) return { md: '\n' }; // ???
   if (node.matches('input[type="checkbox"]')) {
     return { md: node.hasAttribute('checked') ? '[x] ' : '[ ] ' };
   }
-
-  if (node.matches?.('a.user-mention, a.issue-link')) {
+  if (node.matches('a.user-mention, a.issue-link')) {
     return { md: node.textContent ?? '' };
   }
-
-
-
-  // if (node.matches('ol, ul')) {
-  //   const startIndex = +(node.getAttribute('start') || '1');
-  //   const md = gc(node, 'list', 'normal', { os: startIndex }) + '\n\n';
-  //   return { md };
-  // }
-  // if (node.matches?.('ul, ol')) {
-  //   // Let core compute full list formatting (bullets, indentation, nested items)
-  //   let md = gc(node, 'list', 'normal');
-
-  //   // If this list sits at block scope (parent not LI), make sure there is a blank line after.
-  //   if (node.parentElement?.tagName.toUpperCase() !== 'LI') {
-  //     if (!/\n\n$/.test(md)) md = md.replace(/\n?$/, '\n\n');
-  //   }
-
-  //   return { md };
-  // }
 
   return {};
 };
 
 export function toMd(node: Node | null, ctx: Partial<ToMdContext> = {}): string {
-  return _toMd(node, { ...ctx, toMdElementHandler: toMdElemHandler });
+  return _toMd(node, { ...ctx, elementHandler: toMdElemHandler });
 }
-// export function toMd(node: Node|null) {
-//   return _toMd(node, { toMdElementHandler: toMdElemHandler });
-// }
 
-function toHtmlElemHandler(node:Element, _ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
+const toHtmlElemHandler: ToHtmlElementHandler = (node, _ctx) => {
   if (shouldSkip(node)) return { skip: true };
   if (!isElement(node)) throw new Error('toHtmlElemHandler called with non-element node');
 
   // td.comment-body => convert to div to avoid table context issues
-  if (node.matches?.('td.comment-body')) {
-    const tmp = toHtml(node, { ..._ctx, skipHandler: true }) as Element;
+  if (node.matches('td.comment-body')) {
+    const tmp = toHtml(node, { ..._ctx, skipCustomHandler: true }) as Element;
     const div = document.createElement('div');
     while (tmp.firstChild) div.appendChild(tmp.firstChild);
     return { node: div };
   }
 
   return {};
-}
+};
 
-export function toHtml(node: Element, opts?: ToHtmlOptions): Element | null;
-export function toHtml(node: Node | null, opts: ToHtmlOptions = {}): Node | null {
-  return _toHtml(node, { ...opts, toHtmlElementHandler: toHtmlElemHandler });
+export function toHtml(node: Element, opts?: Partial<ToHtmlContext>): Element | null;
+export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
+  return _toHtml(node, { ...opts, elementHandler: toHtmlElemHandler });
 }
 
 function buildPosts(data: HubResult, doc: Document): HTMLElement {
@@ -464,8 +415,8 @@ function buildPosts(data: HubResult, doc: Document): HTMLElement {
   return div;
 }
 
-function buildPostView(post:Post, viewMode:'html'|'md', doc:Document): HTMLDivElement {
-  const modes:Record<'html'|'md', { key:'bodyHtml'|'bodyMd'; class:string }> = {
+function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTMLDivElement {
+  const modes: Record<'html' | 'md', { key: 'bodyHtml' | 'bodyMd'; class: string; }> = {
     html: { key: 'bodyHtml', class: 'html-view' },
     md:   { key: 'bodyMd',   class: 'md-view'   },
   };
@@ -475,7 +426,7 @@ function buildPostView(post:Post, viewMode:'html'|'md', doc:Document): HTMLDivEl
     switch (viewMode) {
       case 'html': return htmlToElement(str, doc);
       case 'md': return str ?? null;
-      default: throw new Error(`Unknown mode: ${viewMode}`);
+      default: throw new Error(`Unknown mode: ${String(viewMode)}`);
     }
   }
 
@@ -499,7 +450,7 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
   const allPosts = pageData.posts;
 
   if (postIdx < -1 || postIdx >= allPosts.length) {
-    throw new Error('Invalid postIdx: ' + postIdx);
+    throw new Error(`Invalid postIdx: ${postIdx}`);
   }
 
   const isAll = postIdx === -1;
@@ -526,8 +477,8 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
     );
   }
 
-  if (pageData.title) copyArr.push(`Title: ${pageData.title ?? '(untitled)'}`);
-  const url = isAll ? pageData.permaLink : allPosts[postIdx].postId ? `${pageData.permaLink}#${allPosts[postIdx].postId}` : pageData.permaLink;
+  if (pageData.title) copyArr.push(`Title: ${pageData.title}`);
+  const url = isAll ? pageData.permalink : allPosts[postIdx].postId ? `${pageData.permalink}#${allPosts[postIdx].postId}` : pageData.permalink;
   if (url) copyArr.push(`URL: ${url}`);
 
   allPosts.forEach((post, idx) => {
@@ -547,20 +498,20 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
     copyArr.push('');
   });
 
-  const copyTxt = copyArr.join('\n').trimEnd() + '\n';
+  const copyTxt = `${copyArr.join('\n').trimEnd()}\n`;
   return createCopyButton(copyTxt, responseTxt, hintTxt);
 }
 
 export function extractFromDoc(root: Document = document): HubResult | undefined {
-  const permaLink = scrapePermaUrl(root);
-  if (!permaLink) {
+  const permalink = scrapePermaUrl(root);
+  if (!permalink) {
     console.debug('[extractFromDoc] No base URL found in the document');
     return;
   }
 
-  const domain = detectDomain(permaLink);
+  const domain = detectDomain(permalink);
   if (!domain) {
-    console.debug('[extractFromDoc] Unable to detect GitHub domain for', permaLink);
+    console.debug('[extractFromDoc] Unable to detect GitHub domain for', permalink);
     return;
   }
 
@@ -577,7 +528,7 @@ export function extractFromDoc(root: Document = document): HubResult | undefined
     ...others,
   ];
 
-  return { permaLink, title, posts };
+  return { permalink, title, posts };
 }
 
 export function createPage(pageData: HubResult, doc: Document): void {
@@ -588,11 +539,11 @@ export function createPage(pageData: HubResult, doc: Document): void {
   const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
   doc.body.appendChild(topBar);
 
-  if (pageData.permaLink) {
-    const permaLink = `<a href="${pageData.permaLink}">${pageData.permaLink}</a>`;
-    const permaLinkNode = htmlToElementK(permaLink, 'a', doc);
-    const permaLinkDiv = h('div', { class: 'perma-link' }, permaLinkNode);
-    doc.body.appendChild(permaLinkDiv);
+  if (pageData.permalink) {
+    const permalink = `<a href="${pageData.permalink}">${pageData.permalink}</a>`;
+    const permalinkNode = htmlToElementK(permalink, 'a', doc);
+    const permalinkDiv = h('div', { class: 'perma-link' }, permalinkNode);
+    doc.body.appendChild(permalinkDiv);
   }
 
   const viewToggle = createMultiToggle({

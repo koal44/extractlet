@@ -1,7 +1,9 @@
 // import { test } from 'node:test';
 import { test } from 'vitest';
 import { strictEqual } from 'node:assert';
-import { jaccardSimilarity, jaroWinklerSimilarity, levenshteinSimilarity, toKebabCase, toKebabCaseI18n, toPascalCase, toPascalCaseI18n } from '../../src/utils.js';
+import {
+  jaccardSimilarity, jaroWinklerSimilarity, levenshteinSimilarity, toKebabCase, toKebabCaseI18n, toPascalCase, toPascalCaseI18n,
+} from '../../src/utils.js';
 import { assertApproxEqual } from './test-utils.js';
 
 test('toKebabCase', () => {
@@ -200,22 +202,22 @@ test('toPascalCaseI18n', () => {
 
 test('Levenshtein, Jaro-Winkler, and Jaccard Similarity Tests', () => {
   const testPairs = [
-    { a:"Alpha", b:"Alpha", expected: { lev: 1.00, jw: 1.00, jac: 1.00 } },
-    { a:"Alpha", b:"alpha", expected: { lev: 0.80, jw: 0.87, jac: 1.00 } },
-    { a:"Alpha Beta", b:"Beta Alpha", expected: { lev: 0.20, jw: 0.53, jac: 1.00 } },
-    { a:"Alpha Beta", b:"AlphaBeta", expected: { lev: 0.90, jw: 0.98, jac: 0.00 } },
-    { a:"Alpha", b:"Alfa", expected: { lev: 0.60, jw: 0.83, jac: 0.00 } },
-    { a:"Beta", b:"Alpha", expected: { lev: 0.20, jw: 0.48, jac: 0.00 } },
-    { a:"Gamma-Ray", b:"Gamma Ray", expected: { lev: 0.89, jw: 0.96, jac: 0.00 } },
-    { a:"Hello world", b:"Hello  world", expected: { lev: 0.92, jw: 0.98, jac: 1.00 } },
-    { a:"Section 1", b:"Section 2", expected: { lev: 0.89, jw: 0.96, jac: 0.33 } },
-    { a:"Bold Heading", b:"'''Bold Heading'''", expected: { lev: 0.67, jw: 0.89, jac: 0.00 } },
-    { a:"The quick brown fox", b:"The quick brown fox jumps", expected: { lev: 0.76, jw: 0.95, jac: 0.80 } },
-    { a:"Heading", b:"heading", expected: { lev: 0.86, jw: 0.90, jac: 1.00 } },
-    { a:"Apple", b:"Pineapple", expected: { lev: 0.44, jw: 0.37, jac: 0.00 } },
-    { a:"Intro", b:"<ref>Intro</ref>", expected: { lev: 0.31, jw: 0.64, jac: 0.00 } },
-    { a:"Foo Bar", b:"Bar Foo", expected: { lev: 0.14, jw: 0.43, jac: 1.00 } },
-    { a:'', b:'', expected: { lev: 1, jw: 1, jac: 1 } },
+    { a: 'Alpha', b: 'Alpha', expected: { lev: 1.00, jw: 1.00, jac: 1.00 } },
+    { a: 'Alpha', b: 'alpha', expected: { lev: 0.80, jw: 0.87, jac: 1.00 } },
+    { a: 'Alpha Beta', b: 'Beta Alpha', expected: { lev: 0.20, jw: 0.53, jac: 1.00 } },
+    { a: 'Alpha Beta', b: 'AlphaBeta', expected: { lev: 0.90, jw: 0.98, jac: 0.00 } },
+    { a: 'Alpha', b: 'Alfa', expected: { lev: 0.60, jw: 0.83, jac: 0.00 } },
+    { a: 'Beta', b: 'Alpha', expected: { lev: 0.20, jw: 0.48, jac: 0.00 } },
+    { a: 'Gamma-Ray', b: 'Gamma Ray', expected: { lev: 0.89, jw: 0.96, jac: 0.00 } },
+    { a: 'Hello world', b: 'Hello  world', expected: { lev: 0.92, jw: 0.98, jac: 1.00 } },
+    { a: 'Section 1', b: 'Section 2', expected: { lev: 0.89, jw: 0.96, jac: 0.33 } },
+    { a: 'Bold Heading', b: '\'\'\'Bold Heading\'\'\'', expected: { lev: 0.67, jw: 0.89, jac: 0.00 } },
+    { a: 'The quick brown fox', b: 'The quick brown fox jumps', expected: { lev: 0.76, jw: 0.95, jac: 0.80 } },
+    { a: 'Heading', b: 'heading', expected: { lev: 0.86, jw: 0.90, jac: 1.00 } },
+    { a: 'Apple', b: 'Pineapple', expected: { lev: 0.44, jw: 0.37, jac: 0.00 } },
+    { a: 'Intro', b: '<ref>Intro</ref>', expected: { lev: 0.31, jw: 0.64, jac: 0.00 } },
+    { a: 'Foo Bar', b: 'Bar Foo', expected: { lev: 0.14, jw: 0.43, jac: 1.00 } },
+    { a: '', b: '', expected: { lev: 1, jw: 1, jac: 1 } },
   ];
 
   testPairs.forEach(({ a, b, expected }) => {

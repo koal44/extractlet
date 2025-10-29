@@ -15,7 +15,7 @@ import { EXTRACTED_DATA_STORAGE_PREFIX } from './constants';
   if (!isExtractedDataMessage(msg)) return console.error('Invalid message format:', msg);
   if (msg.type !== 'wikiResult') return console.error('Expected wikiResult, but received:', msg.type);
 
-  createPage(msg.result, document);
+  await createPage(msg.result, document);
 
 })().catch((error) => {
   console.error('Error in SE page script:', error);

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
+
 // declare module 'cssstyle' {
 //   export class CSSStyleDeclaration {
 //     [index: number]: string;
@@ -8,10 +10,16 @@
 //   }
 // };
 
-declare module "saxon-js" {
+declare module 'saxon-js' {
   const saxonJS: {
     transform: (...args: any[]) => any;  // (Optionally, you can expand as you learn the API)
     [key: string]: any;
   };
   export default saxonJS;
+}
+
+export declare global {
+  interface Window {
+    exampleRaw?: string;
+  }
 }

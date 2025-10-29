@@ -37,23 +37,19 @@
  * - Permalinks and raw URLs are in <head> as <link> tags, but structure differs slightly.
  */
 
-
-import { log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup, createCopyButton, copyButtonCss, warn, isHTML, isDoc, warnNull } from './utils.js';
-import { toHtml as _toHtml, toMd as _toMd, ToHtmlOptions, ToMdContext, ToMdElementHandler } from './core.js';
+import {
+  log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup, createCopyButton, copyButtonCss, warn, isHTML, isDoc, warnNull,
+} from './utils.js';
+import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from './core.js';
+import { toHtml as _toHtml, toMd as _toMd } from './core.js';
 
 export type WikiResult = {
   baseUrl: string; // Base URL of the wiki page
   rawUrl: string; // Raw URL of the wiki page
-  data: WikiNode|null; // The WikiNode tree representing the page structure
+  data: WikiNode | null; // The WikiNode tree representing the page structure
 }
 
-declare global {
-  interface Window {
-    exampleRaw?: string;
-  }
-}
-
-function shouldSkip(node: Node|null): boolean {
+function shouldSkip(node: Node | null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
   if (isText(node)) return false; // Text nodes are never ignored
 
@@ -62,10 +58,9 @@ function shouldSkip(node: Node|null): boolean {
     if (['META', 'STYLE', 'LINK'].includes(tag)) return true;
     // const id = node.id || '';
     // const aType = node.getAttribute('type') || '';
-    
-    const classList = node.classList || [];
-    if (classList.contains('cite-accessibility-label')) return true;
-    if (classList.contains('mw-empty-elt')) return true;
+
+    if (node.classList.contains('cite-accessibility-label')) return true;
+    if (node.classList.contains('mw-empty-elt')) return true;
 
     if (isHTML(node)) {
       if (node.style.display === 'none') return true;
@@ -85,7 +80,7 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, _gc) => {
   //   log('typeof mw:Entity', node, node.textContent, node.innerHTML);
   //   return { md };
   // }
-  
+
   // const tag = node.tagName.toUpperCase();
   // if (tag === 'FIGURE') {
   //   const captionNode = node.querySelector('figcaption');  // case sensitive??
@@ -108,11 +103,11 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, _gc) => {
   return {};
 };
 
-export function toMd(node: Node|null, ctx: Partial<ToMdContext> = {}): string {
-  return _toMd(node, { ...ctx, toMdElementHandler: toMdElemHandler });
+export function toMd(node: Node | null, opts: Partial<ToMdContext> = {}): string {
+  return _toMd(node, { ...opts, elementHandler: toMdElemHandler });
 }
 
-function toHtmlElemHandler(node:Element, ctx:ToHtmlOptions): { skip?: boolean; node?: Node } {
+const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
   if (shouldSkip(node)) return { skip: true };
   if (node.nodeType !== Node.ELEMENT_NODE) throw new Error('toHtmlElemHandler called with non-element node'); // shouldn't happen
 
@@ -121,17 +116,17 @@ function toHtmlElemHandler(node:Element, ctx:ToHtmlOptions): { skip?: boolean; n
 
   if (isSpan(node)) {
     if (node.classList.contains('mwe-math-element')) {
-      const img = node.querySelector('img.mwe-math-fallback-image-inline') as HTMLImageElement|null;
+      const img = node.querySelector<HTMLImageElement>('img.mwe-math-fallback-image-inline');
       if (!img) return { skip: true };
       clone = toHtml(img) as HTMLImageElement;
       clone.style.verticalAlign = img.style.verticalAlign;
       return { node: clone };
     }
     if (node.classList.contains('mvar') || node.classList.contains('texhtml')) {
-      const keepStyles = node.classList.contains('texhtml')
+      const allowStyles = node.classList.contains('texhtml')
         ? new Set(['display', 'margin-bottom', 'vertical-align', 'line-height', 'font-size', 'text-align', 'white-space'])
-        : ctx.keepStyles;
-      clone = toHtml(node, { ...ctx, skipHandler: true, keepStyles }) as HTMLSpanElement;
+        : ctx.allowStyles;
+      clone = toHtml(node, { ...ctx, skipCustomHandler: true, allowStyles: allowStyles }) as HTMLSpanElement;
       if (node.classList.contains('mvar')) clone.classList.add('mvar');
       if (node.classList.contains('texhtml')) clone.classList.add('texhtml');
       return { node: clone };
@@ -139,33 +134,33 @@ function toHtmlElemHandler(node:Element, ctx:ToHtmlOptions): { skip?: boolean; n
   }
 
   if (isListItem(node) && node.id.startsWith('cite_note-')) {
-    clone = toHtml(node, { ...ctx, skipHandler: true }) as HTMLLIElement;
+    clone = toHtml(node, { ...ctx, skipCustomHandler: true }) as HTMLLIElement;
     clone.id = node.id; // preserve the ID for references
   }
 
   if (isSup(node) && node.classList.contains('reference') && node.id.startsWith('cite_ref-')) {
-    clone = toHtml(node, { ...ctx, skipHandler: true }) as HTMLElement;
+    clone = toHtml(node, { ...ctx, skipCustomHandler: true }) as HTMLElement;
     clone.id = node.id; // preserve the ID for references
   }
 
   return { skip, node: clone };
-}
+};
 
-export function toHtml(node: Node|null, opts: ToHtmlOptions = {}): Node|null {
-  return _toHtml(node, { ...opts, toHtmlElementHandler: toHtmlElemHandler });
+export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
+  return _toHtml(node, { ...opts, elementHandler: toHtmlElemHandler });
 }
 
 export class WikiNode {
   title: string; // Title of this section
   level: number; // 1 = <h1>, 2 = <h2>, etc.
   sectionNum: number; // Section number, starting from 0 (root section is 0)
-  html: HTMLDivElement|null; // HTML content of this section
-  htmlStr: string|null; // Used during serialization
+  html: HTMLDivElement | null; // HTML content of this section
+  htmlStr: string | null; // Used during serialization
   md: string; // Markdown content of this section
   raw: string; // Raw text content of this section
   children: WikiNode[]; // Child sections
 
-  constructor(title:string, level:number, sectionNum:number) {
+  constructor(title: string, level: number, sectionNum: number) {
     this.title = title;
     this.level = level;
     this.sectionNum = sectionNum;
@@ -176,7 +171,7 @@ export class WikiNode {
     this.children = [];
   }
 
-  static buildFromHTML(root:Document|HTMLElement): WikiNode|null {
+  static buildFromHTML(root: Document | HTMLElement): WikiNode | null {
     const title = root.querySelector('h1#firstHeading')?.textContent?.trim() ?? '';
     if (!title) return warnNull('No title found in the provided root element');
 
@@ -186,7 +181,7 @@ export class WikiNode {
     const rootNode = currentNode;
 
     for (const htmlNode of root.querySelector('div#mw-content-text > div.mw-parser-output')?.children ?? []) {
-      const firstChild = htmlNode.children?.[0];
+      const firstChild = htmlNode.children[0];
 
       if (isDiv(htmlNode) && isHeading(firstChild)) {
         const level = parseInt(firstChild.tagName[1]);
@@ -223,18 +218,18 @@ export class WikiNode {
     return rootNode;
   }
 
-  static buildFromParsoidHTML(root:Document|Element): WikiNode|null {
+  static buildFromParsoidHTML(root: Document | Element): WikiNode | null {
     let childElems: Element[] = [];
-    let curWikiNode: WikiNode|null = null;
+    let curWikiNode: WikiNode | null = null;
 
     if (isDoc(root)) {
       const sect0 = root.querySelector('section[data-mw-section-id="0"]');
       if (!sect0) return warnNull('No section[data-mw-section-id="0"] found in the provided document');
       const title = root.querySelector('head > title')?.textContent?.trim() ?? '';
       if (!title) return warnNull('No title found in the provided document');
-      
+
       curWikiNode = new WikiNode(title, 1, 0);
-      const bodyChildren = [...root.body.children].filter(el => el !== sect0);
+      const bodyChildren = [...root.body.children].filter((el) => el !== sect0);
       childElems = [...bodyChildren, ...sect0.children];
     } else {
       const firstElem = root.firstElementChild;
@@ -247,7 +242,7 @@ export class WikiNode {
       if (!sectionId) return warnNull('No data-mw-section-id found in the section element');
 
       curWikiNode = new WikiNode(title, +level, +sectionId);
-      const sectChildren = [...root.children].filter(el => el !== heading);
+      const sectChildren = [...root.children].filter((el) => el !== heading);
       childElems = sectChildren;
     }
 
@@ -274,11 +269,11 @@ export class WikiNode {
     node.htmlStr = pojo.htmlStr;
     node.md = pojo.md;
     node.raw = pojo.raw;
-    node.children = (pojo.children || []).map(WikiNode.fromPojo);
+    node.children = pojo.children.map((c) => WikiNode.fromPojo(c));
     return node;
   }
 
-  addChild(section:WikiNode|null) {
+  addChild(section: WikiNode | null) {
     if (section !== null) this.children.push(section);
   }
 
@@ -296,15 +291,15 @@ export class WikiNode {
     return null;
   }
 
-  getNodeBySection(section:number) {
-    return this.find(n => n.sectionNum === section);
+  getNodeBySection(section: number) {
+    return this.find((n) => n.sectionNum === section);
   }
 
-  getNodeByTitle(title:string) {
-    return this.find(n => n.title === title);
+  getNodeByTitle(title: string) {
+    return this.find((n) => n.title === title);
   }
 
-  getLastNodeByLevel(level:number): WikiNode|null {
+  getLastNodeByLevel(level: number): WikiNode | null {
     if (this.level === level) return this;
     for (let i = this.children.length - 1; i >= 0; i--) {
       const found = this.children[i].getLastNodeByLevel(level);
@@ -327,7 +322,7 @@ export class WikiNode {
       console.warn(`[WikiNode.serialize] No html for section "${this.title}" (H${this.level}) [§${this.sectionNum}]`);
       return; // nothing to serialize
     }
-    this.htmlStr = this.html?.outerHTML ?? '';
+    this.htmlStr = this.html.outerHTML;
     this.html = null;
     for (const child of this.children) {
       child.serialize();
@@ -351,8 +346,8 @@ export class WikiNode {
   }
 }
 
-export function parseRawIntoSections(rawText: string): {level:number, sectionNum:number, title:string, raw:string}[] {
-  const sections: {level:number, sectionNum:number, title:string, raw:string}[] = [];
+export function parseRawIntoSections(rawText: string): {level: number; sectionNum: number; title: string; raw: string;}[] {
+  const sections: {level: number; sectionNum: number; title: string; raw: string;}[] = [];
   const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1(?:\s*<!--.*?-->)*\s*$/gm;
 
   let match;
@@ -374,7 +369,7 @@ export function parseRawIntoSections(rawText: string): {level:number, sectionNum
 export function populateWikiNodeWithRaw(
   root: WikiNode,
   rawText: string,
-  opts: { similarityFn?: (a: string, b: string) => number } = {}
+  opts: { similarityFn?: (a: string, b: string) => number; } = {}
 ) {
   const similarityFn = opts.similarityFn || jaroWinklerSimilarity;
   const nodes = [...root];
@@ -411,13 +406,13 @@ export function populateWikiNodeWithRaw(
     nodes.splice(bestPair.ni, 1);
     sections.splice(bestPair.si, 1);
   }
-  if (nodes.length) console.warn(`Unmatched nodes: ${nodes.map(n => `${n.title} (H${n.level}) [§${n.sectionNum}]`).join(', ')}`);
-  if (sections.length) console.warn(`Unmatched sections: ${sections.map(s => `${s.title} (H${s.level}) [§${s.sectionNum}]`).join(', ')}`);
+  if (nodes.length) console.warn(`Unmatched nodes: ${nodes.map((n) => `${n.title} (H${n.level}) [§${n.sectionNum}]`).join(', ')}`);
+  if (sections.length) console.warn(`Unmatched sections: ${sections.map((s) => `${s.title} (H${s.level}) [§${s.sectionNum}]`).join(', ')}`);
 }
 
 function renderHtml(node: WikiNode): HTMLDivElement {
   const copyText = node.html?.outerHTML || ''; // TODO: use node.md!! node.html is only for dev
-  const copyBtn = createCopyButton(copyText, "Copied HTML!");
+  const copyBtn = createCopyButton(copyText, 'Copied HTML!');
   const titleElem = h(`h${node.level}`, { class: 'html-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
   const container = h('div', { class: 'html-wikinode-section' }, titleBar) as HTMLDivElement;
@@ -431,7 +426,7 @@ function renderHtml(node: WikiNode): HTMLDivElement {
 }
 
 function renderMd(node: WikiNode): HTMLDivElement {
-  const copyBtn = createCopyButton(node.getFullMd(), "Copied Markdown!");
+  const copyBtn = createCopyButton(node.getFullMd(), 'Copied Markdown!');
   const titleElem = h(`h${node.level}`, { class: 'md-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
   const container = h('div', { class: 'md-wikinode-section' }, titleBar) as HTMLDivElement;
@@ -447,7 +442,7 @@ function renderMd(node: WikiNode): HTMLDivElement {
 }
 
 function renderRaw(node: WikiNode): HTMLDivElement {
-  const copyBtn = createCopyButton(node.raw, "Copied Wikitext!");
+  const copyBtn = createCopyButton(node.raw, 'Copied Wikitext!');
   const titleElem = h(`h${node.level}`, { class: 'raw-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
   const container = h('div', { class: 'raw-wikinode-section' }, titleBar) as HTMLDivElement;
@@ -475,20 +470,20 @@ function renderRaw(node: WikiNode): HTMLDivElement {
   }
 }
 
-function getPermaUrl(doc: Document): string|null {
+function getPermaUrl(doc: Document): string | null {
   // classic pages
-  const canonical = doc.querySelector('head > link[rel="canonical"]') as HTMLLinkElement|null;
+  const canonical = doc.querySelector<HTMLLinkElement>('head > link[rel="canonical"]');
   if (canonical) return new URL(canonical.href, doc.baseURI).href;
 
   // parsoid pages
-  const dcLink = doc.querySelector('head > link[rel="dc:isVersionOf"]') as HTMLLinkElement|null;
+  const dcLink = doc.querySelector<HTMLLinkElement>('head > link[rel="dc:isVersionOf"]');
   if (dcLink) return new URL(dcLink.href, doc.baseURI).href;
 
   return null;
 }
 
 function getRawUrl(root: Document, baseUrl: string): string {
-  const altLink = root.querySelector('link[rel="alternate"][type="application/x-wiki"]') as HTMLLinkElement|null;
+  const altLink = root.querySelector<HTMLLinkElement>('link[rel="alternate"][type="application/x-wiki"]');
   let rawUrl = altLink?.href.includes('action=edit')
     ? altLink.href.replace(/action=edit$/, 'action=raw')
     : '';
@@ -502,7 +497,7 @@ function getRawUrl(root: Document, baseUrl: string): string {
   return rawUrl;
 }
 
-export function normalizeWikitext(raw:string): string {
+export function normalizeWikitext(raw: string): string {
   // Remove bold/italic
   raw = raw.replace(/'''/g, '').replace(/''/g, '');
 
@@ -538,14 +533,14 @@ async function fetchRawPage(rawUrl: string): Promise<string> {
   }
 }
 
-export async function extractFromDoc(root: Document = document): Promise<WikiResult|undefined> {
+export function extractFromDoc(root: Document = document): WikiResult | undefined {
   const permaUrl = getPermaUrl(root);
   if (!permaUrl) {
     console.warn('[extractFromDoc] No base URL found in the document');
     return;
   }
   const rawUrl = getRawUrl(root, permaUrl);
-  
+
   const isParsoidPage = root.querySelector('head > meta[property="mw:htmlVersion"]') !== null;
   const tree = isParsoidPage ? WikiNode.buildFromParsoidHTML(root) : WikiNode.buildFromHTML(root);
 
@@ -571,7 +566,7 @@ function getCopyPreamble(url: string): string {
   return copyArr.join('\n');
 }
 
-export async function createPage(result: WikiResult, doc:Document): Promise<void> {
+export async function createPage(result: WikiResult, doc: Document): Promise<void> {
   injectCss(multiToggleCss, { id: 'wiki-multi-toggle', doc });
   injectCss(copyButtonCss, { id: 'wiki-copy-button', doc });
 
@@ -603,39 +598,39 @@ export async function createPage(result: WikiResult, doc:Document): Promise<void
       getCopyAllHint: () => string;
     }> =
     {
-    html: {
-      label: 'HTML',
-      showClass: 'show-html',
-      idPrefix: 'html-section-',
-      observeClass: 'html-wikinode-title',
-      containerClass: 'html-view',
-      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map(n => n.getFullMd()).join('\n\n')}`,
-      getCopyAllResponse: () => 'Copied all sections as Markdown!',
-      getCopyAllHint: () => 'Copy all sections as Markdown',
-    },
-    md: {
-      label: 'Markdown',
-      showClass: 'show-md',
-      idPrefix: 'md-section-',
-      observeClass: 'md-wikinode-title',
-      containerClass: 'md-view',
-      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map(n => n.getFullMd()).join('\n\n')}`,
-      getCopyAllResponse: () => 'Copied all sections as Markdown!',
-      getCopyAllHint: () => 'Copy all sections as Markdown',
-    },
-    raw: {
-      label: 'Wikitext',
-      showClass: 'show-raw',
-      idPrefix: 'raw-section-',
-      observeClass: 'raw-wikinode-title',
-      containerClass: 'raw-view',
-      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map(n => n.raw).join('\n\n')}`,
-      getCopyAllResponse: () => 'Copied all sections as Wikitext!',
-      getCopyAllHint: () => 'Copy all sections as Wikitext',
-    },
-  };
+      html: {
+        label: 'HTML',
+        showClass: 'show-html',
+        idPrefix: 'html-section-',
+        observeClass: 'html-wikinode-title',
+        containerClass: 'html-view',
+        getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map((n) => n.getFullMd()).join('\n\n')}`,
+        getCopyAllResponse: () => 'Copied all sections as Markdown!',
+        getCopyAllHint: () => 'Copy all sections as Markdown',
+      },
+      md: {
+        label: 'Markdown',
+        showClass: 'show-md',
+        idPrefix: 'md-section-',
+        observeClass: 'md-wikinode-title',
+        containerClass: 'md-view',
+        getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map((n) => n.getFullMd()).join('\n\n')}`,
+        getCopyAllResponse: () => 'Copied all sections as Markdown!',
+        getCopyAllHint: () => 'Copy all sections as Markdown',
+      },
+      raw: {
+        label: 'Wikitext',
+        showClass: 'show-raw',
+        idPrefix: 'raw-section-',
+        observeClass: 'raw-wikinode-title',
+        containerClass: 'raw-view',
+        getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map((n) => n.raw).join('\n\n')}`,
+        getCopyAllResponse: () => 'Copied all sections as Wikitext!',
+        getCopyAllHint: () => 'Copy all sections as Wikitext',
+      },
+    };
 
-  let currentSectionNum: number|null = null;
+  let currentSectionNum: number | null = null;
   let currentView: ViewKey = 'html';
 
   const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · Wiki');
@@ -647,25 +642,25 @@ export async function createPage(result: WikiResult, doc:Document): Promise<void
   const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
   doc.body.appendChild(topBar);
 
-  const permaLink = h('a', { href: baseUrl, target: '_blank', class: 'perma-link' }, baseUrl);
-  doc.body.appendChild(permaLink);
+  const permalink = h('a', { href: baseUrl, target: '_blank', class: 'perma-link' }, baseUrl);
+  doc.body.appendChild(permalink);
 
   const viewToggle = createMultiToggle({
     initState: viewKeys.indexOf(currentView),
-    labels: viewKeys.map(vk => views[vk].label),
+    labels: viewKeys.map((vk) => views[vk].label),
     labelSide: 'right',
     onToggle: (state) => {
       const prevView = views[currentView];
       currentView = viewKeys[state];
 
       // Determine visible section in previous view
-      const toggleBar = doc.querySelector('.view-toggle') as HTMLElement | null;
-      if (!toggleBar) return warn("Toggle bar (.view-toggle) not found: UI may not be fully rendered.");
+      const toggleBar = doc.querySelector<HTMLElement>('.view-toggle');
+      if (!toggleBar) return warn('Toggle bar (.view-toggle) not found: UI may not be fully rendered.');
 
       const focusLine = toggleBar.getBoundingClientRect().bottom + 10;
 
       const headings = doc.querySelectorAll(`.${prevView.observeClass}`);
-      if (headings.length === 0) return warn(`No headings found with class ${prevView.observeClass}. View state: ${currentView}.`); 
+      if (headings.length === 0) return warn(`No headings found with class ${prevView.observeClass}. View state: ${currentView}.`);
 
       let bestHeading: HTMLElement | null = null;
       let bestDelta = Infinity;
@@ -679,21 +674,21 @@ export async function createPage(result: WikiResult, doc:Document): Promise<void
         }
       }
 
-      if (!bestHeading) return warn("No bestHeading found despite non-empty headings list. Possible DOM error.");
+      if (!bestHeading) return warn('No bestHeading found despite non-empty headings list. Possible DOM error.');
       const titlebar = bestHeading.parentElement;
-      if (!titlebar || !isDiv(titlebar)) return warn("Best heading's parent is not a div. Possible DOM structure change.");
+      if (!titlebar || !isDiv(titlebar)) return warn('Best heading\'s parent is not a div. Possible DOM structure change.');
       const sectionDiv = titlebar.parentElement;
-      if (!sectionDiv || !isDiv(sectionDiv)) return warn("Best heading's grandparent is not a div. Possible DOM structure change.");
-      const activeSectionNum = sectionDiv.id?.match(/-(\d+)$/)?.[1];
-      if (!activeSectionNum) return warn("Active section number not found in sectionDiv ID:", sectionDiv.id, sectionDiv);
-      const mainContainer = doc.querySelector(`.${prevView.containerClass}`) as HTMLElement | null;
+      if (!sectionDiv || !isDiv(sectionDiv)) return warn('Best heading\'s grandparent is not a div. Possible DOM structure change.');
+      const activeSectionNum = sectionDiv.id.match(/-(\d+)$/)?.[1];
+      if (!activeSectionNum) return warn('Active section number not found in sectionDiv ID:', sectionDiv.id, sectionDiv);
+      const mainContainer = doc.querySelector<HTMLElement>(`.${prevView.containerClass}`);
       if (!mainContainer) return warn(`Main container not found with class ${prevView.containerClass}. Possible DOM structure change.`);
-      const isPreambleActive = mainContainer ? mainContainer.getBoundingClientRect().top > focusLine : false;
+      const isPreambleActive = mainContainer.getBoundingClientRect().top > focusLine;
       currentSectionNum = !isPreambleActive ? +activeSectionNum : null;
 
       // Switch view
       const nextView = views[currentView];
-      doc.body.classList.remove(...viewKeys.map(vk => views[vk].showClass));
+      doc.body.classList.remove(...viewKeys.map((vk) => views[vk].showClass));
       doc.body.classList.add(nextView.showClass);
 
       // Scroll to equivalent section

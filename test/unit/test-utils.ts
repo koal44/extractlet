@@ -1,6 +1,8 @@
 import { JSDOM } from 'jsdom';
 import { strictEqual } from 'node:assert';
-import { escapeHtml, isElement, isHTML, isNode, isText, log } from '../../src/utils';
+import {
+  escapeHtml, isElement, isHTML, isNode, isText, log,
+} from '../../src/utils';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -9,10 +11,13 @@ export function setupDom() {
   const dom = new JSDOM();
 
   // add global.Node, global.document, global.HTMLDivElement, etc.
-  for (const prop of Object.getOwnPropertyNames(dom.window)) {
+  for (const prop of Reflect.ownKeys(dom.window)) {
     if (prop in globalThis) continue;
+    const desc = Object.getOwnPropertyDescriptor(dom.window, prop);
+    if (!desc) continue;
     try {
-      (globalThis as any)[prop] = (dom.window as any)[prop];
+      Reflect.defineProperty(globalThis, prop, desc);
+      // globalThis[prop] = dom.window[prop]; -- works, just not lint friendly
     } catch {
       // Ignore properties that cannot be set
     }
@@ -37,14 +42,14 @@ export function mathEl(html: string): MathMLElement {
   return el(html) as MathMLElement;
 }
 
-export function assertNodeEqual(actual:Node|string|null, expected:Node|string|null) {
+export function assertNodeEqual(actual: Node | string | null, expected: Node | string | null) {
   const actualHtml = htmlify(actual); //.replace(/\s+/g, '');
   const expectedHtml = htmlify(expected); //.replace(/\s+/g, '');
 
   strictEqual(actualHtml, expectedHtml);
 }
 
-export function htmlify(el: Node|string|null|undefined): string {
+export function htmlify(el: Node | string | null | undefined): string {
   if (el === null || el === undefined) return '';
   if (typeof el === 'string') return el;
   if (isElement(el)) {
@@ -64,7 +69,7 @@ export function htmlify(el: Node|string|null|undefined): string {
           if (isHTML(el) && el.style.length > 0) {
             val = Array.from(el.style)
               .sort()
-              .map(k => `${k}: ${el.style.getPropertyValue(k)};`)
+              .map((k) => `${k}: ${el.style.getPropertyValue(k)};`)
               .join(' ');
           }
           break;
@@ -74,8 +79,8 @@ export function htmlify(el: Node|string|null|undefined): string {
 
       attrs.push(`${name}="${val}"`);
     }
-    const attrString = attrs.length ? ' ' + attrs.join(' ') : '';
-    const children = [...el.childNodes].map(child => htmlify(child)).join('');
+    const attrString = attrs.length ? ` ${attrs.join(' ')}` : '';
+    const children = [...el.childNodes].map((child) => htmlify(child)).join('');
     return `<${tag}${attrString}>${children}</${tag}>`;
   }
   if (isText(el)) {
@@ -87,9 +92,9 @@ export function htmlify(el: Node|string|null|undefined): string {
   return String(el);
 }
 
-export function assertApproxEqual(actual:number, expected:number, tolerance = 0.001, message = '') {
+export function assertApproxEqual(actual: number, expected: number, tolerance = 0.001, message = '') {
   if (Math.abs(actual - expected) > tolerance) {
-    throw new Error(`Expected a:'${actual}' ≈ e:'${expected}' (±${tolerance})${message ? ': ' + message : ''}`);
+    throw new Error(`Expected a:'${actual}' ≈ e:'${expected}' (±${tolerance})${message ? `: ${message}` : ''}`);
   }
 }
 
@@ -103,19 +108,19 @@ function pandocAvailable(): void {
 
 export function logPandocHtmlToMd(input: string): void {
   pandocAvailable();
-  if (process?.env?.PANDOC !== 'true') return;
+  if (process.env.PANDOC !== 'true') return;
 
   const mdFlavors = ['markdown']; //, 'markdown_phpextra', 'markdown_mmd', 'markdown_strict', 'commonmark', 'gfm', 'commonmark_x'];
   log(`[${logPandocHtmlToMd.name}]\n--- Input ---\n${input}\n\n`, { jsonifyStrings: false });
   for (const flavor of mdFlavors) {
-    const out = execSync(`pandoc -f html -t markdown`, { input }).toString();
+    const out = execSync('pandoc -f html -t markdown', { input }).toString();
     log(`--- Output ${flavor} ---\n${out}`, { jsonifyStrings: false });
   }
 }
 
 export function logPandocWtToMd(input: string): void {
   pandocAvailable();
-  if (process?.env?.PANDOC !== 'true') return;
+  if (process.env.PANDOC !== 'true') return;
 
   const mdFlavors = ['markdown']; // 'markdown_phpextra', 'markdown_mmd', 'markdown_strict', 'commonmark', 'gfm', 'commonmark_x'];
   log(`[${logPandocWtToMd.name}]\n--- Input ---\n${input}\n\n`, { jsonifyStrings: false });

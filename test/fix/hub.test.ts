@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { extractFromDoc } from '../../src/hub';
+import { extractFromDoc, HubResult } from '../../src/hub';
 import { loadFixtureDoc, setupDom } from '../unit/test-utils';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, basename, extname } from 'node:path';
-import util from "util";
-// import { dumpSkeleton } from '../utils/dump-skeleton';
+import util from 'util';
+import { pathToFileURL } from 'node:url';
 
-// let console.log print objects more deeply
+// allow console.log print objects more deeply
 util.inspect.defaultOptions = { depth: 4, colors: true };
 
 // Bookmarklet to save GitHub fixture. Broswer `save as` unreliable (missing posts and JS reload hid them).
@@ -31,51 +31,50 @@ setupDom();
 type HubFixtureCase = {
   name: string;
   htmlPath: string;
-  metaPath: string;
+  sidePath: string;
   html: string;
   baseUrl: string;
-  expect: {
-    permalink?: string;
-    title?: string;
+  expect: Partial<HubResult> & {
     totalPosts?: number;
-    posts?: {
-      author?: string;
-      date?: string;
-      postId?: string;
-      bodyHtml?: string;
-      bodyMd?: string;
-    }[];
   };
 };
 
-function loadHubFixtures(dir: string): HubFixtureCase[] {
-  const files = readdirSync(dir).filter(f => f.endsWith('.html'));
+export type SideCar = Pick<HubFixtureCase, 'baseUrl' | 'expect'>;
+
+async function loadHubFixtures(dir: string) {
+  const files = readdirSync(dir).filter((f) => f.endsWith('.html'));
   const cases: HubFixtureCase[] = [];
   for (const f of files) {
     const name = basename(f, extname(f));
     const htmlPath = join(dir, f);
-    const metaPath = join(dir, `${name}.expect.json`);
-    const html = readFileSync(htmlPath, 'utf8');
-    if (!existsSync(metaPath)) {
-      console.warn(`[hub:fixtures] Skipping "${name}": missing sidecar ${metaPath}`);
+    const sidePath = join(dir, `${name}.expect.ts`);
+    if (!existsSync(sidePath)) {
+      console.warn(`[hub:fixtures] Skipping "${name}": missing sidecar ${sidePath}`);
       continue;
     }
-    const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
+
+    const html = readFileSync(htmlPath, 'utf8');
+
+    const { default: meta } =
+      (await import(pathToFileURL(sidePath).href)) as { default: SideCar; };
+    if (!meta.baseUrl) throw new Error(`Fixture ${name} missing baseUrl in ${sidePath}`);
+
     cases.push({
-      name, htmlPath, metaPath, html,
+      name, htmlPath, sidePath, html,
       baseUrl: meta.baseUrl,
-      expect: meta.expect ?? {},
+      expect: meta.expect,
     });
   }
   return cases;
 }
-function _getDoc(fix: string, domain: 'issues'|'pull'|'discussions') {
-  const FOOBAR = `https://github.com/foo/bar/${domain}/1234`;
-  const doc = loadFixtureDoc(fix, { baseUrl: FOOBAR });
-  return doc;
-}
 
-function _logFix(fix: string, domain: 'issues'|'pull'|'discussions', limit = 70) {
+function _logFix(fix: string, limit = 70) {
+  const domain: 'issues' | 'pull' | 'discussions'
+    = fix.startsWith('issue') ? 'issues'
+    : fix.startsWith('pull') ? 'pull'
+    : fix.startsWith('disc') ? 'discussions'
+    : (() => { throw new Error(`Unknown fix type for ${fix}`); })();
+
   const FOOBAR = `https://github.com/foo/bar/${domain}/1234`;
   const doc = loadFixtureDoc(fix, { baseUrl: FOOBAR });
   const res = extractFromDoc(doc);
@@ -84,62 +83,60 @@ function _logFix(fix: string, domain: 'issues'|'pull'|'discussions', limit = 70)
   if (!res) { console.log('No result extracted'); return; }
   const trim = (s?: string) => typeof s === 'string' && s.length > limit ? s.slice(0, limit) : s;
 
-  const exp = structuredClone(res ?? {});
-  exp.posts?.forEach((p: any) => {
+  const exp = structuredClone(res);
+  exp.posts.forEach((p) => {
     if (p.bodyHtml) p.bodyHtml = trim(p.bodyHtml);
     if (p.bodyMd) p.bodyMd = trim(p.bodyMd);
   });
+  exp.permalink = exp.permalink === FOOBAR ? '???' : exp.permalink;
 
   const sidecar = {
-    baseUrl: exp.permaLink === FOOBAR ? '???' : exp.permaLink,
+    baseUrl: exp.permalink,
     expect: {
-      permalink: exp.permaLink === FOOBAR ? '???' : exp.permaLink,
-      title: exp.title ? exp.title.trim() : '???',
-      totalPosts: exp.posts?.length,
-      posts: exp.posts,
+      ...exp,
+      title: exp.title ? trim(exp.title) : '???',
+      totalPosts: exp.posts.length,
     },
   };
 
+  const prefix = `import type { SideCar  } from '../hub.test';\n\nexport default `;
+  const suffix = ' satisfies SideCar;\n';
+  const fullOutput = prefix + JSON.stringify(sidecar, null, 2) + suffix;
   // eslint-disable-next-line no-restricted-properties
-  console.log(JSON.stringify(sidecar, null, 2));
+  console.log(`\n--- Copy below to test/fix/fixtures/${fix.replace('.html', '.expect.ts')} ---\n`);
+  // eslint-disable-next-line no-restricted-properties
+  console.log(fullOutput);
+  // eslint-disable-next-line no-restricted-properties
+  console.log(`\n--- End of fixture ${fix} ---\n`);
 }
 
-_logFix('pull1.html', 'pull');
-// const skel = dumpSkeleton(_getDoc('pull1.html', 'pull'));
-// console.log(skel);
+_logFix('issue2.html');
 
-const AllCases = loadHubFixtures(`${__dirname}/fixtures`);
-describe("extractFromDoc over real pages", () => {
+const AllCases = await loadHubFixtures(`${__dirname}/fixtures`);
+describe('extractFromDoc over real pages', () => {
   for (const f of AllCases) {
     it(f.name, () => {
       const doc = loadFixtureDoc(f.htmlPath, { baseUrl: f.baseUrl });
       const r = extractFromDoc(doc);
       expect(r).toBeDefined();
       if (!r) return; // for TS
-      const e = f.expect ?? {};
+      const e = f.expect;
 
-      if (e.permalink) expect(r.permaLink).toBe(e.permalink);
+      if (e.permalink) expect(r.permalink).toBe(e.permalink);
       if (e.title)  expect(r.title).toContain(e.title);
       if (e.totalPosts !== undefined) expect(r.posts.length).toBe(e.totalPosts);
 
       (e.posts ?? []).forEach((ep, i) => {
         const rp = r.posts[i];
         expect(rp).toBeDefined();
-        const rpc = rp?.contributor;
-        if (ep.author) expect(rpc?.author ?? "").toContain(ep.author);
-        if (ep.date) expect(rpc?.timestamp ?? "").toContain(ep.date);
-        if (ep.postId) expect((rp?.postId ?? "")).toBe(ep.postId);
-        if (ep.bodyHtml) expect((rp?.bodyHtml ?? "")).toContain(ep.bodyHtml);
-        if (ep.bodyMd) expect((rp?.bodyMd ?? "")).toContain(ep.bodyMd);
+        const rpc = rp.contributor;
+        const epc = ep.contributor;
+        if (epc?.author) expect(rpc?.author ?? '').toContain(epc.author);
+        if (epc?.timestamp) expect(rpc?.timestamp ?? '').toContain(epc.timestamp);
+        if (ep.postId) expect((rp.postId ?? '')).toBe(ep.postId);
+        if (ep.bodyHtml) expect((rp.bodyHtml ?? '')).toContain(ep.bodyHtml);
+        if (ep.bodyMd) expect((rp.bodyMd ?? '')).toContain(ep.bodyMd);
       });
     });
   }
 });
-
-// describe('extractFromDoc Dummy', () => {
-//   it('extracts permalink, title, first post, and comment posts', () => {
-//     const doc = loadFixtureDoc('issue1.htm', { baseUrl: 'https://github.com/antlr/antlr4/issues/1234' });
-//     const result = extractFromDoc(doc);
-//     // console.log(result);
-//   });
-// });

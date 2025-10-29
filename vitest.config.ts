@@ -9,7 +9,8 @@ export default defineConfig(({ mode }) => {
   return {
     test: {
       environment: 'node', // or 'jsdom'
-      include: ['test/unit/**/*.test.{ts,tsx,js}'],
+      // include: ['test/unit/**/*.test.{ts,tsx,js}'],
+      nclude: ['test/**/*.test.{ts,tsx,js}'],
       globals: true,
       // setupFiles: [], // dotenv/config
       reporters: ['dot'], // 'default', 'verbose', 'dot', 'tree', 'tap', 'tap-flat', 'hanging-process', 'github-actions'

@@ -1,16 +1,23 @@
-import { SEResult } from '../se.js';
-import { WikiResult } from '../wiki.js';
-import { HubResult } from '../hub.js';
+import type { SEResult } from '../se.js';
+import type { WikiResult } from '../wiki.js';
+import type { HubResult } from '../hub.js';
+import { hasOfType, isNonEmptyString, isNumber, isObjectRecord } from '../typing.js';
 
 export type ExtractedDataMessage =
-  | { type: 'hubResult'; result: HubResult, timestamp: number }
-  | { type: 'wikiResult'; result: WikiResult, timestamp: number }
-  | { type: 'seResult'; result: SEResult, timestamp: number };
+  | { type: 'hubResult'; result: HubResult; timestamp: number; }
+  | { type: 'wikiResult'; result: WikiResult; timestamp: number; }
+  | { type: 'seResult'; result: SEResult; timestamp: number; };
 
-export function isExtractedDataMessage(msg: any): msg is ExtractedDataMessage {
-  if (typeof msg !== 'object' || msg === null) return false;
-  if (msg.type !== 'wikiResult' && msg.type !== 'seResult' && msg.type !== 'hubResult') return false;
-  if (typeof msg.result !== 'object' || msg.result === null) return false;
-  if (typeof msg.timestamp !== 'number' || !Number.isFinite(msg.timestamp)) return false;
+const ALLOWED_TYPES = new Set(['hubResult', 'wikiResult', 'seResult']);
+
+export function isExtractedDataMessage(msg: unknown): msg is ExtractedDataMessage {
+  if (!isObjectRecord(msg)) return false;
+
+  if (!hasOfType(msg, 'type', isNonEmptyString)) return false;
+  if (!ALLOWED_TYPES.has(msg.type)) return false;
+
+  if (!hasOfType(msg, 'result', isObjectRecord)) return false;
+  if (!hasOfType(msg, 'timestamp', isNumber)) return false;
+
   return true;
 }

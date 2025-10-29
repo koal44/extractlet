@@ -165,7 +165,7 @@ _italics_
 
 Duplicate of #1839 (saved reply)
 `.trim();
-// <img width="1024" height="1024" alt="Robot_icon svg" src="https://github.com/user-attachments/assets/dd2cb34d-e93b-45be-a3b3-26caaac727fb" />
+  // <img width="1024" height="1024" alt="Robot_icon svg" src="https://github.com/user-attachments/assets/dd2cb34d-e93b-45be-a3b3-26caaac727fb" />
   const result = toMd(el(html)).trim();
   strictEqual(result, expected);
 });

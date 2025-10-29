@@ -1,18 +1,22 @@
 import browser from 'webextension-polyfill';
 import { toKebabCase } from './utils';
-import { ExtractedDataMessage, isExtractedDataMessage } from './types/extracted-data-message.js';
+import type { ExtractedDataMessage } from './types/extracted-data-message.js';
+import { isExtractedDataMessage } from './types/extracted-data-message.js';
 import { EXTRACTED_DATA_STORAGE_PREFIX } from './constants';
+import { hasOfType, isString } from './typing';
 
-browser.action.onClicked.addListener(async (tab) => {
-  if (tab.id === undefined) return;
-  try {
-    await browser.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['browser-polyfill.js', 'extractlet.js'],
-    });
-  } catch (error) {
-    console.error('Error executing script:', error);
-  }
+browser.action.onClicked.addListener((tab) => {
+  void (async () => {
+    if (tab.id === undefined) return;
+    try {
+      await browser.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['browser-polyfill.js', 'extractlet.js'],
+      });
+    } catch (error) {
+      console.error('Error executing script:', error);
+    }
+  })();
 });
 
 browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runtime.MessageSender) => {
@@ -30,21 +34,21 @@ browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runti
 
       try {
         await browser.storage.local.set({ [key]: msg });
-      } catch (err: any) {
-        if (/quota/i.test(err?.message ?? String(err))) {
+      } catch (err) {
+        if (hasOfType(err, 'message', isString) && /quota/i.test(err.message)) {
           await browser.storage.local.clear();
           await browser.notifications.create({
-            type: "basic",
-            iconUrl: browser.runtime.getURL("icons/icon-head-48.png"),
-            title: "Cache cleared",
-            message: "Cache was full and has been cleared. Try again.",
+            type: 'basic',
+            iconUrl: browser.runtime.getURL('icons/icon-head-48.png'),
+            title: 'Cache cleared',
+            message: 'Cache was full and has been cleared. Try again.',
           });
         }
-        return console.error("Failed to set storage for key:", key, err);
+        return console.error('Failed to set storage for key:', key, err);
       }
 
       const url = `${toKebabCase(msg.type)}-page.html?uuid=${uuid}`;
-      browser.tabs.create({
+      await browser.tabs.create({
         url: browser.runtime.getURL(url),
         active: true,
         index: sender.tab ? sender.tab.index + 1 : undefined, // open tab next to the current one
@@ -60,7 +64,7 @@ async function pruneStaleStorage() {
   const MAX_ENTRIES = 10;
 
   const all = await browser.storage.local.get(null);
-  
+
   const storedItems: Array<[string, ExtractedDataMessage]> = [];
   for (const [k, v] of Object.entries(all)) {
     if (!k.startsWith(EXTRACTED_DATA_STORAGE_PREFIX)) {
