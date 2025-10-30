@@ -1,7 +1,7 @@
 import { strictEqual } from 'node:assert';
-import { test } from 'vitest';
+import { describe, it, test } from 'vitest';
 import { toHtml, toMd } from '../../src/core.js';
-import { el, assertNodeEqual, setupDom, logPandocHtmlToMd } from './test-utils.js';
+import { el, assertNodeEqual, setupDom, logPandocHtmlToMd } from '../utils/test-utils.js';
 
 setupDom();
 
@@ -1537,3 +1537,139 @@ test('white space in a span isnt ignored', () => {
   const expectedMd = 'Text before and after.';
   strictEqual(toMd(el(html)), expectedMd);
 });
+
+
+describe('toHtml — HTML attributes for inputs', () => {
+  it('preserves type=text and value (including empty string) for text inputs', () => {
+    const html = `
+      <div>
+        <input type="text" value="hello" />
+        <input type="text" value="" />
+      </div>
+    `.trim();
+
+    const out = toHtml(el(html));
+
+    // Structure
+    const expected = `
+      <div>
+        <input type="text" value="hello" />
+        <input type="text" value="" />
+      </div>
+    `.trim();
+    assertNodeEqual(out, expected);
+  });
+
+  it('preserves checkbox checked state via attribute or property', () => {
+    const html = `
+      <div>
+        <input type="checkbox" checked />
+        <input type="checkbox" />
+      </div>
+    `.trim();
+
+    const out = toHtml(el(html));
+
+    const expected = `
+      <div>
+        <input type="checkbox" checked="" />
+        <input type="checkbox" />
+      </div>
+    `.trim();
+    assertNodeEqual(out, expected);
+  });
+
+  it('preserves disabled and readonly (boolean attributes + properties)', () => {
+    const html = `
+      <div>
+        <input type="text" value="x" disabled readonly>
+        <input type="text" value="y">
+      </div>
+    `.trim();
+
+    const out = toHtml(el(html));
+
+    const expected = `
+      <div>
+        <input type="text" value="x" disabled="" readonly="">
+        <input type="text" value="y">
+      </div>
+    `.trim();
+    assertNodeEqual(out, expected);
+  });
+
+  it('does not force .value for checkbox/radio (but preserves attribute value if present)', () => {
+    const html = `
+      <div>
+        <input type="checkbox" value="on" checked>
+        <input type="radio" value="A">
+      </div>
+    `.trim();
+
+    const out = toHtml(el(html));
+
+    // Keep value attribute as-is for serialization
+    const expected = `
+      <div>
+        <input type="checkbox" value="on" checked="">
+        <input type="radio" value="A">
+      </div>
+    `.trim();
+    assertNodeEqual(out, expected);
+  });
+
+  it('handles attribute order: value before type still yields correct .type and .value', () => {
+    const html = `
+      <div>
+        <input value="secret" type="password">
+      </div>
+    `.trim();
+
+    const out = toHtml(el(html));
+
+    const expected = `
+      <div>
+        <input type="password" value="secret">
+      </div>
+    `.trim();
+    assertNodeEqual(out, expected);
+  });
+
+  it('preserves textarea text as .value (not just attribute/textContent)', () => {
+    const html = `
+      <div>
+        <textarea rows="3" cols="10">line1
+line2</textarea>
+      </div>
+    `.trim();
+
+    const out = toHtml(el(html)) as HTMLElement;
+
+    // Structure: keep rows/cols; inner text normalized by your copier as-is
+    const expected = `
+      <div>
+        <textarea rows="3" cols="10">line1
+line2</textarea>
+      </div>
+    `.trim();
+    assertNodeEqual(out, expected);
+  });
+
+  it('unchecked checkbox has no checked attribute and checked=false', () => {
+    const html = `
+      <div>
+        <input type="checkbox">
+      </div>
+    `.trim();
+
+    const out = toHtml(el(html));
+
+    const expected = `
+      <div>
+        <input type="checkbox">
+      </div>
+    `.trim();
+    assertNodeEqual(out, expected);
+  });
+});
+

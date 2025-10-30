@@ -44,10 +44,7 @@ const DEF: Required<SkeletonOptions> = {
   textSample: 0,
   collapseWhitespace: true,
 };
-/**
- * Pretty-print a compact DOM skeleton: tag names and selected attributes, with optional text snippets.
- * Works with JSDOM Documents or Elements.
- */
+
 export function dumpSkeleton(root: Document | Element, opts: SkeletonOptions = {}): string {
   const opt: Required<SkeletonOptions> = { ...DEF, ...opts };
   const lines: string[] = [];

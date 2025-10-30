@@ -1,6 +1,6 @@
 import { hasOfType, isNumberish, isString, parseJsonAs } from './typing.js';
 import {
-  isCaptionSimilar, isElement, isHTML, isImage, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isUList, lastUrlSegment, log, toPascalCase,
+  isCaptionSimilar, isElement, isHTML, isImage, isInput, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isTextArea, isUList, lastUrlSegment, log, toPascalCase,
 } from './utils.js';
 
 export type ToHtmlElementHandler = (
@@ -99,6 +99,23 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
         if (isHTML(node) && isHTML(clone)) {
           copyStyleAttr(clone, node, ctx.allowStyles);
         }
+        break;
+      }
+
+      // Input controls
+      case 'type':
+      case 'value':
+      case 'checked':
+      case 'disabled':
+      case 'readonly': {
+        if (isInput(node)) clone.setAttribute(name, attr.value);
+        break;
+      }
+
+      // Textarea
+      case 'rows':
+      case 'cols': {
+        if (isTextArea(node)) clone.setAttribute(name, attr.value);
         break;
       }
       default:

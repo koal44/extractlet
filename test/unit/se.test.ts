@@ -1,8 +1,7 @@
-// import { test } from 'node:test';
 import { test } from 'vitest';
 import { strictEqual, deepStrictEqual } from 'node:assert';
 import { toMd, toHtml, scrapePostContributor } from '../../src/se.js';
-import { el, assertNodeEqual, setupDom } from './test-utils.js';
+import { el, assertNodeEqual, setupDom } from '../utils/test-utils.js';
 
 setupDom();
 

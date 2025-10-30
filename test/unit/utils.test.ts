@@ -1,10 +1,9 @@
-// import { test } from 'node:test';
 import { test } from 'vitest';
 import { strictEqual } from 'node:assert';
 import {
   jaccardSimilarity, jaroWinklerSimilarity, levenshteinSimilarity, toKebabCase, toKebabCaseI18n, toPascalCase, toPascalCaseI18n,
 } from '../../src/utils.js';
-import { assertApproxEqual } from './test-utils.js';
+import { assertApproxEqual } from '../utils/test-utils.js';
 
 test('toKebabCase', () => {
   const words = [

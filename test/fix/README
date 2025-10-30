@@ -1,0 +1,15 @@
+Bookmarklet to save GitHub fixture. Broswer `save as` unreliable (missing posts and JS reload hid them).
+Adds CSP to block JS so full DOM stays visible offline.
+
+javascript:(()=>{try{
+  const addCSP = s => s.replace(/<head(\b[^>]*)>/i,
+    '<head$1><meta http-equiv="Content-Security-Policy" content="script-src \'none\'; connect-src \'none\'; frame-src \'none\'; object-src \'none\'">');
+  const html='<!DOCTYPE html>\n'+addCSP(document.documentElement.outerHTML);
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='github-out.html';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}catch(e){alert('Save failed: '+e)}})();
+

@@ -1,8 +1,7 @@
-// import { test } from 'node:test';
 import { test } from 'vitest';
 import { strictEqual } from 'node:assert';
 import { toMd } from '../../src/hub.js';
-import { el, setupDom } from './test-utils.js';
+import { el, setupDom } from '../utils/test-utils.js';
 
 setupDom();
 

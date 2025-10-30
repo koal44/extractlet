@@ -1,11 +1,9 @@
 import { JSDOM } from 'jsdom';
-import { strictEqual } from 'node:assert';
+import { AssertionError } from 'node:assert';
 import {
   escapeHtml, isElement, isHTML, isNode, isText, log,
 } from '../../src/utils';
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 
 export function setupDom() {
   const dom = new JSDOM();
@@ -43,10 +41,23 @@ export function mathEl(html: string): MathMLElement {
 }
 
 export function assertNodeEqual(actual: Node | string | null, expected: Node | string | null) {
-  const actualHtml = htmlify(actual); //.replace(/\s+/g, '');
-  const expectedHtml = htmlify(expected); //.replace(/\s+/g, '');
+  const asElement = (x: Node | string | null) => typeof x === 'string' ? el(x) : x;
+  const actualHtml = htmlify(asElement(actual));
+  const expectedHtml = htmlify(asElement(expected));
 
-  strictEqual(actualHtml, expectedHtml);
+  // strictEqual(actualHtml, expectedHtml);
+
+  // throw custom AssertionError so that error points to caller rather than this function
+  if (actualHtml !== expectedHtml) {
+    const err = new AssertionError({
+      message: 'Expected nodes to be equal',
+      actual: actualHtml,
+      expected: expectedHtml,
+      operator: 'strictEqual',
+      stackStartFn: assertNodeEqual, // hide this frame and below
+    });
+    throw err;
+  }
 }
 
 export function htmlify(el: Node | string | null | undefined): string {
@@ -128,14 +139,4 @@ export function logPandocWtToMd(input: string): void {
     const out = execSync(`pandoc -f mediawiki -t ${flavor}`, { input }).toString();
     log(`--- Output ${flavor} ---\n${out}`, { jsonifyStrings: false });
   }
-}
-
-export type FixOpts = {
-  baseUrl?: string;
-};
-
-export function loadFixtureDoc(name: string, { baseUrl = 'https://example.com' }: FixOpts = {}): Document {
-  const html = readFileSync(resolve(__dirname, '..', 'fix', 'fixtures', name), 'utf8');
-  const dom = new JSDOM(html, { url: baseUrl, contentType: 'text/html' });
-  return dom.window.document;
 }

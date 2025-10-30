@@ -133,13 +133,13 @@ export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(
   template.innerHTML = html.trim();
   if (template.content.children.length !== 1) {
     // throw new Error(`html must contain exactly one element: ${html}`);
-    console.warn(`html must contain exactly one element: ${html}`);
+    console.warn(`html must contain exactly one element: ${html.slice(0, 1000)}`);
     return null;
   }
   const el = template.content.firstElementChild as HTMLElementTagNameMap[K];
   if (el.tagName.toLowerCase() !== tag.toLowerCase()) {
     // throw new Error(`No element found for tag ${tag} in HTML: ${html}`);
-    console.warn(`No element found for tag ${tag} in HTML: ${html}`);
+    console.warn(`No element found for tag ${tag} in HTML: ${html.slice(0, 1000)}`);
     return null;
   }
   return el;
@@ -151,7 +151,7 @@ export function htmlToElement(str?: string, doc: Document = document): Element |
   template.innerHTML = str.trim();
   if (template.content.children.length !== 1) {
     // throw new Error(`html must contain exactly one element: ${html}`);
-    console.warn(`html must contain exactly one element: ${str}`);
+    console.warn(`html must contain exactly one element: ${str.slice(0, 1000)}`);
     return null;
   }
   return template.content.firstElementChild;

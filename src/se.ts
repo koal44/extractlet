@@ -29,7 +29,7 @@
  */
 
 import {
-  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isAnchor, isScript, htmlToElementK, htmlToElement,
+  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isScript, htmlToElementK, htmlToElement,
 } from './utils.js';
 import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext } from './core.js';
 import { toHtml as _toHtml, toMd as _toMd } from './core.js';
@@ -60,6 +60,7 @@ type Post = {
 
 export type SEResult = {
   permalink: string;
+  title?: string;
   posts: Post[];
 }
 
@@ -255,10 +256,14 @@ function scrapePosts(root: Document): Post[] {
   return posts;
 }
 
-function scrapePermaLink(root: Document): HTMLAnchorElement | null {
-  const qLink = root.querySelector('#question-header a.question-hyperlink');
-  const clone = toHtml(qLink);
-  return isAnchor(clone) ? clone : null;
+function scrapePermalink(root: Document): string | undefined {
+  const a = root.querySelector<HTMLAnchorElement>('#question-header a.question-hyperlink');
+  return a?.href;
+}
+
+function scrapeTitle(root: Document): string | undefined {
+  const a = root.querySelector<HTMLAnchorElement>('#question-header a.question-hyperlink');
+  return a?.textContent?.trim();
 }
 
 function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
@@ -289,7 +294,7 @@ function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
     );
 
     if (pageData.permalink) {
-      const permalinkNode = htmlToElementK(pageData.permalink, 'a');
+      const permalinkNode = htmlToElementK(`<a href="${pageData.permalink}">${pageData.title}</a>`, 'a', doc);
       copyArr.push(
         `Title: ${permalinkNode?.textContent?.trim()}`,
         `URL:   ${permalinkNode?.getAttribute('href')}\n`);
@@ -448,10 +453,12 @@ export function extractFromDoc(root: Document = document): SEResult | undefined 
     return;
   }
 
-  const permalink = scrapePermaLink(root)?.outerHTML || '';
+  const permalink = scrapePermalink(root) || '';
+  const title = scrapeTitle(root);
   const result: SEResult = {
-    posts,
     permalink,
+    title,
+    posts,
   };
 
   return result;
@@ -466,7 +473,7 @@ export function createPage(pageData: SEResult, doc: Document): void {
   doc.body.appendChild(topBar);
 
   if (pageData.permalink) {
-    const permalinkNode = htmlToElementK(pageData.permalink, 'a', doc);
+    const permalinkNode = htmlToElementK(`<a href="${pageData.permalink}">${pageData.title}</a>`, 'a', doc);
     const permalinkDiv = h('div', { class: 'perma-link' }, permalinkNode);
     doc.body.appendChild(permalinkDiv);
   }

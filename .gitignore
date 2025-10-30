@@ -5,3 +5,4 @@ test/scratchpad.*
 **/gen/
 .env
 vendor/
+scratch/

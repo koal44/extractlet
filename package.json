@@ -10,7 +10,8 @@
     "test:watch": "vitest",
     "test:fix": "vitest run --dir ./test/fix",
     "coverage": "vitest run --coverage",
-    "watch:b": "npm-watch build"
+    "watch:b": "npm-watch build",
+    "printfix": "vite-node scripts/print-fix.ts"
   },
   "watch": {
     "build": {
@@ -51,6 +52,7 @@
     "eslint": "^9.31.0",
     "eslint-plugin-no-only-tests": "^3.3.0",
     "globals": "^16.2.0",
+    "ignore": "^7.0.5",
     "js-string-escape": "^1.0.1",
     "jsdom": "^26.1.0",
     "npm-watch": "^0.13.0",
@@ -60,6 +62,7 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.36.0",
+    "vite-node": "^3.2.4",
     "vitest": "^4.0.3",
     "webextension-polyfill": "^0.12.0"
   }

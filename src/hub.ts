@@ -78,15 +78,6 @@ export type Contributor = {
   editor?: string;
 };
 
-// function getLocators<S extends keyof Section>(section: keyof Section, field: keyof Section[S], domain: DomainId): Locator[] {
-//   // domain-first, then 'all'
-//   const foo = SCRAPERS[section][field];
-//   const byDomain = SCRAPERS[section][field][domain] ?? [];
-//   const byAll = SCRAPERS[section]?.[field]?.all ?? [];
-//   const specs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
-//   return specs;
-// }
-
 type PageSection = 'permalink' | 'title' | 'firstPost' | 'posts';
 type SectionFields = Record<string, DomainLocators | undefined>;
 type DomainLocators = Partial<Record<DomainId, Locator[]>>;
@@ -338,16 +329,29 @@ function shouldSkip(node: Node | null): boolean {
   if (isText(node)) return false; // Text nodes are never skipped
 
   if (isElement(node)) {
+
+    return node.matches([
+      'tool-bar', 'tool-tip',
+      '[role="toolbar"]', '[role="tooltip"]',
+      '.task-list-item .handle', // task-list drag handle
+      'clipboard',
+      // '.sr-only', '.visually-hidden', '[hidden]',
+    ].join(','));
+
+
     // const id = node.id || '';
     // const className = node.className || '';
     // const aType = node.getAttribute('type') || '';
-    const tagName = node.tagName.toUpperCase();
 
-    if (tagName.includes('CLIPBOARD')) return true;
-    if (node.matches('tool-bar, tool-tip')) return true;
-    if (['toolbar', 'tooltip'].includes(node.getAttribute('role') ?? '')) return true;
 
-    return false;
+    // const tagName = node.tagName.toUpperCase();
+
+    // if (tagName.includes('CLIPBOARD')) return true;
+    // if (node.matches('tool-bar, tool-tip')) return true;
+    // if (['toolbar', 'tooltip'].includes(node.getAttribute('role') ?? '')) return true;
+    // if (node.matches('.task-list-item .handle')) return true;
+
+    // return false;
   }
 
   return true;

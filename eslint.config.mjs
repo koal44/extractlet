@@ -32,6 +32,8 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
+          // vars: 'all',
+          // ignoreRestSiblings: true,  // allow `const { a, ...rest } = obj`
           varsIgnorePattern: '^_',
           argsIgnorePattern: '^_',
         },
@@ -116,7 +118,7 @@ export default tseslint.config(
           requireLast: true,
         },
       }],
-      'no-duplicate-imports': ['warn', { allowSeparateTypeImports: true }],
+      // 'no-duplicate-imports': ['warn', { allowSeparateTypeImports: true }],
     }
   },
   // {

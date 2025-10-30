@@ -1,4 +1,4 @@
-import type { SideCar  } from '../hub.test';
+import type { HubSidecar  } from '../../hub.test';
 
 export default {
   baseUrl: 'https://github.com/antlr/antlr4/issues/4896',
@@ -18,4 +18,4 @@ export default {
     ],
     totalPosts: 1,
   },
-} satisfies SideCar;
+} satisfies HubSidecar;

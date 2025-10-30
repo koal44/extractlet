@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-base-to-string */
-// import { describe, test } from 'node:test';
-import { describe, test } from 'vitest';
+import { describe, it, test } from 'vitest';
 import assert, { notStrictEqual, strictEqual } from 'node:assert';
 import { el, setupDom, htmlify, assertNodeEqual, mathEl } from './test-utils.js';
 import { h } from '../../src/utils.js';
@@ -138,4 +137,24 @@ test('mathEl wraps mml fragments and preserves roots', () => {
   assertNodeEqual(mathEl('<mi>x</mi>'), mathEl('<mi>x</mi>'));
   assertNodeEqual(mathEl('<math><mi>x</mi></math>'), mathEl('<mi>x</mi>'));
   assertNodeEqual(mathEl('<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math>'), mathEl('<mi>x</mi>'));
+});
+
+describe('assertNodeEqual — element vs string normalization', () => {
+  it('treats self-closing <input/> and explicit </input> as equivalent (should fail now)', () => {
+    const a = el('<div><input type="checkbox" checked=""></div>');
+    const b = '<div><input type="checkbox" checked="" /></div>';
+    assertNodeEqual(a, b);
+  });
+
+  it('ignores attribute order differences when comparing Element vs string (should fail now)', () => {
+    const a = el('<div><input type="checkbox" checked=""></div>');
+    const b = '<div><input checked="" type="checkbox"></div>';
+    assertNodeEqual(a, b);
+  });
+
+  it('ignores class order when comparing Element vs string (should fail now)', () => {
+    const a = el('<div class="alpha beta">ok</div>');
+    const b = '<div class="beta alpha">ok</div>';
+    assertNodeEqual(a, b);
+  });
 });
