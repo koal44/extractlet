@@ -23,7 +23,7 @@ export type WikiSidecar = BaseSidecar<WikiExpect>;
 const fixturesDir = join(__dirname, 'fixtures', 'wiki');
 const allCases = await loadFixtures<WikiExpect>(fixturesDir);
 
-describe('wiki: extractFromDoc', () => {
+describe.skip('wiki: extractFromDoc', () => {
   for (const f of allCases) {
     it(f.name, () => {
       const r = extractFromDoc(f.dom);

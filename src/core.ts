@@ -1,5 +1,6 @@
 import { hasOfType, isNumberish, isString, parseJsonAs } from './typing.js';
 import {
+  alphaLabel,
   isCaptionSimilar, isElement, isHTML, isImage, isInput, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isTextArea, isUList, lastUrlSegment, log, toPascalCase,
 } from './utils.js';
 
@@ -31,10 +32,14 @@ export type ToMdContext = {
   elementHandler?: ToMdElementHandler;  // optional per-element override handler
   skipCustomHandler: boolean;           // skip custom handling for this subtree
   isRoot: boolean;                      // true only for top-level call (whitespace handling)
+  dedupe: boolean;                      // dedupe captions/alt text/etc.
   deCaption: string;                    // caption dedupe token for figures/tables
   inListItem: boolean;                  // inside a list item (<li>)
+  compact: boolean;                     // inside a table (<table>)
+  anchorRefs: string[] | null;          // collect in table and print below
+  imageRefs: string[] | null;           // collect in table and print below
   olStart: number;                      // starting index for ordered list
-  quoteDepth: number;                   // current blockquote nesting level
+  // quoteDepth: number;                   // current blockquote nesting level
   lastChar: string;                     // last emitted char (spacing state, internal)
 };
 
@@ -191,10 +196,13 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     isRoot: opts.isRoot ?? true,
     skipCustomHandler: opts.skipCustomHandler ?? false,
     olStart: opts.olStart ?? 1,
-    quoteDepth: opts.quoteDepth ?? 0,
     lastChar: opts.lastChar ?? '',
+    dedupe: opts.dedupe ?? true,
     deCaption: opts.deCaption ?? '',
     inListItem: opts.inListItem ?? false,
+    compact: opts.compact ?? false,
+    anchorRefs: opts.anchorRefs ?? null,
+    imageRefs: opts.imageRefs ?? null,
   };
 
   const glueChildren: GlueChildren = (node, glueMode, wsMode = 'normal', opts = {}) => {
@@ -257,6 +265,25 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       inline:
         { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
     };
+
+    // const isCompact = gcx.compact;
+    // const glueRules = isCompact
+    //   ? {
+    //     block:    { prefix: ' ', suffix: '', trimStart: true,  trimEnd: true  },
+    //     list:     { prefix: ' ', suffix: '', trimStart: true,  trimEnd: true  },
+    //     listItem: { prefix: '',  suffix: '', trimStart: false, trimEnd: false },
+    //     inline:   { prefix: '',  suffix: '', trimStart: false, trimEnd: false },
+    //   }
+    //   : {
+    //     block: gcx.inListItem
+    //       ? { prefix: '\n\n', suffix: '\n',   trimStart: true,  trimEnd: true }
+    //       : { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
+    //     list: gcx.inListItem
+    //       ? { prefix: '\n',   suffix: '',     trimStart: true,  trimEnd: true }
+    //       : { prefix: '\n',   suffix: '\n\n', trimStart: true,  trimEnd: true },
+    //     listItem: { prefix: '', suffix: '',   trimStart: false, trimEnd: false },
+    //     inline:   { prefix: '', suffix: '',   trimStart: false, trimEnd: false },
+    //   };
     const { prefix, suffix, trimStart, trimEnd } = glueRules[glueMode];
     const safePrefix = entryChar === '\n' ? '' : prefix;
 
@@ -327,9 +354,17 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         let toolTip = (node.getAttribute('title') ?? '').replace(/\s+/g, ' ').trim();
         let linkText = glueChildren(node, 'inline', 'normal', (toolTip ? { deCaption: toolTip } : {})).trim();
 
+        // inside tables, collect links for reference list
+        if (ctx.anchorRefs && href) {
+          const refNum = ctx.anchorRefs.indexOf(href) + 1 || ctx.anchorRefs.push(href);
+          linkText = linkText || toolTip || `link ${refNum}`;
+          result = `[${linkText}][${refNum}]`; // or [linkText](#refNum)?
+          break;
+        }
+
         // dedupe. text—Markdown is final output; LLMs/humans don’t need repeated info. (prefer figcaption > href > aText > title)
-        const toolTipIsDupe = [linkText, ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(toolTip, o));
-        const linkTextIsDupe = [ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(linkText, o));
+        const toolTipIsDupe = ctx.dedupe && [linkText, ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(toolTip, o));
+        const linkTextIsDupe = ctx.dedupe && [ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(linkText, o));
 
         toolTip = toolTip && !toolTipIsDupe ? ` "${toolTip}"` : '';
         linkText = linkText && !linkTextIsDupe ? linkText : '';
@@ -370,16 +405,16 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
             index++;
           }
         }
-        const bullet =
+        let bullet =
           isOList(node.parentNode) ? `${index}. ` :
           isUList(node.parentNode) ? '- ' :
           '- ';
+        bullet = ctx.compact ? '• ' : bullet; // use • for bullets in tables
+
         const pad = ' '.repeat(bullet.length);
 
         result = glueChildren(node, 'listItem', 'normal', { inListItem: true });
 
-        //log(`toMd.LI node=${node.tagName}, index=${index}, listType=${listType}, olStart=${olStart}`);
-        //log(`toMd.LI.result-before: "${result}"`);
         // Normalize leading/trailing newlines
         result = result.startsWith('\n\n') ? result.slice(2) : result;
         result = result.endsWith('\n') ? result : `${result}\n`;
@@ -390,12 +425,10 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
         // Split and compact layout
         const lines = result.split(/(\n+)/);
-        //log(`toMd.LI.result-split: ${JSON.stringify(lines)}`);
 
         // Collapse \n\n before nested list bullets. (REVIEW: stylistic choice)
         for (let i = 0; i < lines.length - 1; i++) {
           if (lines[i].endsWith('\n\n') && /^(\d+\.\s|- )/.test(lines[i + 1])) {
-            //log(`toMd.LI: collapsing \\n\\n before nested list bullet at index ${i}`);
             lines[i] = lines[i].slice(0, -1); // trim one newline
           }
         }
@@ -404,37 +437,60 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         result = lines.map((line) =>
           line.startsWith('\n') ? line + pad : line
         ).join('');
-        // log(`toMd.LI.result-split-join: "${result}"`);
 
         // Reassemble
         result = `${bullet}${leadingWs}${result}${trailingWs}`;
         break;
       }
 
+      // case 'PRE': {
+      //   // const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
+      //   result = glueChildren(node, 'inline', 'pre');
+      //   result = result.replace(/\n*$/, '\n');
+      //   result = `\`\`\`\n${result}\`\`\`\n\n`;
+      //   break;
+      // }
+
       case 'PRE': {
         // const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
         result = glueChildren(node, 'inline', 'pre');
-        result = result.replace(/\n*$/, '\n');
-        result = `\`\`\`\n${result}\`\`\`\n\n`;
+        if (ctx.compact) {
+          result = result.replace(/^\n+/, '').replace(/\n+$/, '');
+          result = result.replace(/\r?\n/g, '\\n').replace(/\t/g, '\\t');
+          const fence = '`'.repeat(1 + Math.max(0, ...(result.match(/`+/g) || []).map((s) => s.length)));
+          result = `\n${fence} ${result} ${fence}\n`;
+        } else {
+          result = result.replace(/\r\n/g, '\n').replace(/\n+$/, '');
+          const fence = '```';
+          result = `${fence}\n${result}\n${fence}\n\n`;
+        }
+
         break;
       }
 
       case 'CODE': {
-        const fence =
-          isPre(node.parentNode) ? '' :
-          node.textContent?.includes('`') ? '``' :
-          '`';
-        result = `${fence}${node.textContent}${fence}`;
+        result = node.textContent;
+        const fence = isPre(node.parentNode)
+          ? ''
+          : '`'.repeat(1 + Math.max(0, ...(result.match(/`+/g) || []).map((s) => s.length)));
+        result = `${fence}${result}${fence}`;
         break;
       }
 
       case 'BLOCKQUOTE': {
-        result = glueChildren(node, 'block', 'normal', { quoteDepth: ctx.quoteDepth + 1 });
+        result = glueChildren(node, 'block', 'normal');
         const bqPrefix = result.match(new RegExp('^\\n*'))?.[0] ?? '';
         const bqSuffix = result.match(/\n*$/)?.[0] ?? '';
 
         result = result.slice(bqPrefix.length, result.length - bqSuffix.length);
-        result = result.split('\n').map((line) => `> ${line}`).join('\n');
+        if (ctx.compact) {
+          result = result.split('\n')
+            .map((line) => line.match(/^[ \t]*>+[ \t]+/) ? `>${line}` : `> ${line}`)
+            .filter((line) => line.match(/^[ \t]*>+[ \t]*$/) === null)
+            .join('\n');
+        } else {
+          result = result.split('\n').map((line) => `> ${line}`).join('\n');
+        }
         result = bqPrefix + result + bqSuffix;
         break;
       }
@@ -446,11 +502,18 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         let alt = (node.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
         let title = (node.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
 
+        if (ctx.imageRefs && src) {
+          const refNum = ctx.imageRefs.indexOf(src) + 1 || ctx.imageRefs.push(src);
+          const refAlpha = alphaLabel(refNum);
+          alt = alt || title || `image ${refNum}`;
+          result = `![${alt}][${refAlpha}]`;
+          break;
+        }
         // dedupe. text—Markdown is final output; LLMs/humans don’t need repeated info. (prefer figcaption > src > alt > title)
         const isTitleDupe = isCaptionSimilar(title, alt) || isCaptionSimilar(title, ctx.deCaption) || isCaptionSimilar(title, srcSeg);
         const isAltDupe = isCaptionSimilar(alt, ctx.deCaption) || isCaptionSimilar(alt, srcSeg); // TODO: consider not deduping alt
-        title = isTitleDupe ? '' : title;
-        alt = isAltDupe ? '' : alt;
+        title = isTitleDupe && ctx.dedupe ? '' : title;
+        alt = isAltDupe && ctx.dedupe ? '' : alt;
 
         title = title ? ` "${title}"` : '';
         result = src ? `![${alt}](${src}${title})` : '';
@@ -470,6 +533,9 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
 
       case 'TABLE': {
+        const anchorRefs: string[] = [];
+        const imageRefs: string[] = [];
+        const tctx = { ...ctx, compact: true, anchorRefs, imageRefs };
         const table: string[][] = [];
         const rows = [...node.querySelectorAll('tr')];
         const nCols = Math.max(...rows.map((row) => row.children.length), 0);
@@ -478,7 +544,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
         // add header row
         if (headerRow) {
-          table.push([...headerRow.children].filter((c) => isTableHeader(c) || isTableCell(c)).map((c) => toMd(c, ctx).trim()));
+          table.push([...headerRow.children].filter((c) => isTableHeader(c) || isTableCell(c)).map((c) => toMd(c, tctx).trim()));
         } else {
           table.push(Array<string>(nCols).fill(''));
         }
@@ -489,7 +555,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         // add data rows
         for (const row of rows) {
           if (row === headerRow) continue; // skip header row as it's already added
-          table.push([...row.children].filter((c) => isTableHeader(c) || isTableCell(c)).map((c) => toMd(c, ctx).trim()));
+          table.push([...row.children].filter((c) => isTableHeader(c) || isTableCell(c)).map((c) => toMd(c, tctx).trim()));
         }
 
         //log('DEBUG table array of arrays:', table);
@@ -532,6 +598,15 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           rowParts.push(`|${colParts.join('|')}|`);
         }
 
+        const anchorRefsParts = anchorRefs.map((href, idx) => `[${idx + 1}]: ${href}`);
+        const imageRefsParts  = imageRefs.map((href, idx) => `[${alphaLabel(idx + 1)}]: ${href}`);
+
+        if (anchorRefsParts.length || imageRefsParts.length) {
+          rowParts.push('');
+          if (anchorRefsParts.length) rowParts.push(...anchorRefsParts);
+          if (imageRefsParts.length)  rowParts.push(...imageRefsParts);
+        }
+
         result = `\n\n${rowParts.join('\n')}\n\n`;
         break;
       }
@@ -542,7 +617,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
         // norm vertical breaks; inline whitespace is valid in GFM tables
         if (/[\n\f\v\r\u0085\u2028\u2029]/.test(result)) { // u085 = next line, u2028 = line separator, u2029 = paragraph separator. NEL is not considered ws in JS though..
-          log('WARNING: vertical whitespace in table cell content:', result);
+          // log('WARNING: vertical whitespace in table cell content:', result);
           result = result.replace(/[\f\v\r\u0085\u2028\u2029]+/g, '').replace(/\n+/g, ' ');
         }
 

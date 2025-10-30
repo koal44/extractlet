@@ -24,11 +24,11 @@ export function setupDom() {
 
 // Each call creates a new JSDOM instance to break prototype chain assumptions.
 // This ensures tests will fail if src code relies on instanceof checks.
-export function el(html: string, selector = 'body > *'): Element | null {
+export function el(html: string, selector = 'body > *', base?: string): Element | null {
   // document.body.innerHTML = html;
   // return document.querySelector(selector);
 
-  const dom = new JSDOM(html);
+  const dom = new JSDOM(html, { url: base });
   return dom.window.document.querySelector(selector);
 }
 

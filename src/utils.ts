@@ -748,4 +748,9 @@ export function formatDateWithRelative(iso?: string | null): string {
   return `${ymd} (${rel})`;
 }
 
-
+// A, B, C, ... Z, AA, AB, ...
+export function alphaLabel(idx1: number): string {
+  let n = idx1, s = '';
+  while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+  return s;
+}

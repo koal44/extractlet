@@ -1673,3 +1673,368 @@ line2</textarea>
   });
 });
 
+describe('tables with vertical inclinations', () => {
+  test('unordered list inside <td> → single-line bullets with reference-style links', () => {
+    const html = `
+    <div>
+      <table class="wikitable">
+        <thead>
+          <tr>
+            <th style="text-align:left">Tensor</th>
+            <th style="text-align:left">Related</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align:left">A</td>
+            <td style="text-align:left">
+              <ul>
+                <li><a href="/wiki/Kronecker_delta" title="Kronecker delta"></a></li>
+                <li><a href="/wiki/Levi-Civita_symbol">Levi-Civita symbol</a></li>
+                <li><a href="/wiki/Metric_tensor">Metric tensor</a></li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align:left">B</td>
+            <td style="text-align:left">
+              <ul>
+                <li><a href="/wiki/foo">foo</a></li>
+                <li><a href="/wiki/bar">bar</a></li>
+                <li><a href="/wiki/baz">baz</a></li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+
+    const expected = `
+| Tensor | Related                                                               |
+|:------ |:--------------------------------------------------------------------- |
+| A      | • [Kronecker delta][1] • [Levi-Civita symbol][2] • [Metric tensor][3] |
+| B      | • [foo][4] • [bar][5] • [baz][6]                                      |
+
+[1]: https://en.wikipedia.org/wiki/Kronecker_delta
+[2]: https://en.wikipedia.org/wiki/Levi-Civita_symbol
+[3]: https://en.wikipedia.org/wiki/Metric_tensor
+[4]: https://en.wikipedia.org/wiki/foo
+[5]: https://en.wikipedia.org/wiki/bar
+[6]: https://en.wikipedia.org/wiki/baz
+`.trim();
+
+    const result = toMd(el(html, undefined, 'https://en.wikipedia.org'));
+    strictEqual(result, expected);
+  });
+
+  test('UL of <img> inside <td> flattens to single line with bullets; refs appended; list spacing ok', () => {
+    const html = `
+    <div>
+      <table class="wikitable">
+        <thead>
+          <tr>
+            <th style="text-align:left">Group</th>
+            <th style="text-align:left">Figures</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align:left">Tensors</td>
+            <td style="text-align:left">
+              <ul>
+                <li><img src="/images/kronecker.png" alt="Kronecker delta"></li>
+                <li><img src="/images/metric.png" alt="Metric tensor"></li>
+                <li><img src="/images/riemann.png" alt="Riemann tensor"></li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ul>
+        <li>alpha</li>
+        <li>beta</li>
+      </ul>
+    </div>`;
+
+    const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
+
+    const expected = `
+| Group   | Figures                                                              |
+|:------- |:-------------------------------------------------------------------- |
+| Tensors | • ![Kronecker delta][A] • ![Metric tensor][B] • ![Riemann tensor][C] |
+
+[A]: https://en.wikipedia.org/images/kronecker.png
+[B]: https://en.wikipedia.org/images/metric.png
+[C]: https://en.wikipedia.org/images/riemann.png
+
+- alpha
+- beta
+`.trim();
+
+    const result = toMd(doc).trim();
+    strictEqual(result, expected);
+  });
+
+  test('same link and image URL map to same labels', () => {
+    const html = `
+      <div>
+        <table class="wikitable">
+          <thead><tr>
+            <th style="text-align:left">Col</th>
+            <th style="text-align:left">Stuff</th>
+          </tr></thead>
+          <tbody><tr>
+            <td style="text-align:left">X</td>
+            <td style="text-align:left">
+              <ul>
+                <li><a href="/wiki/Foo">Foo</a></li>
+                <li><a href="/wiki/Foo">Foo again</a></li>
+                <li><img src="/images/a.png" alt="A"></li>
+                <li><img src="/images/a.png" alt="A again"></li>
+              </ul>
+            </td>
+          </tr></tbody>
+        </table>
+      </div>`;
+    const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
+
+    const expected = `
+| Col | Stuff                                                 |
+|:--- |:----------------------------------------------------- |
+| X   | • [Foo][1] • [Foo again][1] • ![A][A] • ![A again][A] |
+
+[1]: https://en.wikipedia.org/wiki/Foo
+[A]: https://en.wikipedia.org/images/a.png
+`.trim();
+
+    strictEqual(toMd(doc).trim(), expected);
+  });
+});
+
+describe('table cell rendering: blockquote & code in <td>', () => {
+  test('blockquote inside <td> (inspect current output)', () => {
+    const html = `
+      <div>
+        <table class="wikitable">
+          <thead><tr>
+            <th style="text-align:left">Col</th>
+            <th style="text-align:left">Content</th>
+          </tr></thead>
+          <tbody><tr>
+            <td style="text-align:left">BQ</td>
+            <td style="text-align:left">
+              <blockquote>
+                <p>Quoted line 1.</p>
+                <p>Quoted line 2 with <a href="/wiki/Foo">Foo</a>.</p>
+              </blockquote>
+            </td>
+          </tr></tbody>
+        </table>
+      </div>`;
+    const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
+    const actual = toMd(doc);
+    // console.log(`\n--- BLOCKQUOTE IN <td> ---\n${  actual  }\n--------------------------\n`);
+    const expected = `
+| Col | Content                                         |
+|:--- |:----------------------------------------------- |
+| BQ  | > Quoted line 1. > Quoted line 2 with [Foo][1]. |
+
+[1]: https://en.wikipedia.org/wiki/Foo
+`.trim();
+    strictEqual(actual, expected);
+
+    // Recommended (flatten blockquote to inline text; links as refs):
+    // | Col | Content                                        |
+    // |:--- |:-----------------------------------------------|
+    // | BQ  | Quoted line 1. Quoted line 2 with [Foo][1].    |
+    //
+    // [1]: https://en.wikipedia.org/wiki/Foo
+  });
+
+  test('code/pre inside <td> (inspect current output)', () => {
+    const html = `
+      <div>
+        <table class="wikitable">
+          <thead><tr>
+            <th style="text-align:left">Col</th>
+            <th style="text-align:left">Content</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td style="text-align:left">CODE</td>
+              <td style="text-align:left">
+                <code>sum(x[i] for i in S)</code>
+              </td>
+            </tr>
+            <tr>
+              <td style="text-align:left">PRE</td>
+              <td style="text-align:left">
+<pre><code class="language-js">function f(a, b) {
+  return a + b;
+}</code></pre>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>`;
+    const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
+    const actual = toMd(doc);
+    // console.log(`\n--- CODE/PRE IN <td> ---\n${  actual  }\n------------------------\n`);
+    const expected = `
+| Col  | Content                                    |
+|:---- |:------------------------------------------ |
+| CODE | \`sum(x[i] for i in S)\`                     |
+| PRE  | \` function f(a, b) {\\n  return a + b;\\n} \` |
+`.trim();
+    strictEqual(actual, expected);
+
+    // Recommended policy:
+    // - Inline <code> → keep as inline backticks in a single line:
+    //   | CODE | `sum(x[i] for i in S)` |
+    //
+    // - <pre><code> with newlines:
+    //   Prefer literal HTML fallback to avoid breaking GFM tables:
+    //   | PRE  | <pre>function f(a, b) {␠return a + b;␠}</pre> |
+    //   (where newlines collapsed to single spaces)
+    //
+    // If you *really* want Markdown, you could flatten to a single inline code block:
+    //   | PRE  | `function f(a, b) { return a + b; }` |
+    // but you lose formatting—tradeoff is yours.
+  });
+});
+
+describe('in compact mode', () => {
+  test('blockquote: two paragraphs at depth 1 → single line with chevrons', () => {
+    const html = `
+      <div>
+        <blockquote>
+          <p>Quoted line 1.</p>
+          <p>Quoted line 2 with <a href="https://en.wikipedia.org/wiki/Foo">Foo</a>.</p>
+        </blockquote>
+      </div>`;
+    const expected = `
+> Quoted line 1.
+> Quoted line 2 with [Foo](https://en.wikipedia.org/wiki/Foo).
+`.trim();
+    const out = toMd(el(html), { compact: true, dedupe: false });
+    // console.log(out);
+    strictEqual(out, expected);
+  });
+
+  test('blockquote: nested (outer + two inner paras) → depth via repeated chevrons', () => {
+    const html = `<div><blockquote>
+<p>Quoted line 1.</p>
+<p>Quoted line 2 with <a href="https://en.wikipedia.org/wiki/Foo">Foo</a>.</p>
+</blockquote>
+<blockquote>
+<p>Outer para.</p>
+<blockquote>
+<p>Inner para A.</p>
+<p>Inner para B.</p>
+</blockquote>
+</blockquote>
+</div>`.trim();
+    const expected = `
+> Quoted line 1.
+> Quoted line 2 with [Foo](https://en.wikipedia.org/wiki/Foo).
+
+> Outer para.
+>> Inner para A.
+>> Inner para B.
+`.trim();
+    const out = toMd(el(html), { compact: true, dedupe: false });
+    strictEqual(out, expected);
+  });
+
+  test('blockquote compact: nested inner empty paragraph is removed (no stray >> line)', () => {
+    const html = `
+<div>
+  <blockquote>
+    <p>Outer para.</p>
+    <blockquote>
+      <p>Inner A.</p>
+      <p></p>   <!-- empty paragraph -->
+      <p>Inner B.</p>
+    </blockquote>
+  </blockquote>
+</div>`.trim();
+
+    // Desired compact output (no blank quoted line between A and B):
+    const expected = `
+> Outer para.
+>> Inner A.
+>> Inner B.
+`.trim();
+
+    const out = toMd(el(html), { compact: true });
+    strictEqual(out, expected);
+  });
+
+  test('blockquote compact: canonicalize spacing after chevrons to a single space', () => {
+    const html = `
+<div>
+  <blockquote>
+    <p>Outer.</p>
+    <blockquote>
+      <!-- simulate " >  Inner" style via a text node prefix -->
+      <p>  InnerX.</p>
+      <p>  InnerY.</p>
+    </blockquote>
+  </blockquote>
+</div>`.trim();
+
+    // Desired: one space after the chevron run, not multiple.
+    const expected = `
+> Outer.
+>> InnerX.
+>> InnerY.
+`.trim();
+
+    const out = toMd(el(html), { compact: true }).trim();
+    strictEqual(out, expected);
+  });
+
+
+  test('pre-code block: multiline → inline span with \\n/\\t preserved, spaces unchanged', () => {
+    const html = `
+<div>
+  <pre><code><span>greeting:</span>
+  <span>farewell:</span> <span>Goodbye\`</span>
+</code></pre>
+</div>
+`.trim();
+    // Ends with a backtick inside payload → use 2-backtick fence with inner padding.
+    const expected = `\`\` greeting:\\n  farewell: Goodbye\` \`\``;
+    const out = toMd(el(html), { compact: true });
+    strictEqual(out, expected);
+  });
+
+
+  test('pre block: multiline → inline span with (no code tag)', () => {
+    const html = `
+<div>
+  <div><pre><span>greeting</span>:
+  <span>farewell</span>: <span>Goodbye\`</span></pre>
+  </div>
+</div>
+`.trim();
+    const expected = `\`\` greeting:\\n  farewell: Goodbye\` \`\``;
+    const out = toMd(el(html), { compact: true });
+    strictEqual(out, expected);
+  });
+
+  test('inline code: one-liner remains a simple backtick span', () => {
+    const html = `
+      <div>
+        <p>Inline: <code>sum(x[i] for i in S)</code></p>
+      </div>`;
+    // Single-line target; if your renderer prefixes "Inline: " text, include it here.
+    const expected = `
+Inline: \`sum(x[i] for i in S)\`
+`.trim();
+    const out = toMd(el(html), { compact: true });
+    strictEqual(out, expected);
+  });
+});
+
