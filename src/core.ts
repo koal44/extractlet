@@ -4,6 +4,8 @@ import {
   isCaptionSimilar, isElement, isHTML, isImage, isInput, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isTextArea, isUList, lastUrlSegment, log, toPascalCase,
 } from './utils.js';
 
+void log; // lint hack
+
 export type ToHtmlElementHandler = (
   elem: Element,
   ctx: ToHtmlContext
@@ -212,6 +214,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     const entryChar: string = gcx.lastChar;
     let ch = gcx.lastChar;
 
+    // --- handle glueing child nodes ---
     const childNodes = node.childNodes;
     for (let i = 0; i < childNodes.length; i++) {
       const child = childNodes[i];
@@ -253,6 +256,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       ch = md.length > 0 ? md[md.length - 1] : ch;
     }
 
+    // --- handle the bookending glue ---
     const glueRules = {
       block: gcx.inListItem
         ? { prefix: '\n\n', suffix: '\n',   trimStart: true,  trimEnd: true }
@@ -266,24 +270,6 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
     };
 
-    // const isCompact = gcx.compact;
-    // const glueRules = isCompact
-    //   ? {
-    //     block:    { prefix: ' ', suffix: '', trimStart: true,  trimEnd: true  },
-    //     list:     { prefix: ' ', suffix: '', trimStart: true,  trimEnd: true  },
-    //     listItem: { prefix: '',  suffix: '', trimStart: false, trimEnd: false },
-    //     inline:   { prefix: '',  suffix: '', trimStart: false, trimEnd: false },
-    //   }
-    //   : {
-    //     block: gcx.inListItem
-    //       ? { prefix: '\n\n', suffix: '\n',   trimStart: true,  trimEnd: true }
-    //       : { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
-    //     list: gcx.inListItem
-    //       ? { prefix: '\n',   suffix: '',     trimStart: true,  trimEnd: true }
-    //       : { prefix: '\n',   suffix: '\n\n', trimStart: true,  trimEnd: true },
-    //     listItem: { prefix: '', suffix: '',   trimStart: false, trimEnd: false },
-    //     inline:   { prefix: '', suffix: '',   trimStart: false, trimEnd: false },
-    //   };
     const { prefix, suffix, trimStart, trimEnd } = glueRules[glueMode];
     const safePrefix = entryChar === '\n' ? '' : prefix;
 
@@ -305,7 +291,6 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
   if (siteResult?.md) {
     result = siteResult.md;
   } else { // --- default handling for HTML elements ---
-    // log(`toMd.elemNode: ${node.tagName}`);
     switch (node.tagName.toUpperCase()) {
       case 'BODY':
       case 'DIV': {
@@ -362,7 +347,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           break;
         }
 
-        // dedupe. text—Markdown is final output; LLMs/humans don’t need repeated info. (prefer figcaption > href > aText > title)
+        // dedupe. text—Markdown is final output; LLMs/humans dontt need repeated info. (prefer figcaption > href > aText > title)
         const toolTipIsDupe = ctx.dedupe && [linkText, ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(toolTip, o));
         const linkTextIsDupe = ctx.dedupe && [ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(linkText, o));
 
@@ -443,14 +428,6 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         break;
       }
 
-      // case 'PRE': {
-      //   // const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
-      //   result = glueChildren(node, 'inline', 'pre');
-      //   result = result.replace(/\n*$/, '\n');
-      //   result = `\`\`\`\n${result}\`\`\`\n\n`;
-      //   break;
-      // }
-
       case 'PRE': {
         // const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
         result = glueChildren(node, 'inline', 'pre');
@@ -509,7 +486,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           result = `![${alt}][${refAlpha}]`;
           break;
         }
-        // dedupe. text—Markdown is final output; LLMs/humans don’t need repeated info. (prefer figcaption > src > alt > title)
+        // dedupe. text—Markdown is final output; LLMs/humans don't need repeated info. (prefer figcaption > src > alt > title)
         const isTitleDupe = isCaptionSimilar(title, alt) || isCaptionSimilar(title, ctx.deCaption) || isCaptionSimilar(title, srcSeg);
         const isAltDupe = isCaptionSimilar(alt, ctx.deCaption) || isCaptionSimilar(alt, srcSeg); // TODO: consider not deduping alt
         title = isTitleDupe && ctx.dedupe ? '' : title;
@@ -536,64 +513,100 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         const anchorRefs: string[] = [];
         const imageRefs: string[] = [];
         const tctx = { ...ctx, compact: true, anchorRefs, imageRefs };
-        const table: string[][] = [];
-        const rows = [...node.querySelectorAll('tr')];
-        const nCols = Math.max(...rows.map((row) => row.children.length), 0);
-        const headerRow = rows.find((r) => [...r.children].some((cell) => isTableHeader(cell)));
         const minColWidth = 3; // Minimum column width for table cells
+        const stringWidth = (s: string) => s.length; // TODO: better measure for unicode strings
+        const innerGap = 3; // spaces between columns ' | '
 
-        // add header row
-        if (headerRow) {
-          table.push([...headerRow.children].filter((c) => isTableHeader(c) || isTableCell(c)).map((c) => toMd(c, tctx).trim()));
-        } else {
-          table.push(Array<string>(nCols).fill(''));
+        class TCol { constructor(public md: string, public span: number) {} }
+        class TRow {
+          constructor(public cols: TCol[], public isHeader = false) {}
+          get nCol() { return this.cols.reduce((a, c) => a + c.span, 0); }
+          widthAlloc() {
+            return this.cols.flatMap((col) => {
+              const len = stringWidth(col.md) - innerGap * (col.span - 1);
+              const q = (len / col.span) | 0;
+              const r = len - q * col.span;
+              return Array.from({ length: col.span }, (_, i) => q + (i < r ? 1 : 0));
+            });
+          }
         }
 
-        // add separator row
-        table.push(Array<string>(nCols).fill(''));
+        type Align = 'l' | 'c' | 'r';
+        const colAligns: (Align | null)[] = []; // filled from the first header row encountered
 
-        // add data rows
-        for (const row of rows) {
-          if (row === headerRow) continue; // skip header row as it's already added
-          table.push([...row.children].filter((c) => isTableHeader(c) || isTableCell(c)).map((c) => toMd(c, tctx).trim()));
+        const rows = [...node.querySelectorAll('tr')];
+        const table: TRow[] = [];
+
+        for (const r of rows) {
+          const cells = [...r.children].filter((c) => isTableHeader(c) || isTableCell(c));
+          const isHeader = cells.some(isTableHeader);
+          const cols = cells.map((c) => new TCol(toMd(c, tctx).trim().replaceAll('|', '\\|'), c.colSpan));
+          const trow = new TRow(cols, isHeader);
+          table.push(trow);
+
+          // first header row we see defines alignment per *physical* column.
+          if (isHeader && colAligns.length === 0) {
+            for (const cell of cells) {
+              const m = cell.getAttribute('style')?.match(/text-align\s*:\s*(left|center|right)/);
+              const a = m ? (m[1][0] as Align) : null;
+              for (let i = 0; i < cell.colSpan; i++) colAligns.push(a);
+            }
+          }
         }
 
-        //log('DEBUG table array of arrays:', table);
+        // Physical columns
+        const nCols = Math.max(0, ...table.map((r) => r.nCol));
+        if (nCols !== colAligns.length) {
+          for (let i = colAligns.length; i < nCols; i++) colAligns.push(null);
+        }
 
-        const colWidths = table.reduce((widths, row) => {
-          row.forEach((cell, i) => {
-            widths[i] = Math.max(widths[i], cell.length);
-          });
-          return widths;
-        }, Array<number>(nCols).fill(minColWidth));
+        // Ensure header at index 0 (spoof if first author row wasn't header
+        if (table.length && !table[0].isHeader) {
+          table.unshift(new TRow(Array.from({ length: nCols }, () => new TCol('', 1)), true));
+        }
+
+        // add separator row after header
+        table.splice(1, 0, new TRow(Array.from({ length: nCols }, () => new TCol('', 1)), false));
+
+        const colWidths = (() => {
+          const W = Array<number>(nCols).fill(minColWidth);
+          for (const r of table) {
+            const a = r.widthAlloc();
+            for (let i = 0; i < a.length; i++) if (a[i] > W[i]) W[i] = a[i];
+          }
+          return W;
+        })();
 
         const rowParts: string[] = [];
         for (let i = 0; i < table.length; i++) {
           const row = table[i];
-          if (row.length !== nCols) {
-            log(`WARNING: Row ${i} has ${row.length} columns, expected ${nCols}`);
-          }
 
           const colParts: string[] = [];
-          for (let j = 0; j < nCols; j++) {
-            let cell = row[j] ?? 'ERR';
-            const width = colWidths[j];
+          for (let j = 0, k = 0; j < row.cols.length; j++) {
+            // collect cell content spanning this physical column
+            const tCol = row.cols[j];
+            // console.log(`i=${i} j=${j} k=${k} span=${tCol.span} widthAlloc=${colWidths.slice(k, k + tCol.span).join('+')} md="${tCol.md}" `);
+            let md = tCol.md;
+
+            let width = colWidths.slice(k, k + tCol.span).reduce((a, b) => a + b, 0);
+            width += innerGap * (tCol.span - 1);
 
             let leftMark = ' ';
             let rightMark = ' ';
 
             if (i === 1) { // separator row
-              const style = headerRow?.children[j]?.getAttribute('style') ?? '';
-              leftMark = style.includes('left') || style.includes('center') ? ':' : ' ';
-              rightMark = style.includes('right') || style.includes('center') ? ':' : ' ';
-              cell = '-'.repeat(width);
+              if (tCol.span !== 1) throw new Error('separator row cell should not have a colspan');
+              leftMark = colAligns[k] === 'l' || colAligns[k] === 'c' ? ':' : ' ';
+              rightMark = colAligns[k] === 'r' || colAligns[k] === 'c' ? ':' : ' ';
+              md = '-'.repeat(width);
             }
 
-            if (cell.length < width) {
-              cell = cell.padEnd(width, ' ');
+            if (md.length < width) {
+              md = md.padEnd(width, ' ');
             }
 
-            colParts.push(`${leftMark}${cell}${rightMark}`);
+            colParts.push(`${leftMark}${md}${rightMark}`);
+            k += tCol.span;
           }
           rowParts.push(`|${colParts.join('|')}|`);
         }
@@ -714,7 +727,6 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     }
   }
 
-  // log(`toMd: result for ${node.tagName} is "${result}"`);
   return ctx.isRoot
     ? result.trim()
     : result;

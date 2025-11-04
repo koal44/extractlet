@@ -1,7 +1,9 @@
 import { strictEqual } from 'node:assert';
-import { describe, it, test } from 'vitest';
+import { describe, expect, it, test } from 'vitest';
 import { toHtml, toMd } from '../../src/core.js';
 import { el, assertNodeEqual, setupDom, logPandocHtmlToMd } from '../utils/test-utils.js';
+import { log } from '../../src/utils.js';
+void log; // eslint whining
 
 setupDom();
 
@@ -1071,71 +1073,6 @@ indent the &gt;'s four spaces.</p>
 `.trim();
   strictEqual(result, expected);
 });
-// test('toMd list advanced', () => {
-//   const html = `<div><ol>
-// <li>
-// <p>Lists in a list item:</p>
-// <ul>
-// <li>Indented 3 spaces.
-// <ul>
-// <li>indented 5 spaces.</li>
-// </ul>
-// </li>
-// <li>3 spaces again.</li>
-// </ul>
-// </li>
-// <li>
-// <p>Multiple paragraphs in a list items:
-// It's best to indent the paragraphs four spaces
-// You can get away with three, but it can get
-// confusing when you nest other things.
-// Stick to four.</p>
-// <p>We indented the first line an extra space to align
-// it with these paragraphs. In real use, we might do
-// that to the entire list so that all items line up.</p>
-// <p>This paragraph is still part of the list item, but it looks messy to humans. So it's a good idea to wrap your nested paragraphs manually, as we did with the first two.</p>
-// </li>
-// <li>
-// <p>Blockquotes in a list item:</p>
-// <blockquote>
-// <p>Skip a line and
-// indent the &gt;'s four spaces.</p>
-// </blockquote>
-// </li>
-// <li>
-// <p>Preformatted text in a list item:</p>
-// <pre class="lang-js s-code-block"><code data-highlighted="yes" class="hljs language-javascript"> <span class="hljs-title class_">Skip</span> a line and indent eight spaces.
-//  <span class="hljs-title class_">That</span><span class="hljs-string">'s four spaces for the list
-//  and four to trigger the code block.</span></code></pre>
-// </li>
-// </ol>
-// </div>`;
-//   const result = toMd(el(html));
-//   const expected = `
-// 1. Lists in a list item:
-//    - Indented 3 spaces.
-//      - indented 5 spaces.
-//    - 3 spaces again.
-
-// 2. Multiple paragraphs in a list items: It's best to indent the paragraphs four spaces You can get away with three, but it can get confusing when you nest other things. Stick to four.
-
-//    We indented the first line an extra space to align it with these paragraphs. In real use, we might do that to the entire list so that all items line up.
-
-//    This paragraph is still part of the list item, but it looks messy to humans. So it's a good idea to wrap your nested paragraphs manually, as we did with the first two.
-
-// 3. Blockquotes in a list item:
-
-//    > Skip a line and indent the >'s four spaces.
-
-// 4. Preformatted text in a list item:
-
-//    \`\`\`
-//    Skip a line and indent eight spaces.
-//     That's four spaces for the list
-//     and four to trigger the code block.
-//    \`\`\``.trim();
-//   strictEqual(result, expected);
-// });
 
 test('toMd stackoverflow help style', () => {
   const html = `<div><h1>StackOverflow Advanced List Example</h1>
@@ -1317,133 +1254,254 @@ test('toMd sub sup', () => {
   strictEqual(result, expected);
 });
 
-test('toMd table simple', () => {
-  const html = `<div>
-<div class="s-table-container">
-<table class="s-table">
-<thead>
-<tr>
-<th style="text-align:left">left</th>
-<th style="text-align:center">center</th>
-<th style="text-align:right">right</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">First</td>
-<td style="text-align:center">Row</td>
-<td style="text-align:right">#1</td>
-</tr>
-<tr>
-<td style="text-align:left">2nd</td>
-<td style="text-align:center">Row</td>
-<td style="text-align:right">#2</td>
-</tr>
-</tbody>
-</table></div></div>`;
+describe('toMd tables', () => {
+  it('aligns columns using first header row styles', () => {
+    const html = `<div>
+      <div class="s-table-container">
+      <table class="s-table">
+      <thead>
+      <tr>
+      <th style="text-align:left">left</th>
+      <th style="text-align:center">center</th>
+      <th style="text-align:right">right</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td style="text-align:left">First</td>
+      <td style="text-align:center">Row</td>
+      <td style="text-align:right">#1</td>
+      </tr>
+      <tr>
+      <td style="text-align:left">2nd</td>
+      <td style="text-align:center">Row</td>
+      <td style="text-align:right">#2</td>
+      </tr>
+      </tbody>
+      </table></div></div>`;
 
-  const expected = `
+    const expected = `
 | left  | center | right |
 |:----- |:------:| -----:|
 | First | Row    | #1    |
 | 2nd   | Row    | #2    |
 `.trim();
 
-  const result = toMd(el(html)).trim();
-  strictEqual(result, expected);
-});
+    const result = toMd(el(html));
+    strictEqual(result, expected);
+  });
 
-test('toMd table complex', () => {
-  const html = `<div><div class="s-table-container"><table class="s-table"><thead>
-<tr>
-<th style="text-align:left">Name <strong>bold</strong></th>
-<th style="text-align:center">Description</th>
-<th style="text-align:right">Code Sample</th>
-<th style="text-align:right">Misc</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">Alice</td>
-<td style="text-align:center"><em>italic</em> and code</td>
-<td style="text-align:right"><code>let x = 1 \\ 2;</code></td>
-<td style="text-align:right">&lt; shown</td>
-</tr>
-<tr>
-<td style="text-align:left">&lt;tag&gt;</td>
-<td style="text-align:center">Plain</td>
-<td style="text-align:right"><code>foo</code></td>
-<td style="text-align:right">&amp; useful</td>
-</tr>
-<tr>
-<td style="text-align:left"></td>
-<td style="text-align:center">|||||</td>
-<td style="text-align:right"><code>x &lt; y</code></td>
-<td style="text-align:right">Hello, world!</td>
-</tr>
-<tr>
-<td style="text-align:left">Bob</td>
-<td style="text-align:center"></td>
-<td style="text-align:right"><code>&lt;div&gt;hi&lt;/div&gt;</code></td>
-<td style="text-align:right">link</td>
-</tr>
-</tbody>
-</table></div></div>`;
+  it('renders mixed inline content with correct pipe/HTML escaping', () => {
+    const html = `<div><div class="s-table-container"><table class="s-table"><thead>
+      <tr>
+      <th style="text-align:left">Name <strong>bold</strong></th>
+      <th style="text-align:center">Description</th>
+      <th style="text-align:right">Code Sample</th>
+      <th style="text-align:right">Misc</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td style="text-align:left">Alice</td>
+      <td style="text-align:center"><em>italic</em> and code</td>
+      <td style="text-align:right"><code>let x = 1 \\ 2;</code></td>
+      <td style="text-align:right">&lt; shown</td>
+      </tr>
+      <tr>
+      <td style="text-align:left">&lt;tag&gt;</td>
+      <td style="text-align:center">Plain</td>
+      <td style="text-align:right"><code>foo</code></td>
+      <td style="text-align:right">&amp; useful</td>
+      </tr>
+      <tr>
+      <td style="text-align:left"></td>
+      <td style="text-align:center">|||||</td>
+      <td style="text-align:right"><code>x &lt; y</code></td>
+      <td style="text-align:right">Hello, world!</td>
+      </tr>
+      <tr>
+      <td style="text-align:left">Bob</td>
+      <td style="text-align:center"></td>
+      <td style="text-align:right"><code>&lt;div&gt;hi&lt;/div&gt;</code></td>
+      <td style="text-align:right">link</td>
+      </tr>
+      </tbody>
+      </table></div></div>`;
 
-  // logPandocHtmlToMd(html);
+    // logPandocHtmlToMd(html);
 
-  const expected = `
+    const expected = `
 | Name **bold** | Description       | Code Sample      | Misc          |
 |:------------- |:-----------------:| ----------------:| -------------:|
 | Alice         | *italic* and code | \`let x = 1 \\ 2;\` | < shown       |
 | <tag>         | Plain             | \`foo\`            | & useful      |
-|               | |||||             | \`x < y\`          | Hello, world! |
+|               | \\|\\|\\|\\|\\|        | \`x < y\`          | Hello, world! |
 | Bob           |                   | \`<div>hi</div>\`  | link          |
 `.trim();
 
-  const result = toMd(el(html)).trim();
-  strictEqual(result, expected);
-  // console.log(el(html).querySelector('code').textContent.split(''));
-  // const str = 'a\\b';      // A string with a single backslash between 'a' and 'b'
-  // console.log(str);        // prints: a\b
-  // console.log(str.length); // prints: 3
+    const result = toMd(el(html)).trim();
+    strictEqual(result, expected);
+  });
 
-  // const json = JSON.stringify(str);
-  // console.log(json);       // prints: "a\\b"
-  // console.log(json.length); // prints: 6 (because of the two slashes and quotes)
-});
+  it('flattens block content in cells (compact mode)', () => {
+    const html = `<div><div class="s-table-container"><table class="s-table"><thead>
+      <tr>
+      <th>left</th>
+      <th>center</th>
+      <th>right</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>First</td>
+      <td>Row</td>
+      <td>#1</td>
+      </tr>
+      <tr>
+      <td>2nd</td>
+      <td>Row</td>
+      <td>#2 <p> hello</p></td>
+      </tr>
+      </tbody>
+      </table></div></div>`;
 
-test('toMd table with block cell', () => {
-  const html = `<div><div class="s-table-container"><table class="s-table"><thead>
-<tr>
-<th>left</th>
-<th>center</th>
-<th>right</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>First</td>
-<td>Row</td>
-<td>#1</td>
-</tr>
-<tr>
-<td>2nd</td>
-<td>Row</td>
-<td>#2 <p> hello</p></td>
-</tr>
-</tbody>
-</table></div></div>`;
-
-  const expected = `
+    const expected = `
 | left  | center | right    |
 | ----- | ------ | -------- |
 | First | Row    | #1       |
 | 2nd   | Row    | #2 hello |
 `.trim();
 
-  const result = toMd(el(html)).trim();
-  strictEqual(result, expected);
+    const result = toMd(el(html)).trim();
+    strictEqual(result, expected);
+  });
+
+  it('honors header colspan visually (single wide cell)', () => {
+    const html = `
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th colspan="2">A</th>
+              <th>B</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>x</td><td>y</td><td>z</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>`.trim();
+
+    const expected = `
+| A         | B   |
+| --- | --- | --- |
+| x   | y   | z   |
+`.trim();
+
+    const result = toMd(el(html));
+    // console.log(result);
+
+    strictEqual(result, expected);
+  });
+
+  it('honors data-row colspan visually (no placeholder cells)', () => {
+    const html = `
+      <div>
+        <table>
+          <thead>
+            <tr><th>H1</th><th>H2</th><th>H3</th></tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="2">wide</td><td>r</td></tr>
+            <tr><td>1</td><td>2</td><td>3</td></tr>
+          </tbody>
+        </table>
+      </div>`.trim();
+
+    const expected = `
+| H1  | H2  | H3  |
+| --- | --- | --- |
+| wide      | r   |
+| 1   | 2   | 3   |
+`.trim();
+
+    const result = toMd(el(html));
+    // console.log(result);
+    strictEqual(result, expected);
+  });
+
+  it('lets a long spanning col resize other columns', () => {
+    const html = `
+      <div>
+        <table>
+          <thead>
+            <tr><th colspan="2">Name</th><th>Age</th></tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="3">* Note: values as of 2024/2025</td></tr>
+            <tr><td>Ada</td><td>Lovelace</td><td>36</td></tr>
+            <tr><td>Alan</td><td>Turing</td><td>41</td></tr>
+          </tbody>
+        </table>
+      </div>`.trim();
+
+    const expected = `
+| Name                | Age      |
+| -------- | -------- | -------- |
+| * Note: values as of 2024/2025 |
+| Ada      | Lovelace | 36       |
+| Alan     | Turing   | 41       |
+`.trim();
+
+    const result = toMd(el(html));
+    // log(result, { escapeWhitespace: false, jsonifyStrings: false });
+    expect(result).toBe(expected);
+  });
+
+  it('renders mixed-width Unicode and emoji (length-based width, current behavior)', () => {
+    const html = `<div>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">left</th>
+            <th style="text-align:center">center</th>
+            <th style="text-align:right">right</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ASCII</td>
+            <td>漢字</td>
+            <td>e\u0301</td>        <!-- 'e' + combining acute -->
+          </tr>
+          <tr>
+            <td>سلام</td>            <!-- Arabic -->
+            <td>😊</td>              <!-- emoji (surrogate pair, length 2) -->
+            <td>mix😊e\u0301</td>    <!-- mix of ASCII + emoji + combining -->
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+
+    // Widths under current logic:
+    // col1 max len = max(len('left')=4, 'ASCII'=5, 'سلام'=4) = 5
+    // col2 max len = max(len('center')=6, '漢字'=2, '😊'=2)   = 6
+    // col3 max len = max(len('right')=5, 'é'=2, 'mix😊é'=7) = 7
+
+    // TODO: This is beyond unsatisfactory.
+    const expected = `
+| left  | center | right   |
+|:----- |:------:| -------:|
+| ASCII | 漢字     | é      |
+| سلام  | 😊     | mix😊é |
+`.trim();
+
+    const result = toMd(el(html)).trim();
+    // log(result, { escapeWhitespace: false, jsonifyStrings: false });
+    strictEqual(result, expected);
+  });
 });
 
 test('toHtml preserves spoiler blockquote', () => {
@@ -1550,7 +1608,6 @@ describe('toHtml — HTML attributes for inputs', () => {
 
     const out = toHtml(el(html));
 
-    // Structure
     const expected = `
       <div>
         <input type="text" value="hello" />
@@ -1608,7 +1665,6 @@ describe('toHtml — HTML attributes for inputs', () => {
 
     const out = toHtml(el(html));
 
-    // Keep value attribute as-is for serialization
     const expected = `
       <div>
         <input type="checkbox" value="on" checked="">
@@ -1645,7 +1701,6 @@ line2</textarea>
 
     const out = toHtml(el(html)) as HTMLElement;
 
-    // Structure: keep rows/cols; inner text normalized by your copier as-is
     const expected = `
       <div>
         <textarea rows="3" cols="10">line1
@@ -1834,7 +1889,7 @@ describe('table cell rendering: blockquote & code in <td>', () => {
       </div>`;
     const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
     const actual = toMd(doc);
-    // console.log(`\n--- BLOCKQUOTE IN <td> ---\n${  actual  }\n--------------------------\n`);
+    // console.log(actual);
     const expected = `
 | Col | Content                                         |
 |:--- |:----------------------------------------------- |
@@ -1843,13 +1898,6 @@ describe('table cell rendering: blockquote & code in <td>', () => {
 [1]: https://en.wikipedia.org/wiki/Foo
 `.trim();
     strictEqual(actual, expected);
-
-    // Recommended (flatten blockquote to inline text; links as refs):
-    // | Col | Content                                        |
-    // |:--- |:-----------------------------------------------|
-    // | BQ  | Quoted line 1. Quoted line 2 with [Foo][1].    |
-    //
-    // [1]: https://en.wikipedia.org/wiki/Foo
   });
 
   test('code/pre inside <td> (inspect current output)', () => {
@@ -1880,7 +1928,7 @@ describe('table cell rendering: blockquote & code in <td>', () => {
       </div>`;
     const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
     const actual = toMd(doc);
-    // console.log(`\n--- CODE/PRE IN <td> ---\n${  actual  }\n------------------------\n`);
+    // console.log(actual);
     const expected = `
 | Col  | Content                                    |
 |:---- |:------------------------------------------ |
@@ -1888,19 +1936,6 @@ describe('table cell rendering: blockquote & code in <td>', () => {
 | PRE  | \` function f(a, b) {\\n  return a + b;\\n} \` |
 `.trim();
     strictEqual(actual, expected);
-
-    // Recommended policy:
-    // - Inline <code> → keep as inline backticks in a single line:
-    //   | CODE | `sum(x[i] for i in S)` |
-    //
-    // - <pre><code> with newlines:
-    //   Prefer literal HTML fallback to avoid breaking GFM tables:
-    //   | PRE  | <pre>function f(a, b) {␠return a + b;␠}</pre> |
-    //   (where newlines collapsed to single spaces)
-    //
-    // If you *really* want Markdown, you could flatten to a single inline code block:
-    //   | PRE  | `function f(a, b) { return a + b; }` |
-    // but you lose formatting—tradeoff is yours.
   });
 });
 

@@ -999,6 +999,86 @@ And another.`.trim();
   });
 });
 
+// test('foo', () => {
+//   const html = `
+// <div>
+//   <table>
+//     <tbody>
+//       <tr>
+//         <th scope="col" colspan="2">
+//           <button type="button">
+//             <span>show</span>
+//           </button>
+//           <a href="/wiki/Template:Tensors">foo</a>
+//         </div>
+//         <a>Tensors</a>
+//       </th>
+//     </tr>
+//     <tr hidden="until-found">
+//       <td colspan="2">
+//         <a href="/wiki/Glossary_of_tensor_theory" title="Glossary of tensor theory">Glossary of tensor theory</a>
+//       </td>
+//     </tr>
+//     <tr hidden="until-found">
+//       <th scope="row">Scope</th>
+//       <td>
+//         <div>foo</div>
+//       </td>
+//     </tr>
+//     <tr hidden="until-found">
+//       <th scope="row">Notation</th>
+//       <td>
+//         <a href="/wiki/Abstract_index_notation" title="Abstract index notation">Abstract index notation</a>
+//       </td>
+//     </tr>
+//     <tr hidden="until-found">
+//       <th scope="row">Tensor
+//         <br />definitions
+//         </th>
+//         <td>
+//           <a href="/wiki/Tensor_(intrinsic_definition)" title="Tensor (intrinsic definition)">Tensor (intrinsic definition)</a>
+//         </td>
+//       </tr>
+//       <tr hidden="until-found">
+//         <th scope="row">
+//           <a href="/wiki/Operation_(mathematics)" title="Operation (mathematics)">Operations</a>
+//         </th>
+//         <td>
+//           <a href="/wiki/Covariant_derivative" title="Covariant derivative">Covariant derivative</a>
+//         </td>
+//       </tr>
+//       <tr hidden="until-found">
+//         <th scope="row">Related
+//           <br />abstractions
+//         </th>
+//         <td>
+//           <a href="/wiki/Affine_connection" title="Affine connection">Affine connection</a>
+//         </td>
+//       </tr>
+//       <tr hidden="until-found">
+//         <th scope="row">Notable tensors</th>
+//         <td>
+//           <div>foo</div>
+//         </td>
+//       </tr>
+//       <tr hidden="until-found">
+//         <th scope="row">
+//           <a href="/wiki/Mathematician" title="Mathematician">Mathematicians</a>
+//         </th>
+//         <td>
+//           <a href="/wiki/%C3%89lie_Cartan" title="Élie Cartan">Élie Cartan</a>
+//         </td>
+//       </tr>
+//     </tbody>
+//   </table>
+// </div>
+// `.trim();
+//   const result = toMd(el(html));
+//   // console.log(result);
+//   // const expected = 'foo';
+//   // assertNodeEqual(result, expected);
+// });
+
 
 // describe('MediaWiki Math rendering', () => {
 
