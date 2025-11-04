@@ -622,7 +622,7 @@ test('toMd inline code basic', () => {
 test('toMd inline code with backtick', () => {
   const html = '<p>The name <code>Tuple`2</code> is valid.</p>';
   const result = toMd(el(html));
-  const expected = 'The name ``Tuple`2`` is valid.';
+  const expected = 'The name `` Tuple`2 `` is valid.';
   strictEqual(result, expected);
 });
 
@@ -773,7 +773,7 @@ Like code blocks, code spans will be displayed in a monospaced font. Markdown an
 
 If your code itself contains backticks, you may have to use multiple backticks as delimiters:
 
-The name \`\`Tuple\`2\`\` is a valid .NET type name.`;
+The name \`\` Tuple\`2 \`\` is a valid .NET type name.`;
   strictEqual(result, expected);
 });
 
@@ -1281,10 +1281,10 @@ describe('toMd tables', () => {
       </table></div></div>`;
 
     const expected = `
-| left  | center | right |
-|:----- |:------:| -----:|
-| First | Row    | #1    |
-| 2nd   | Row    | #2    |
+| left | center | right |
+|:--- |:---:| ---:|
+| First | Row | #1 |
+| 2nd | Row | #2 |
 `.trim();
 
     const result = toMd(el(html));
@@ -1331,12 +1331,12 @@ describe('toMd tables', () => {
     // logPandocHtmlToMd(html);
 
     const expected = `
-| Name **bold** | Description       | Code Sample      | Misc          |
-|:------------- |:-----------------:| ----------------:| -------------:|
-| Alice         | *italic* and code | \`let x = 1 \\ 2;\` | < shown       |
-| <tag>         | Plain             | \`foo\`            | & useful      |
-|               | \\|\\|\\|\\|\\|        | \`x < y\`          | Hello, world! |
-| Bob           |                   | \`<div>hi</div>\`  | link          |
+| Name **bold** | Description | Code Sample | Misc |
+|:--- |:---:| ---:| ---:|
+| Alice | *italic* and code | \`let x = 1 \\ 2;\` | < shown |
+| <tag> | Plain | \`foo\` | & useful |
+| | \\|\\|\\|\\|\\| | \`x < y\` | Hello, world! |
+| Bob | | \`<div>hi</div>\` | link |
 `.trim();
 
     const result = toMd(el(html)).trim();
@@ -1366,10 +1366,10 @@ describe('toMd tables', () => {
       </table></div></div>`;
 
     const expected = `
-| left  | center | right    |
-| ----- | ------ | -------- |
-| First | Row    | #1       |
-| 2nd   | Row    | #2 hello |
+| left | center | right |
+| --- | --- | --- |
+| First | Row | #1 |
+| 2nd | Row | #2 hello |
 `.trim();
 
     const result = toMd(el(html)).trim();
@@ -1395,9 +1395,9 @@ describe('toMd tables', () => {
       </div>`.trim();
 
     const expected = `
-| A         | B   |
+| A | | B |
 | --- | --- | --- |
-| x   | y   | z   |
+| x | y | z |
 `.trim();
 
     const result = toMd(el(html));
@@ -1421,10 +1421,10 @@ describe('toMd tables', () => {
       </div>`.trim();
 
     const expected = `
-| H1  | H2  | H3  |
+| H1 | H2 | H3 |
 | --- | --- | --- |
-| wide      | r   |
-| 1   | 2   | 3   |
+| wide | | r |
+| 1 | 2 | 3 |
 `.trim();
 
     const result = toMd(el(html));
@@ -1448,11 +1448,11 @@ describe('toMd tables', () => {
       </div>`.trim();
 
     const expected = `
-| Name                | Age      |
-| -------- | -------- | -------- |
-| * Note: values as of 2024/2025 |
-| Ada      | Lovelace | 36       |
-| Alan     | Turing   | 41       |
+| Name | | Age |
+| --- | --- | --- |
+| * Note: values as of 2024/2025 | | |
+| Ada | Lovelace | 36 |
+| Alan | Turing | 41 |
 `.trim();
 
     const result = toMd(el(html));
@@ -1492,16 +1492,85 @@ describe('toMd tables', () => {
 
     // TODO: This is beyond unsatisfactory.
     const expected = `
-| left  | center | right   |
-|:----- |:------:| -------:|
-| ASCII | 漢字     | é      |
-| سلام  | 😊     | mix😊é |
+| left | center | right |
+|:--- |:---:| ---:|
+| ASCII | 漢字 | é |
+| سلام | 😊 | mix😊é |
 `.trim();
 
     const result = toMd(el(html)).trim();
     // log(result, { escapeWhitespace: false, jsonifyStrings: false });
     strictEqual(result, expected);
   });
+
+  it('handles row spans', () => {
+    const html = `
+      <div>
+        <table>
+          <tr>
+            <th rowspan="2">Name</th>
+            <th colspan="2">Scores</th>
+          </tr>
+          <tr>
+            <th>Math</th>
+            <th>Science</th>
+          </tr>
+          <tr>
+            <td>Alice</td><td>90</td><td>95</td>
+          </tr>
+        </table>
+      </div>`.trim();
+
+    const expected = `
+| Name | Scores | |
+| --- | --- | --- |
+| | Math | Science |
+| Alice | 90 | 95 |
+`.trim();
+    // Visual representation. how it should be damnit :-/
+    // | Name  | Scores           |
+    // | ----- | ------ | ------- |
+    // |       | Math   | Science |
+    // | Alice | 90     | 95      |
+
+    const result = toMd(el(html, 'div'));
+    strictEqual(result, expected);
+  });
+
+  it('flattens rowspan+colspan that push later headers right (wonky Foo)', () => {
+    const html = `
+      <div>
+        <table>
+          <tr>
+            <th rowspan="2" colspan="3">Foo</th>
+          </tr>
+          <tr>
+            <th rowspan="2">Name</th>
+            <th colspan="2">Scores</th>
+          </tr>
+          <tr>
+            <th>Math</th>
+            <th>Science</th>
+          </tr>
+          <tr>
+            <td>Alice</td><td>90</td><td>95</td>
+          </tr>
+        </table>
+      </div>`.trim();
+
+    // Physical width becomes 6 after row 2.
+    const expected = `
+| Foo | | | | | |
+| --- | --- | --- | --- | --- | --- |
+| | | | Name | Scores | |
+| Math | Science | | | | |
+| Alice | 90 | 95 | | | |
+`.trim();
+
+    const result = toMd(el(html, 'div'));
+    strictEqual(result, expected);
+  });
+
 });
 
 test('toHtml preserves spoiler blockquote', () => {
@@ -1765,10 +1834,10 @@ describe('tables with vertical inclinations', () => {
     </div>`;
 
     const expected = `
-| Tensor | Related                                                               |
-|:------ |:--------------------------------------------------------------------- |
-| A      | • [Kronecker delta][1] • [Levi-Civita symbol][2] • [Metric tensor][3] |
-| B      | • [foo][4] • [bar][5] • [baz][6]                                      |
+| Tensor | Related |
+|:--- |:--- |
+| A | • [Kronecker delta][1] • [Levi-Civita symbol][2] • [Metric tensor][3] |
+| B | • [foo][4] • [bar][5] • [baz][6] |
 
 [1]: https://en.wikipedia.org/wiki/Kronecker_delta
 [2]: https://en.wikipedia.org/wiki/Levi-Civita_symbol
@@ -1815,8 +1884,8 @@ describe('tables with vertical inclinations', () => {
     const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
 
     const expected = `
-| Group   | Figures                                                              |
-|:------- |:-------------------------------------------------------------------- |
+| Group | Figures |
+|:--- |:--- |
 | Tensors | • ![Kronecker delta][A] • ![Metric tensor][B] • ![Riemann tensor][C] |
 
 [A]: https://en.wikipedia.org/images/kronecker.png
@@ -1855,9 +1924,9 @@ describe('tables with vertical inclinations', () => {
     const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
 
     const expected = `
-| Col | Stuff                                                 |
-|:--- |:----------------------------------------------------- |
-| X   | • [Foo][1] • [Foo again][1] • ![A][A] • ![A again][A] |
+| Col | Stuff |
+|:--- |:--- |
+| X | • [Foo][1] • [Foo again][1] • ![A][A] • ![A again][A] |
 
 [1]: https://en.wikipedia.org/wiki/Foo
 [A]: https://en.wikipedia.org/images/a.png
@@ -1891,9 +1960,9 @@ describe('table cell rendering: blockquote & code in <td>', () => {
     const actual = toMd(doc);
     // console.log(actual);
     const expected = `
-| Col | Content                                         |
-|:--- |:----------------------------------------------- |
-| BQ  | > Quoted line 1. > Quoted line 2 with [Foo][1]. |
+| Col | Content |
+|:--- |:--- |
+| BQ | > Quoted line 1. > Quoted line 2 with [Foo][1]. |
 
 [1]: https://en.wikipedia.org/wiki/Foo
 `.trim();
@@ -1930,13 +1999,17 @@ describe('table cell rendering: blockquote & code in <td>', () => {
     const actual = toMd(doc);
     // console.log(actual);
     const expected = `
-| Col  | Content                                    |
-|:---- |:------------------------------------------ |
-| CODE | \`sum(x[i] for i in S)\`                     |
-| PRE  | \` function f(a, b) {\\n  return a + b;\\n} \` |
+| Col | Content |
+|:--- |:--- |
+| CODE | \`sum(x[i] for i in S)\` |
+| PRE | \`function f(a, b) {\\n  return a + b;\\n}\` |
 `.trim();
     strictEqual(actual, expected);
   });
+  // | Col  | Content                                    |
+  // |:---- |:------------------------------------------ |
+  // | CODE | \`sum(x[i] for i in S)\`                     |
+  // | PRE  | \` function f(a, b) {\\n  return a + b;\\n} \` |
 });
 
 describe('in compact mode', () => {

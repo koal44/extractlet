@@ -971,8 +971,8 @@ caption
     const expectedMd = `
 Some text content
 
-|            |
-| ---------- |
+| |
+| --- |
 | used value |
 `.trim();
 

@@ -435,7 +435,9 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           result = result.replace(/^\n+/, '').replace(/\n+$/, '');
           result = result.replace(/\r?\n/g, '\\n').replace(/\t/g, '\\t');
           const fence = '`'.repeat(1 + Math.max(0, ...(result.match(/`+/g) || []).map((s) => s.length)));
-          result = `\n${fence} ${result} ${fence}\n`;
+          result = fence.length > 1
+            ? `\n${fence} ${result} ${fence}\n`
+            : `\n${fence}${result}${fence}\n`;
         } else {
           result = result.replace(/\r\n/g, '\n').replace(/\n+$/, '');
           const fence = '```';
@@ -447,10 +449,13 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       case 'CODE': {
         result = node.textContent;
-        const fence = isPre(node.parentNode)
-          ? ''
-          : '`'.repeat(1 + Math.max(0, ...(result.match(/`+/g) || []).map((s) => s.length)));
-        result = `${fence}${result}${fence}`;
+        if (isPre(node.parentNode)) {
+          break; // handled by PRE
+        }
+        const fence = '`'.repeat(1 + Math.max(0, ...(result.match(/`+/g) || []).map((s) => s.length)));
+        result = fence.length > 1
+          ? `${fence} ${result} ${fence}`
+          : `${fence}${result}${fence}`;
         break;
       }
 
@@ -509,42 +514,135 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         break;
       }
 
+      // case 'TABLE': {
+      //   const anchorRefs: string[] = [];
+      //   const imageRefs: string[] = [];
+      //   const tctx = { ...ctx, compact: true, anchorRefs, imageRefs };
+
+      //   class TCol { constructor(public md: string, public span: number) {} }
+      //   class TRow {
+      //     public readonly isHeader: boolean;
+      //     public readonly cols: ReadonlyArray<TCol>;
+      //     public readonly physicalCols: ReadonlyArray<string>;
+
+      //     constructor(cols: ReadonlyArray<TCol>, isHeader = false) {
+      //       this.isHeader = isHeader;
+      //       this.cols = cols;
+
+      //       const phys: string[] = [];
+      //       for (const col of cols) {
+      //         phys.push(col.md);                 // first physical col gets content
+      //         for (let i = 1; i < col.span; i++) phys.push(''); // placeholders
+      //       }
+      //       this.physicalCols = phys;
+      //     }
+      //   }
+
+      //   type Align = 'l' | 'c' | 'r';
+      //   const colAligns: (Align | null)[] = []; // filled from the first header row encountered
+
+      //   const rows = [...node.querySelectorAll('tr')];
+      //   const table: TRow[] = [];
+
+      //   for (const r of rows) {
+      //     const cells = [...r.children].filter((c) => isTableHeader(c) || isTableCell(c));
+      //     const isHeader = cells.some(isTableHeader);
+      //     const cols = cells.map((c) => new TCol(toMd(c, tctx), c.colSpan));
+      //     const trow = new TRow(cols, isHeader);
+      //     table.push(trow);
+
+      //     // first header row we see defines alignment per *physical* column.
+      //     if (isHeader && colAligns.length === 0) {
+      //       for (const cell of cells) {
+      //         const m = cell.getAttribute('style')?.match(/text-align\s*:\s*(left|center|right)/);
+      //         const a = m ? (m[1][0] as Align) : null;
+      //         for (let i = 0; i < cell.colSpan; i++) colAligns.push(a);
+      //       }
+      //     }
+      //   }
+
+      //   // Physical columns
+      //   const nCols = Math.max(0, ...table.map((r) => r.physicalCols.length));
+      //   if (nCols !== colAligns.length) {
+      //     for (let i = colAligns.length; i < nCols; i++) colAligns.push(null);
+      //   }
+
+      //   // Ensure header at index 0 (spoof if first author row wasn't header
+      //   if (table.length && !table[0].isHeader) {
+      //     table.unshift(new TRow(Array.from({ length: nCols }, () => new TCol('', 1)), true));
+      //   }
+
+      //   // insert separator row after header
+      //   table.splice(1, 0, new TRow(Array.from({ length: nCols }, () => new TCol('', 1)), false));
+
+      //   const rowParts: string[] = [];
+      //   for (let i = 0; i < table.length; i++) {
+      //     const row = table[i];
+      //     if (row.physicalCols.length !== nCols) {
+      //       log('WARNING: table row column count mismatch, skipping row:', row, row.physicalCols, nCols);
+      //     }
+
+      //     const colParts: string[] = [];
+      //     for (let j = 0; j < row.physicalCols.length; j++) {
+      //       let md = row.physicalCols[j].trim().replaceAll('|', '\\|');
+
+      //       let leftMark = ' ';
+      //       let rightMark = ' ';
+
+      //       if (i === 1) { // separator row
+      //         md = '---';
+      //         leftMark = colAligns[j] === 'l' || colAligns[j] === 'c' ? ':' : ' ';
+      //         rightMark = colAligns[j] === 'r' || colAligns[j] === 'c' ? ':' : ' ';
+      //       }
+
+      //       if (md === '') {
+      //         md = ' ';
+      //         leftMark = rightMark = '';
+      //       }
+
+      //       colParts.push(`${leftMark}${md}${rightMark}`);
+      //     }
+      //     rowParts.push(`|${colParts.join('|')}|`);
+      //   }
+
+      //   const anchorRefsParts = anchorRefs.map((href, idx) => `[${idx + 1}]: ${href}`);
+      //   const imageRefsParts  = imageRefs.map((href, idx) => `[${alphaLabel(idx + 1)}]: ${href}`);
+
+      //   if (anchorRefsParts.length || imageRefsParts.length) {
+      //     rowParts.push('');
+      //     if (anchorRefsParts.length) rowParts.push(...anchorRefsParts);
+      //     if (imageRefsParts.length)  rowParts.push(...imageRefsParts);
+      //   }
+
+      //   result = `\n\n${rowParts.join('\n')}\n\n`;
+      //   break;
+      // }
+
       case 'TABLE': {
         const anchorRefs: string[] = [];
         const imageRefs: string[] = [];
         const tctx = { ...ctx, compact: true, anchorRefs, imageRefs };
-        const minColWidth = 3; // Minimum column width for table cells
-        const stringWidth = (s: string) => s.length; // TODO: better measure for unicode strings
-        const innerGap = 3; // spaces between columns ' | '
 
-        class TCol { constructor(public md: string, public span: number) {} }
-        class TRow {
-          constructor(public cols: TCol[], public isHeader = false) {}
-          get nCol() { return this.cols.reduce((a, c) => a + c.span, 0); }
-          widthAlloc() {
-            return this.cols.flatMap((col) => {
-              const len = stringWidth(col.md) - innerGap * (col.span - 1);
-              const q = (len / col.span) | 0;
-              const r = len - q * col.span;
-              return Array.from({ length: col.span }, (_, i) => q + (i < r ? 1 : 0));
-            });
-          }
-        }
+        class GridCol { constructor(public md: string, public remRowSpan: number) {} }
 
         type Align = 'l' | 'c' | 'r';
-        const colAligns: (Align | null)[] = []; // filled from the first header row encountered
+        const colAligns: (Align | null)[] = [];
 
-        const rows = [...node.querySelectorAll('tr')];
-        const table: TRow[] = [];
+        const rows = [...node.querySelectorAll('tr')] as HTMLTableRowElement[];
+        const grid: GridCol[][] = [];
 
-        for (const r of rows) {
+        let prev: GridCol[] = [];
+        let firstRowIsHeader = false;
+
+        for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+          const r = rows[rowIdx];
           const cells = [...r.children].filter((c) => isTableHeader(c) || isTableCell(c));
-          const isHeader = cells.some(isTableHeader);
-          const cols = cells.map((c) => new TCol(toMd(c, tctx).trim().replaceAll('|', '\\|'), c.colSpan));
-          const trow = new TRow(cols, isHeader);
-          table.push(trow);
 
-          // first header row we see defines alignment per *physical* column.
+          // detect header-on-first-row once
+          const isHeader = cells.some(isTableHeader);
+          if (rowIdx === 0) firstRowIsHeader = isHeader;
+
+          // first header row defines alignment per *physical* column
           if (isHeader && colAligns.length === 0) {
             for (const cell of cells) {
               const m = cell.getAttribute('style')?.match(/text-align\s*:\s*(left|center|right)/);
@@ -552,61 +650,76 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
               for (let i = 0; i < cell.colSpan; i++) colAligns.push(a);
             }
           }
-        }
 
-        // Physical columns
-        const nCols = Math.max(0, ...table.map((r) => r.nCol));
-        if (nCols !== colAligns.length) {
-          for (let i = colAligns.length; i < nCols; i++) colAligns.push(null);
-        }
+          const row: GridCol[] = [];
+          let colIndex = 0;
 
-        // Ensure header at index 0 (spoof if first author row wasn't header
-        if (table.length && !table[0].isHeader) {
-          table.unshift(new TRow(Array.from({ length: nCols }, () => new TCol('', 1)), true));
-        }
+          // place cells, skipping carried spans
+          for (const cell of cells) {
+            while (prev[colIndex]?.remRowSpan > 0) {
+              row.push(new GridCol('', prev[colIndex].remRowSpan - 1));
+              colIndex++;
+            }
 
-        // add separator row after header
-        table.splice(1, 0, new TRow(Array.from({ length: nCols }, () => new TCol('', 1)), false));
+            row.push(new GridCol(toMd(cell, tctx), cell.rowSpan - 1));
+            colIndex++;
 
-        const colWidths = (() => {
-          const W = Array<number>(nCols).fill(minColWidth);
-          for (const r of table) {
-            const a = r.widthAlloc();
-            for (let i = 0; i < a.length; i++) if (a[i] > W[i]) W[i] = a[i];
+            // same-row placeholders for colSpan>1
+            for (let k = 1; k < cell.colSpan; k++) {
+              row.push(new GridCol('', cell.rowSpan - 1));
+              colIndex++;
+            }
           }
-          return W;
-        })();
 
+          // age trailing carries ONCE per row
+          while (prev[colIndex]?.remRowSpan > 0) {
+            row.push(new GridCol('', prev[colIndex].remRowSpan - 1));
+            colIndex++;
+          }
+
+          grid.push(row);
+          prev = row;
+        }
+
+        // ---- rectangularize + bookkeeping ----
+        const nCols = Math.max(0, ...grid.map((r) => r.length));
+
+        // pad colAligns to physical width
+        while (colAligns.length < nCols) colAligns.push(null);
+
+        // pad short rows
+        for (const r of grid) {
+          while (r.length < nCols) r.push(new GridCol('', 0));
+        }
+
+        // spoof header row if first isn’t header
+        if (grid.length && !firstRowIsHeader) {
+          grid.unshift(Array.from({ length: nCols }, () => new GridCol('', 0)));
+        }
+
+        // insert separator row after header (empty; emitter sets '---' per cell)
+        grid.splice(1, 0, Array.from({ length: nCols }, () => new GridCol('', 0)));
+
+        // ---- emit (unchanged policy) ----
         const rowParts: string[] = [];
-        for (let i = 0; i < table.length; i++) {
-          const row = table[i];
-
+        for (let i = 0; i < grid.length; i++) {
+          const row = grid[i];
           const colParts: string[] = [];
-          for (let j = 0, k = 0; j < row.cols.length; j++) {
-            // collect cell content spanning this physical column
-            const tCol = row.cols[j];
-            // console.log(`i=${i} j=${j} k=${k} span=${tCol.span} widthAlloc=${colWidths.slice(k, k + tCol.span).join('+')} md="${tCol.md}" `);
-            let md = tCol.md;
-
-            let width = colWidths.slice(k, k + tCol.span).reduce((a, b) => a + b, 0);
-            width += innerGap * (tCol.span - 1);
-
+          for (let j = 0; j < nCols; j++) {
+            let md = row[j].md.trim().replaceAll('|', '\\|');
             let leftMark = ' ';
             let rightMark = ' ';
 
-            if (i === 1) { // separator row
-              if (tCol.span !== 1) throw new Error('separator row cell should not have a colspan');
-              leftMark = colAligns[k] === 'l' || colAligns[k] === 'c' ? ':' : ' ';
-              rightMark = colAligns[k] === 'r' || colAligns[k] === 'c' ? ':' : ' ';
-              md = '-'.repeat(width);
-            }
-
-            if (md.length < width) {
-              md = md.padEnd(width, ' ');
+            if (i === 1) {
+              md = '---';
+              leftMark  = colAligns[j] === 'l' || colAligns[j] === 'c' ? ':' : ' ';
+              rightMark = colAligns[j] === 'r' || colAligns[j] === 'c' ? ':' : ' ';
+            } else if (md === '') {
+              md = ' ';
+              leftMark = rightMark = '';
             }
 
             colParts.push(`${leftMark}${md}${rightMark}`);
-            k += tCol.span;
           }
           rowParts.push(`|${colParts.join('|')}|`);
         }
