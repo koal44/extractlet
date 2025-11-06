@@ -222,6 +222,11 @@ export function warnFalse(...args: Parameters<typeof console.warn>): false {
   return false;
 }
 
+export function warnReturn<T>(val: T, ...args: Parameters<typeof console.warn>): T {
+  console.warn(...args);
+  return val;
+}
+
 export function injectCss(
   css: string,
   { id = undefined, doc = document }: { id?: string; doc?: Document; } = {}

@@ -30,9 +30,10 @@
 
 import {
   h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isScript, htmlToElementK, htmlToElement,
-} from './utils.js';
-import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext } from './core.js';
-import { toHtml as _toHtml, toMd as _toMd } from './core.js';
+} from '../utils';
+import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext } from '../core';
+import { toHtml as _toHtml, toMd as _toMd } from '../core';
+import { asAbsUrl, Locator, pickEl, pickEls, pickVal } from '../locator';
 
 type Contributor = {
   contributorType: 'author' | 'editor' | 'commenter';
@@ -40,18 +41,18 @@ type Contributor = {
   timestamp: string;
   name: string;
   userId: number;
-  username: string;
+  userSlug: string;
 }
 
 type Comment = {
-  bodyHtml: string | null;
+  bodyHtml: string | undefined;
   bodyMd: string;
   contributors: Contributor[];
   vote: number;
 }
 
 type Post = {
-  bodyHtml: string | null;
+  bodyHtml: string | undefined;
   bodyMd: string;
   contributors: Contributor[];
   comments: Comment[];
@@ -120,7 +121,7 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
       return { md };
     }
     case 'BLOCKQUOTE': {
-      let md = gc(node, 'block', 'normal', { quoteDepth: ctx.quoteDepth + 1 });
+      let md = gc(node, 'block', 'normal');
       const isSpoiler = node.classList.contains('spoiler');
       const marker = isSpoiler ? '>!' : '>';
       const bqPrefix = md.match(new RegExp('^\\n*'))?.[0] ?? '';
@@ -154,116 +155,131 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, _ctx) => {
   return {};
 };
 
-export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}) {
+export function toHtml(node: Element | null | undefined, opts?: Partial<ToHtmlContext>): Element | null
+export function toHtml(node: Node | null | undefined, opts?: Partial<ToHtmlContext>): Element | null
+export function toHtml(node: Node | null | undefined, opts: Partial<ToHtmlContext> = {}) {
+  if (!node) return null;
   return _toHtml(node, { ...opts, elementHandler: toHtmlElemHandler });
 }
 
-function scrapeFallbackName(userNode: Element | null) {
-  let name = userNode?.querySelector(':scope > span[itemprop="name"]')?.textContent?.trim() ?? '';
+type seVarKey =
+  'permalink' | 'title' |
+  'posts_items' | 'post_body' | 'sig_items' |
+  'comment_items' | 'comment_body' |
+  'poster_name' | 'poster_id' | 'poster_slug' | 'poster_time' | 'poster_isOwner' | 'poster_type' | 'poster_voteCount' |
+  'commenter_name' | 'commenter_id' | 'commenter_slug' | 'commenter_time' | 'commenter_voteCount'
+  ;
 
-  // fallback to text content if still no name
-  if (!name && userNode) {
-    for (const node of userNode.childNodes) {
-      if (isText(node)) {
-        name = node.textContent!.trim();
-        if (name) break;
-      }
-    }
-  }
+const seTable: Record<seVarKey, Locator[]> = {
+  permalink: [
+    { sel: '#question-header a.question-hyperlink', attr: 'href', valMap: asAbsUrl },
+    { sel: 'link[rel="canonical"]', attr: 'href', valMap: asAbsUrl },
+  ],
+  title: [{ sel: '#question-header a.question-hyperlink', attr: 'textContent' }],
 
-  return { name, userId: -1, username: '' };
-}
+  // posts
+  posts_items: [{ sel: '.post-layout' }],
+  post_body:   [{ sel: ':scope .s-prose' }],
+  sig_items:   [{ sel: ':scope .post-signature' }],
 
-function scrapeUserInfo(userNode: Element | null) {
-  const name = userNode?.textContent?.trim() ?? '';
-  const href = userNode?.getAttribute('href');
-  const match = href?.match(/\/users\/(\d+)/);
-  const userId = match ? parseInt(match[1], 10) : -1;
-  const username = (href?.split('/').pop() ?? '').split('?')[0];
+  // comments
+  comment_items: [{ sel: ':scope ul.comments-list > li' }],
+  comment_body:  [{ sel: ':scope .comment-body > span.comment-copy' }],
 
-  return { name, userId, username };
-}
+  // poster info
+  poster_time: [{ sel: ':scope .relativetime', attr: 'title', valMap: (v) => v.split(',')[0].trim() }],
+  poster_isOwner: [{ sel: ':scope', attr: 'class', valMap: (v) => v.split(' ').includes('owner') ? 'true' : 'false' }],
+  poster_type: [{ sel: ':scope .user-details', attr: 'itemprop', valMap: (v) => v === 'author' ? 'author' : 'editor' }],
+  poster_name: [
+    { sel: ':scope .user-details a', attr: 'textContent' },
+    { sel: ':scope .user-details > span[itemprop="name"]', attr: 'textContent' }, // fallback
+  ],
+  poster_id: [{ sel: ':scope .user-details a', attr: 'href', valMap: (v) => { const match = v.match(/\/users\/(\d+)/); return match ? match[1] : '-1'; } }],
+  poster_slug: [{ sel: ':scope .user-details a', attr: 'href', valMap: (v) => { const parts = v.split('/'); return parts.pop()?.split('?')[0] || ''; } }],
+  poster_voteCount: [
+    { sel: ':scope .votecell [itemprop="upvoteCount"]', attr: 'data-value' },
+    { sel: ':scope .votecell [itemprop="upvoteCount"]', attr: 'textContent' },
+  ],
 
-export function scrapePostContributor(signatureNode: Element | null): Contributor {
-  const timestamp = signatureNode?.querySelector('.relativetime')?.getAttribute('title')?.split(',')[0].trim() ?? '';
-  const isOwner = signatureNode?.classList.contains('owner') ?? false; // OP of the entire post
-  const contributorType = signatureNode?.querySelector('.user-details')?.getAttribute('itemprop') === 'author' ? 'author' : 'editor';
-  const userNode = signatureNode?.querySelector('.user-details a');
-  const userInfo = userNode
-    ? scrapeUserInfo(userNode)
-    : scrapeFallbackName(signatureNode?.querySelector('.user-details') ?? null);
-
-  return { contributorType, isOwner, timestamp, ...userInfo };
-}
-
-function scrapeCommentContributor(commentItem: Element): Contributor {
-  const timestamp = commentItem.querySelector('.relativetime-clean')?.getAttribute('title')?.split(',')[0].trim() ?? '';
-  const userNode = commentItem.querySelector('a.comment-user');
-  const { name, userId, username } = scrapeUserInfo(userNode);
-
-  return { contributorType: 'commenter', isOwner: false, timestamp, name, userId, username };
-}
-
-function scrapePostVote(postLayout: Element) {
-  const voteNode = postLayout.querySelector<HTMLDivElement>('div.votecell div[itemprop="upvoteCount"]');
-  const vote = voteNode?.dataset.value ?? voteNode?.textContent ?? '';
-  const n = parseInt(vote.trim(), 10);
-
-  return Number.isFinite(n) ? n : 0;
-}
-
-function scrapeCommentVote(commentItem: Element) {
-  const scoreNode = commentItem.querySelector('div.comment-score span');
-  const vote = scoreNode?.textContent ?? '';
-  const n = parseInt(vote.trim(), 10);
-
-  return Number.isFinite(n) ? n : 0;
-}
-
-function scrapePosts(root: Document): Post[] {
-  const postLayouts = root.querySelectorAll('.post-layout');
-  const posts: Post[] = [];
-
-  postLayouts.forEach((postLayout) => {
-    // Extract post body
-    const postBodyNode = toHtml(postLayout.querySelector('.s-prose'));
-    const bodyHtml = postBodyNode instanceof Element  ? postBodyNode.outerHTML : null;
-    const bodyMd = postBodyNode ? toMd(postBodyNode) : '';
-
-    // Extract contributors
-    const signatureNodes = postLayout.querySelectorAll('.post-signature');
-    const contributors = Array.from(signatureNodes).map((sig) =>
-      scrapePostContributor(sig)
-    );
-
-    const vote = scrapePostVote(postLayout);
-
-    // Extract comments
-    const commentNodes = postLayout.querySelectorAll('ul.comments-list li');
-    const comments = Array.from(commentNodes).map((li) => {
-      const bodySpan = toHtml(li.querySelector('div.comment-body > span.comment-copy'));
-      const bodyHtml = bodySpan instanceof Element ? bodySpan.outerHTML : null;
-      const bodyMd = toMd(bodySpan);
-      const contributors = [scrapeCommentContributor(li)];
-      const vote = scrapeCommentVote(li);
-      return { bodyHtml, bodyMd, contributors, vote };
-    });
-
-    // Assemble post object
-    posts.push({ bodyHtml, bodyMd, contributors, comments, vote });
-  });
-
-  return posts;
-}
+  // commenter info
+  commenter_name: [{ sel: ':scope a.comment-user', attr: 'textContent' }],
+  commenter_id: [{ sel: ':scope a.comment-user', attr: 'href', valMap: (v) => { const match = v.match(/\/users\/(\d+)/); return match ? match[1] : '-1'; } }],
+  commenter_slug: [{ sel: ':scope a.comment-user', attr: 'href', valMap: (v) => { const parts = v.split('/'); return parts.pop()?.split('?')[0] || ''; } }],
+  commenter_time: [{ sel: ':scope .relativetime-clean', attr: 'title', valMap: (v) => v.split(',')[0].trim() }],
+  commenter_voteCount: [{ sel: ':scope div.comment-score span', attr: 'textContent' }],
+} as const;
 
 function scrapePermalink(root: Document): string | undefined {
-  const a = root.querySelector<HTMLAnchorElement>('#question-header a.question-hyperlink');
-  return a?.href;
+  return pickVal(seTable.permalink, root);
 }
 
 function scrapeTitle(root: Document): string | undefined {
-  const a = root.querySelector<HTMLAnchorElement>('#question-header a.question-hyperlink');
-  return a?.textContent?.trim();
+  return pickVal(seTable.title, root);
+}
+
+function scrapePosts(doc: Document): Post[] {
+  const posts: Post[] = [];
+
+  for (const post of pickEls(seTable['posts_items'], doc)) {
+    // post body
+    const bodyEl = toHtml(pickEl(seTable['post_body'], doc, post));
+    const bodyHtml = bodyEl?.outerHTML;
+    const bodyMd = toMd(bodyEl);
+
+    // contributors
+    const sigNodes = pickEls(seTable['sig_items'], doc, post);
+    const contributors = sigNodes.map((x) => scrapePostContributor(x, doc));
+
+    const vote = scrapePostVote(post, doc);
+
+    // comments
+    const comments = pickEls(seTable['comment_items'], doc, post).map((comment) => {
+      const cBodyEl = toHtml(pickEl(seTable['comment_body'], doc, comment));
+      const bodyHtml = cBodyEl?.outerHTML;
+      const bodyMd = toMd(cBodyEl);
+      const contributors = [scrapeCommentContributor(comment, doc)];
+      const vote = scrapeCommentVote(comment, doc);
+      return { bodyHtml, bodyMd, contributors, vote };
+    });
+
+    posts.push({ bodyHtml, bodyMd, contributors, comments, vote });
+  }
+  return posts;
+}
+
+export function scrapePostContributor(elem: Element | null, doc: Document): Contributor {
+  if (!elem) return { contributorType: 'editor', isOwner: false, timestamp: '', name: '', userId: -1, userSlug: '' };
+
+  const timestamp = pickVal(seTable['poster_time'], doc, elem) ?? '';
+  const contributorType = pickVal(seTable['poster_type'], doc, elem) === 'author' ? 'author' : 'editor';
+  const isOwner = pickVal(seTable['poster_isOwner'], doc, elem) === 'true';
+
+  const name = pickVal(seTable['poster_name'], doc, elem) ?? '';
+  const userId = parseInt(pickVal(seTable['poster_id'], doc, elem) ?? '-1', 10);
+  const userSlug = pickVal(seTable['poster_slug'], doc, elem) ?? '';
+
+  return { contributorType, isOwner, timestamp, name, userId, userSlug };
+}
+
+function scrapePostVote(elem: Element, doc: Document): number {
+  const val = pickVal(seTable['poster_voteCount'], doc, elem);
+  const n = parseInt(val ?? '', 10);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+function scrapeCommentContributor(elem: Element, doc: Document): Contributor {
+  const timestamp = pickVal(seTable['commenter_time'], doc, elem) ?? '';
+  const name = pickVal(seTable['commenter_name'], doc, elem) ?? '';
+  const userId = parseInt(pickVal(seTable['commenter_id'], doc, elem) ?? '-1', 10);
+  const userSlug = pickVal(seTable['commenter_slug'], doc, elem) ?? '';
+
+  return { contributorType: 'commenter', isOwner: false, timestamp, name, userId, userSlug };
+}
+
+function scrapeCommentVote(elem: Element, doc: Document): number {
+  const val = pickVal(seTable['commenter_voteCount'], doc, elem);
+  const n = parseInt(val ?? '', 10);
+  return Number.isNaN(n) ? 0 : n;
 }
 
 function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {

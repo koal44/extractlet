@@ -1,8 +1,8 @@
 /* eslint-disable no-restricted-properties */
 import util from 'util';
-import { extractFromDoc as seExtraction } from '../src/se.js';
-import { extractFromDoc as wikiExtraction } from '../src/wiki.js';
-import { extractFromDoc as hubExtraction } from '../src/hub.js';
+import { extractFromDoc as seExtraction } from '../src/sites/se.js';
+import { extractFromDoc as wikiExtraction } from '../src/sites/wiki.js';
+import { extractFromDoc as hubExtraction } from '../src/sites/hub.js';
 import { setupDom } from '../test/utils/test-utils.js';
 import { readHtmlFile } from '../test/fix/fix.js';
 import path from 'path';

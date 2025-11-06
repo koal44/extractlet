@@ -448,7 +448,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
 
       case 'CODE': {
-        result = node.textContent;
+        result = node.textContent ?? '';
         if (isPre(node.parentNode)) {
           break; // handled by PRE
         }
@@ -843,45 +843,4 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
   return ctx.isRoot
     ? result.trim()
     : result;
-}
-
-export type Locator = { sel: string; attr?: string; map?: MapFn; };
-export type MapFn = (v: string, doc: Document, scope?: ParentNode) => string;
-
-export function pickEl(specs: readonly Locator[], doc: Document, scope?: Element): Element | undefined {
-  for (const { sel } of specs) {
-    if (sel === ':scope') {
-      if (scope) return scope;
-      else continue;
-    }
-    const el = (scope ?? doc).querySelector(sel);
-    if (el) return el;
-  }
-  return undefined;
-}
-
-export function pickEls(specs: readonly Locator[], doc: Document, scope?: Element): Element[] {
-  for (const { sel } of specs) {
-    if (sel === ':scope') {
-      if (scope) return [scope];
-      else continue;
-    }
-    const els = (scope ?? doc).querySelectorAll(sel);
-    if (els.length > 0) return [...els];
-  }
-  return [];
-}
-
-export function pickVal(specs: readonly Locator[], doc: Document, scope?: Element): string | undefined {
-  for (const { sel, attr, map } of specs) {
-    const el = sel === ':scope' ? scope : (scope ?? doc).querySelector(sel);
-    if (!el) continue;
-    let val = attr === 'textContent' || attr === undefined // defaults to textContent
-      ? el.textContent?.trim() ?? undefined
-      : el.getAttribute(attr)?.trim() ?? undefined;
-    if (!val) continue;
-    val = map ? map(val, doc, scope).trim() : val;
-    if (val) return val;
-  }
-  return undefined;
 }

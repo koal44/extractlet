@@ -1,4 +1,3 @@
-// TODO: Add support for PRs and Discussions
 // TODO: Add support for auto-expanding long comment threads
 
 /**
@@ -54,10 +53,15 @@
  */
 
 import {
-  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, htmlToElementK, htmlToElement, formatDateWithRelative,
-} from './utils.js';
-import type { ToHtmlContext, ToMdElementHandler, ToMdContext, ToHtmlElementHandler, Locator } from './core.js';
-import { toHtml as _toHtml, toMd as _toMd, pickEl, pickEls, pickVal } from './core.js';
+  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText,
+  isElement, htmlToElementK, htmlToElement, formatDateWithRelative,
+} from '../utils.js';
+import type { ToHtmlContext, ToMdElementHandler, ToMdContext, ToHtmlElementHandler } from '../core';
+import { toHtml as _toHtml, toMd as _toMd } from '../core';
+import type { Locator } from '../locator.js';
+import {
+  pickVal, pickEl, pickEls, asLastPathSeg, asIdFrag, asAbsUrl,
+} from '../locator.js';
 
 export type HubResult = {
   permalink: string;
@@ -65,184 +69,182 @@ export type HubResult = {
   posts: Post[];
 };
 
-export type Post = {
+type Post = {
   contributor?: Contributor;
   bodyHtml?: string;
   bodyMd?: string;
   postId?: string;
 }
 
-export type Contributor = {
+type Contributor = {
   author?: string;
   timestamp?: string;
   editor?: string;
 };
 
-type PageSection = 'permalink' | 'title' | 'firstPost' | 'posts';
-type SectionFields = Record<string, DomainLocators | undefined>;
-type DomainLocators = Partial<Record<DomainId, Locator[]>>;
-type DomainId = 'issue' | 'pr' | 'discussion' | 'all';
+type GhDomain = 'issue' | 'pr' | 'discussion';
+type GhKey =
+  'permalink' | 'title' |
+  'firstPost_author' | 'firstPost_postId' | 'firstPost_createdAt' | 'firstPost_editedBy' | 'firstPost_bodyViewer' |
+  'posts_items' | 'posts_author' | 'posts_createdAt' | 'posts_postId' | 'posts_bodyViewer';
+type GhTable = Record<GhDomain | 'all', Partial<Record<GhKey, Locator[]>>>;
 
-const SCRAPERS: Record<PageSection, SectionFields> = {
-  // scrapePermaUrl()
-  permalink: {
-    link: {
-      all: [
-        { sel: 'head > link[rel="canonical"]', attr: 'href' },
-        // { sel: 'meta[property="og:url"]', attr: 'content' }, // unverified
-        { sel: '#repo-content-turbo-frame', attr: 'src' },
-        // { sel: 'react-app[initial-path]', attr: 'initial-path' }, // unverified
-      ],
-    },
+const ghTable: GhTable  = {
+  all: {
+    permalink: [
+      { sel: 'head > link[rel="canonical"]', attr: 'href', valMap: asAbsUrl },
+      { sel: '#repo-content-turbo-frame', attr: 'src', valMap: asAbsUrl },
+      // { sel: 'meta[property="og:url"]', attr: 'content' }, // unverified
+      // { sel: 'react-app[initial-path]', attr: 'initial-path' }, // unverified
+    ],
+    title: [
+      { sel: 'h1.gh-header-title > bdi.markdown-title', attr: 'textContent' },
+      { sel: 'head > title', attr: 'textContent' },
+    ],
+    firstPost_author: [
+    ],
+    firstPost_postId: [
+    ],
+    firstPost_createdAt: [
+    ],
+    firstPost_editedBy: [
+    ],
+    firstPost_bodyViewer: [
+    ],
+    posts_items: [
+    ],
+    posts_author: [
+    ],
+    posts_createdAt: [
+    ],
+    posts_postId: [
+    ],
+    posts_bodyViewer: [
+    ],
   },
-
-  // scrapeTitle()
-  title: {
-    title: {
-      issue: [{ sel: 'bdi[data-testid="issue-title"]', attr: 'textContent' }],
-      all: [
-        { sel: 'h1.gh-header-title > bdi.markdown-title', attr: 'textContent' },
-        { sel: 'head > title', attr: 'textContent' },
-      ],
-    },
+  pr: {
+    permalink: [
+    ],
+    title: [
+    ],
+    firstPost_author: [
+      { sel: 'div[id^="issue-"] a.author', attr: 'textContent' },
+    ],
+    firstPost_postId: [
+      { sel: 'div[id^="issue-"]', attr: 'id' },
+    ],
+    firstPost_createdAt: [
+      { sel: 'div[id^="issue-"] .timeline-comment-header relative-time', attr: 'datetime' },
+    ],
+    firstPost_editedBy: [
+    ],
+    firstPost_bodyViewer: [
+      { sel: 'div[id^="issue-"] .comment-body' },
+    ],
+    posts_items: [
+      { sel: 'div[id^="issuecomment-"]' },
+    ],
+    posts_author: [
+      { sel: ':scope .timeline-comment-header a.author', attr: 'textContent' },
+    ],
+    posts_createdAt: [
+      { sel: ':scope .timeline-comment-header relative-time', attr: 'datetime' },
+    ],
+    posts_postId: [
+      { sel: ':scope', attr: 'id' },
+    ],
+    posts_bodyViewer: [
+      { sel: ':scope .comment-body' },
+    ],
   },
-
-  // scrapeFirstPost()
-  firstPost: {
-    author: {
-      issue: [
-        { sel: 'div[data-testid="issue-viewer-issue-container"] [data-testid="issue-body-header-author"]' },
-      ],
-      pr: [
-        { sel: 'div[id^="issue-"] a.author', attr: 'textContent' },
-      ],
-      discussion: [
-        {
-          sel: 'div[id^="discussion-"] a[data-hovercard-type="user"]', attr: 'href',
-          map: (v) => v.split('/').filter(Boolean).pop() || v,
-        },
-      ],
-    },
-    postId: {
-      issue: [
-        {
-          sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"]',
-          attr: 'href', map: (s) => (s.includes('#') ? s.split('#')[1] : s),
-        },
-      ],
-      pr: [
-        { sel: 'div[id^="issue-"]', attr: 'id' },
-      ],
-      discussion: [
-        { sel: 'div[id^="discussion-"]', attr: 'id' },
-      ],
-    },
-    createdAt: {
-      issue: [
-        { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] relative-time', attr: 'datetime' },
-      ],
-      pr: [
-        { sel: 'div[id^="issue-"] .timeline-comment-header relative-time', attr: 'datetime' },
-      ],
-      discussion: [
-        { sel: 'div[id^="discussion-"] h2 relative-time', attr: 'datetime' },
-      ],
-    },
-    editedBy: {
-      issue: [
-        { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] + span a' },
-      ],
-    },
-    bodyViewer: {
-      issue: [
-        { sel: 'div[data-testid="issue-viewer-issue-container"] div[data-testid="issue-body-viewer"]' },
-      ],
-      pr: [
-        { sel: 'div[id^="issue-"] .comment-body' },
-      ],
-      discussion: [
-        { sel: 'div[id^="discussion-"] .comment-body' },
-      ],
-    },
+  discussion: {
+    permalink: [
+    ],
+    title: [
+    ],
+    firstPost_author: [
+      {
+        sel: 'div[id^="discussion-"] a[data-hovercard-type="user"]', attr: 'href', valMap: asLastPathSeg,
+      },
+    ],
+    firstPost_postId: [
+      { sel: 'div[id^="discussion-"]', attr: 'id' },
+    ],
+    firstPost_createdAt: [
+      { sel: 'div[id^="discussion-"] h2 relative-time', attr: 'datetime' },
+    ],
+    firstPost_editedBy: [
+    ],
+    firstPost_bodyViewer: [
+      { sel: 'div[id^="discussion-"] .comment-body' },
+    ],
+    posts_items: [
+      { sel: 'div[id^="discussioncomment-"]' },
+    ],
+    posts_author: [
+      {
+        sel: ':scope a[data-hovercard-type="user"]', attr: 'href', valMap: asLastPathSeg,
+      },
+    ],
+    posts_createdAt: [
+      { sel: ':scope relative-time', attr: 'datetime' },
+    ],
+    posts_postId: [
+      { sel: ':scope', attr: 'id' },
+    ],
+    posts_bodyViewer: [
+      { sel: ':scope .comment-body' },
+    ],
   },
-
-  // scrapePosts()
-  posts: {
-    items: {
-      issue: [
-        { sel: 'div[data-testid="issue-timeline-container"] > *' },
-      ],
-      pr: [
-        { sel: 'div[id^="issuecomment-"]' },
-      ],
-      discussion: [
-        { sel: 'div[id^="discussioncomment-"]' },
-      ],
-    },
-    author: {
-      issue: [
-        { sel: ':scope div[data-testid="comment-header"] a[data-testid="avatar-link"]', attr: 'textContent' },
-      ],
-      pr: [
-        { sel: ':scope .timeline-comment-header a.author', attr: 'textContent' },
-      ],
-      discussion: [
-        {
-          sel: ':scope a[data-hovercard-type="user"]', attr: 'href',
-          map: (v) => v.split('/').filter(Boolean).pop() || v,
-        },
-      ],
-    },
-    createdAt: {
-      issue: [
-        { sel: ':scope div[data-testid="comment-header"] relative-time', attr: 'datetime' },
-      ],
-      pr: [
-        { sel: ':scope .timeline-comment-header relative-time', attr: 'datetime' },
-      ],
-      discussion: [
-        { sel: ':scope relative-time', attr: 'datetime' },
-      ],
-    },
-    postId: {
-      issue: [
-        { sel: ':scope div[data-testid="comment-header"]', attr: 'id' },
-      ],
-      pr: [
-        { sel: ':scope', attr: 'id' },
-      ],
-      discussion: [
-        { sel: ':scope', attr: 'id' },
-      ],
-    },
-    bodyViewer: {
-      issue: [
-        { sel: ':scope div[data-testid="markdown-body"]' },
-      ],
-      pr: [
-        { sel: ':scope .comment-body' },
-      ],
-      discussion: [
-        { sel: ':scope .comment-body' },
-      ],
-    },
+  issue: {
+    permalink: [
+    ],
+    title: [
+      { sel: 'bdi[data-testid="issue-title"]', attr: 'textContent' },
+    ],
+    firstPost_author: [
+      { sel: 'div[data-testid="issue-viewer-issue-container"] [data-testid="issue-body-header-author"]' },
+    ],
+    firstPost_postId: [
+      {
+        sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"]',
+        attr: 'href', valMap: asIdFrag,
+      },
+    ],
+    firstPost_createdAt: [
+      { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] relative-time', attr: 'datetime' },
+    ],
+    firstPost_editedBy: [
+      { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] + span a' },
+    ],
+    firstPost_bodyViewer: [
+      { sel: 'div[data-testid="issue-viewer-issue-container"] div[data-testid="issue-body-viewer"]' },
+    ],
+    posts_items: [
+      { sel: 'div[data-testid="issue-timeline-container"] > *' },
+    ],
+    posts_author: [
+      { sel: ':scope div[data-testid="comment-header"] a[data-testid="avatar-link"]', attr: 'textContent' },
+    ],
+    posts_createdAt: [
+      { sel: ':scope div[data-testid="comment-header"] relative-time', attr: 'datetime' },
+    ],
+    posts_postId: [
+      { sel: ':scope div[data-testid="comment-header"]', attr: 'id' },
+    ],
+    posts_bodyViewer: [
+      { sel: ':scope div[data-testid="markdown-body"]' },
+    ],
   },
 } as const;
 
-function getLocators(section: PageSection, field: string, domain: DomainId): Locator[] {
-  // NOTE: we cheated with 'string' type to bypass TS checks, so let's
-  // check that field actually exists in SCRAPERS[section]
-  if (!(field in SCRAPERS[section])) {
-    console.warn(`getLocators: field "${field}" does not exist in SCRAPERS[${section}]`);
-    return [];
-  }
-  const byDomain = SCRAPERS[section][field]?.[domain] ?? [];
-  const byAll = SCRAPERS[section][field]?.['all'] ?? [];
-  const locs = domain === 'all' ? [...byDomain] : [...byDomain, ...byAll];
-  return locs;
+function getLocators(varKey: GhKey, domain?: GhDomain): Locator[] {
+  return domain
+    ? [...(ghTable[domain][varKey] ?? []), ...(ghTable['all'][varKey] ?? [])]
+    : ghTable['all'][varKey] ?? [];
 }
 
-export function matchGithubUrl(str: string, withHash = false): string | null {
+function matchGhUrl(str: string, withHash = false): string | null {
   try {
     const u = new URL(str, 'https://github.com');
     if (u.hostname !== 'github.com') return null;
@@ -258,7 +260,7 @@ export function matchGithubUrl(str: string, withHash = false): string | null {
   }
 }
 
-function detectDomain(str: string): Exclude<DomainId, 'all'> | undefined  {
+function detectGhDomain(str: string): GhDomain | undefined  {
   //   /owner/repo/issues/123
   //   /owner/repo/pull/456
   //   /owner/repo/discussions/789
@@ -269,22 +271,21 @@ function detectDomain(str: string): Exclude<DomainId, 'all'> | undefined  {
 }
 
 function scrapePermaUrl(doc: Document): string | undefined {
-  const link = pickVal(getLocators('permalink', 'link', 'all'), doc) ?? doc.baseURI;
-  const href = new URL(link, doc.baseURI).href;
-  const detected = matchGithubUrl(href, false);
+  const link = pickVal(getLocators('permalink'), doc) ?? doc.baseURI;
+  const detected = matchGhUrl(link, false);
   if (detected) return detected;
 }
 
-function scrapeTitle(doc: Document, domain: DomainId): string | undefined {
-  const title = pickVal(getLocators('title', 'title', domain), doc);
+function scrapeTitle(doc: Document, domain: GhDomain): string | undefined {
+  const title = pickVal(getLocators('title', domain), doc);
   return title;
 }
 
-function scrapeFirstPost(doc: Document, domain: DomainId): Post | undefined {
-  const author    = pickVal(getLocators('firstPost', 'author',    domain), doc);
-  const postId    = pickVal(getLocators('firstPost', 'postId',    domain), doc);
-  const createdAt = pickVal(getLocators('firstPost', 'createdAt', domain), doc);
-  const editedBy  = pickVal(getLocators('firstPost', 'editedBy',  domain), doc);
+function scrapeFirstPost(doc: Document, domain: GhDomain): Post | undefined {
+  const author    = pickVal(getLocators('firstPost_author',    domain), doc);
+  const postId    = pickVal(getLocators('firstPost_postId',    domain), doc);
+  const createdAt = pickVal(getLocators('firstPost_createdAt', domain), doc);
+  const editedBy  = pickVal(getLocators('firstPost_editedBy',  domain), doc);
 
   if (!author && !createdAt && !postId) return undefined;
 
@@ -294,22 +295,22 @@ function scrapeFirstPost(doc: Document, domain: DomainId): Post | undefined {
     editor: editedBy,
   };
 
-  const bodyViewer = pickEl(getLocators('firstPost', 'bodyViewer', domain), doc);
+  const bodyViewer = pickEl(getLocators('firstPost_bodyViewer', domain), doc);
   const bodyHtml   = bodyViewer ? toHtml(bodyViewer)?.outerHTML : undefined;
   const bodyMd     = bodyViewer ? toMd(bodyViewer) : undefined;
 
   return { contributor, bodyHtml, bodyMd, postId: postId };
 }
 
-function scrapePosts(doc: Document, domain: DomainId): Post[] {
-  const items = pickEls(getLocators('posts', 'items', domain), doc);
+function scrapePosts(doc: Document, domain: GhDomain): Post[] {
+  const items = pickEls(getLocators('posts_items', domain), doc);
 
   const posts: Post[] = [];
   for (const item of items) {
-    const author    = pickVal(getLocators('posts', 'author',     domain), doc, item);
-    const createdAt = pickVal(getLocators('posts', 'createdAt',  domain), doc, item);
-    const postId    = pickVal(getLocators('posts', 'postId',     domain), doc, item);
-    const bodyEl    =  pickEl(getLocators('posts', 'bodyViewer', domain), doc, item);
+    const author    = pickVal(getLocators('posts_author',     domain), doc, item);
+    const createdAt = pickVal(getLocators('posts_createdAt',  domain), doc, item);
+    const postId    = pickVal(getLocators('posts_postId',     domain), doc, item);
+    const bodyEl    =  pickEl(getLocators('posts_bodyViewer', domain), doc, item);
 
     const isComment = author || createdAt || bodyEl;
     if (!isComment) continue;
@@ -366,7 +367,7 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
   if (node.matches('em, i')) {
     return { md: `_${gc(node, 'inline', 'normal')}_` }; // use _..._ rather than *...*
   }
-  if (node.matches('br')) return { md: '\n' }; // ???
+  if (node.matches('br')) return { md: '\n' }; // without the double space
   if (node.matches('input[type="checkbox"]')) {
     return { md: node.hasAttribute('checked') ? '[x] ' : '[ ] ' };
   }
@@ -513,7 +514,7 @@ export function extractFromDoc(root: Document = document): HubResult | undefined
     return;
   }
 
-  const domain = detectDomain(permalink);
+  const domain = detectGhDomain(permalink);
   if (!domain) {
     console.debug('[extractFromDoc] Unable to detect GitHub domain for', permalink);
     return;
@@ -522,10 +523,6 @@ export function extractFromDoc(root: Document = document): HubResult | undefined
   const title  = scrapeTitle(root, domain) ?? '???';
   const first  = scrapeFirstPost(root, domain);
   const others = scrapePosts(root, domain);
-
-  // NOTE: if `first` is naturally in `others[0]`, then `first` really should be `undefined`. do not de-dupe.
-  // actually this might be wrong, as we fallback logic isn't grouped by domain, rather it's simply an array of fallbacks
-  // so maybe one DOM variant has a first but another doesn't. so we will prolly need to de-dupe after all.
 
   const posts = [
     ...(first ? [first] : []),

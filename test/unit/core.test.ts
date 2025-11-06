@@ -1,37 +1,40 @@
 import { strictEqual } from 'node:assert';
 import { describe, expect, it, test } from 'vitest';
-import { toHtml, toMd } from '../../src/core.js';
-import { el, assertNodeEqual, setupDom, logPandocHtmlToMd } from '../utils/test-utils.js';
-import { log } from '../../src/utils.js';
+import { toHtml, toMd } from '../../src/core';
+import { el, assertNodeEqual, setupDom, logPandocHtmlToMd } from '../utils/test-utils';
+import { log } from '../../src/utils';
 void log; // eslint whining
 
 setupDom();
 
 void logPandocHtmlToMd; // appease eslint whining
 
-test.skip('toHtml spacing challenges', () => {
+test('toHtml spacing challenges', () => {
   const html = `
-    <div>
-      <p>
-        This is a test. See
-        <a href="example.com">this example</a>
-        for more details. A
-        <a href="allaboutcats.com">large cat</a>
-        was sitting in the tree. Moments later,
-        <a href="cat.com">another cat</a>
-        appeared beside it.
-      </p>
+<div>
+  <p>
+    This is a test. See
+    <a href="example.com">this example</a>
+    for more details. A
+    <a href="allaboutcats.com">large cat</a>
+    was sitting in the tree. Moments later,
+    <a href="cat.com">another cat</a>
+    appeared beside it.
+  </p>
 
-    </div>`.trim();
+</div>
+`.trim();
 
   const result = toHtml(el(html));
-  const expected = `<div>
-    <p>
-      This is a test. See <a href="example.com">this example</a> for more details. A <a href="allaboutcats.com">large cat</a>
-      was sitting in the tree. Moments later, <a href="cat.com">another cat</a> appeared beside it.
-    </p>
-    </div>`.trim();
-  assertNodeEqual(result, expected);
+  //   const expected = `
+  // <div>
+  //     <p>
+  //       This is a test. See <a href="example.com">this example</a> for more details. A <a href="allaboutcats.com">large cat</a>
+  //       was sitting in the tree. Moments later, <a href="cat.com">another cat</a> appeared beside it.
+  //     </p>
+  // </div>
+  // `.trim();
+  assertNodeEqual(result, html); // round-trip preserves spacing
 });
 
 test('toHtml preserves escaped html', () => {

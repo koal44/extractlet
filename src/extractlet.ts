@@ -1,7 +1,7 @@
 import type { ExtractedDataMessage } from './types/extracted-data-message.js';
-import { extractFromDoc as seExtraction } from './se.js';
-import { extractFromDoc as wikiExtraction } from './wiki.js';
-import { extractFromDoc as hubExtraction } from './hub.js';
+import { extractFromDoc as seExtraction } from './sites/se.js';
+import { extractFromDoc as wikiExtraction } from './sites/wiki.js';
+import { extractFromDoc as hubExtraction } from './sites/hub.js';
 import browser from 'webextension-polyfill';
 
 const root = document;

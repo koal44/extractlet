@@ -1,7 +1,7 @@
 import { test } from 'vitest';
 import { strictEqual } from 'node:assert';
-import { toMd } from '../../src/hub.js';
-import { el, setupDom } from '../utils/test-utils.js';
+import { toMd } from '../../src/sites/hub';
+import { el, setupDom } from '../utils/test-utils';
 
 setupDom();
 
@@ -51,7 +51,7 @@ All grammars are self-contained and compile successfully with ANTLR 4.
 Removed obsolete GrammarCompilationTest.java to fix build issues
 `.trim();
 
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -165,7 +165,7 @@ _italics_
 Duplicate of #1839 (saved reply)
 `.trim();
   // <img width="1024" height="1024" alt="Robot_icon svg" src="https://github.com/user-attachments/assets/dd2cb34d-e93b-45be-a3b3-26caaac727fb" />
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -190,7 +190,7 @@ test('toMd handles tagnames', () => {
 @koal44
 @0xFireWolf
 `.trim();
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -246,7 +246,7 @@ test('toMd handles...', () => {
 [![icon-full-48](https...)](https...)
 @koal44 [![icon-full-48](https...)](https...) @koal44
 `.trim();
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -258,7 +258,7 @@ test('toMd handles...', () => {
   const expected = `
 
 `.trim();
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   // strictEqual(result, expected);
   void expected;
   void result;
@@ -280,7 +280,7 @@ test('toMd handles...', () => {
 2. item2
    @koal44
 `.trim();
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -301,6 +301,6 @@ test('toMd handles...', () => {
 
 @koal44
 `.trim();
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });

@@ -45,9 +45,9 @@ if (process.env.DUMP_HANDLES) {
 const tsFiles: TSFile[] = [
   { input: 'src/background.ts', output: 'dist/background.js', format: 'esm', patchPolyfill: true },
   { input: 'src/extractlet.ts', output: 'dist/extractlet.js', format: 'iife' },
-  { input: 'src/wiki-page.ts', output: 'dist/wiki-page.js', format: 'iife' },
-  { input: 'src/se-page.ts', output: 'dist/se-page.js', format: 'iife' },
-  { input: 'src/hub-page.ts', output: 'dist/hub-page.js', format: 'iife' },
+  { input: 'src/sites/wiki-page.ts', output: 'dist/sites/wiki-page.js', format: 'iife' },
+  { input: 'src/sites/se-page.ts', output: 'dist/sites/se-page.js', format: 'iife' },
+  { input: 'src/sites/hub-page.ts', output: 'dist/sites/hub-page.js', format: 'iife' },
 ];
 
 // -- bundle and patch polyfill imports

@@ -38,10 +38,10 @@
  */
 
 import {
-  log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isSpan, isText, isListItem, htmlToElementK, jaroWinklerSimilarity, isSup, createCopyButton, copyButtonCss, warn, isHTML, isDoc, warnNull,
-} from './utils.js';
-import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from './core.js';
-import { toHtml as _toHtml, toMd as _toMd } from './core.js';
+  log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isText, htmlToElementK, jaroWinklerSimilarity, createCopyButton, copyButtonCss, warn, isHTML, isDoc, warnNull,
+} from '../utils';
+import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from '../core';
+import { toHtml as _toHtml, toMd as _toMd } from '../core';
 
 export type WikiResult = {
   baseUrl: string; // Base URL of the wiki page
@@ -111,39 +111,41 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
   if (shouldSkip(node)) return { skip: true };
   if (node.nodeType !== Node.ELEMENT_NODE) throw new Error('toHtmlElemHandler called with non-element node'); // shouldn't happen
 
-  const skip = false;
-  let clone;
+  if (node.matches('span.mwe-math-element')) {
+    const img = node.querySelector<HTMLImageElement>('img.mwe-math-fallback-image-inline');
+    if (!img) return { skip: true };
+    const clone = toHtml(img) as HTMLImageElement;
+    clone.style.verticalAlign = img.style.verticalAlign;
+    return { node: clone };
+  }
 
-  if (isSpan(node)) {
-    if (node.classList.contains('mwe-math-element')) {
-      const img = node.querySelector<HTMLImageElement>('img.mwe-math-fallback-image-inline');
-      if (!img) return { skip: true };
-      clone = toHtml(img) as HTMLImageElement;
-      clone.style.verticalAlign = img.style.verticalAlign;
-      return { node: clone };
+  if (node.matches('span.mvar, span.texhtml')) {
+    const allowed: Set<string> = new Set();
+
+    if (node.matches('span.mvar')) {
+      allowed.add('font-style');
     }
-    if (node.classList.contains('mvar') || node.classList.contains('texhtml')) {
-      const allowStyles = node.classList.contains('texhtml')
-        ? new Set(['display', 'margin-bottom', 'vertical-align', 'line-height', 'font-size', 'text-align', 'white-space'])
-        : ctx.allowStyles;
-      clone = toHtml(node, { ...ctx, skipCustomHandler: true, allowStyles: allowStyles }) as HTMLSpanElement;
-      if (node.classList.contains('mvar')) clone.classList.add('mvar');
-      if (node.classList.contains('texhtml')) clone.classList.add('texhtml');
-      return { node: clone };
+
+    if (node.matches('span.texhtml')) {
+      ['display', 'margin-bottom', 'vertical-align', 'line-height', 'font-size', 'text-align', 'white-space']
+        .forEach((s) => allowed.add(s));
     }
+
+    const clone = toHtml(node, { ...ctx, skipCustomHandler: true, allowStyles: (ctx.allowStyles === true ? true : allowed) });
+    if (!clone) return { skip: true };
+    // if (node.classList.contains('mvar')) clone.classList.add('mvar');
+    // if (node.classList.contains('texhtml')) clone.classList.add('texhtml');
+    return { node: clone };
   }
 
-  if (isListItem(node) && node.id.startsWith('cite_note-')) {
-    clone = toHtml(node, { ...ctx, skipCustomHandler: true }) as HTMLLIElement;
+  if (node.matches('li[id^="cite_note-"], sup.reference[id^="cite_ref-"]')) {
+    const clone = toHtml(node, { ...ctx, skipCustomHandler: true }) as HTMLLIElement;
     clone.id = node.id; // preserve the ID for references
+    return { node: clone };
   }
 
-  if (isSup(node) && node.classList.contains('reference') && node.id.startsWith('cite_ref-')) {
-    clone = toHtml(node, { ...ctx, skipCustomHandler: true }) as HTMLElement;
-    clone.id = node.id; // preserve the ID for references
-  }
-
-  return { skip, node: clone };
+  // return { skip: false, node: undefined };
+  return {};
 };
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {

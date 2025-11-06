@@ -1,6 +1,6 @@
 // test/fix/se.test.ts
 import { describe, it, expect } from 'vitest';
-import { extractFromDoc, type SEResult } from '../../src/se';
+import { extractFromDoc, type SEResult } from '../../src/sites/se';
 import { setupDom } from '../utils/test-utils';
 import { join } from 'node:path';
 import { BaseSidecar, loadFixtures } from './fix';
@@ -48,7 +48,7 @@ describe('stackexchange: extractFromDoc', () => {
         ep.contributors.forEach((ec, j) => {
           const rc = rp.contributors[j];
           expect(rc.name).toBe(ec.name);
-          expect(rc.username).toBe(ec.username);
+          expect(rc.userSlug).toBe(ec.userSlug);
           expect(rc.userId).toBe(ec.userId);
           expect(rc.contributorType).toBe(ec.contributorType);
           expect(rc.timestamp).toBe(ec.timestamp);
@@ -65,7 +65,7 @@ describe('stackexchange: extractFromDoc', () => {
           ec.contributors.forEach((ecc, m) => {
             const rcc = rc.contributors[m];
             expect(rcc.name).toBe(ecc.name);
-            expect(rcc.username).toBe(ecc.username);
+            expect(rcc.userSlug).toBe(ecc.userSlug);
             expect(rcc.userId).toBe(ecc.userId);
             expect(rcc.contributorType).toBe(ecc.contributorType);
             expect(rcc.timestamp).toBe(ecc.timestamp);

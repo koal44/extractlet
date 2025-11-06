@@ -1,7 +1,7 @@
 import browser from 'webextension-polyfill';
-import { isExtractedDataMessage } from './types/extracted-data-message.js';
+import { isExtractedDataMessage } from '../types/extracted-data-message.js';
 import { createPage } from './se';
-import { EXTRACTED_DATA_STORAGE_PREFIX } from './constants.js';
+import { EXTRACTED_DATA_STORAGE_PREFIX } from '../constants.js';
 
 (async () => {
   const params = new URLSearchParams(window.location.search);

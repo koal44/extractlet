@@ -1,6 +1,6 @@
-import type { SEResult } from '../se.js';
-import type { WikiResult } from '../wiki.js';
-import type { HubResult } from '../hub.js';
+import type { SEResult } from '../sites/se.js';
+import type { WikiResult } from '../sites/wiki.js';
+import type { HubResult } from '../sites/hub.js';
 import { hasOfType, isNonEmptyString, isNumber, isObjectRecord } from '../typing.js';
 
 export type ExtractedDataMessage =

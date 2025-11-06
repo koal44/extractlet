@@ -1,7 +1,7 @@
 import { test } from 'vitest';
 import { strictEqual, deepStrictEqual } from 'node:assert';
-import { toMd, toHtml, scrapePostContributor } from '../../src/se.js';
-import { el, assertNodeEqual, setupDom } from '../utils/test-utils.js';
+import { toMd, toHtml, scrapePostContributor } from '../../src/sites/se';
+import { el, assertNodeEqual, setupDom } from '../utils/test-utils';
 
 setupDom();
 
@@ -292,14 +292,14 @@ test('scrapePostContributor basic editor', () => {
                 </div>`;
 
   const node = el(html);
-  const result = scrapePostContributor(node);
+  const result = scrapePostContributor(node, document);
   const expected = {
     contributorType: 'editor',
     isOwner: false,
     timestamp: '2014-01-16 21:40:44Z',
     name: 'ale',
     userId: 21960,
-    username: 'ale',
+    userSlug: 'ale',
   };
   deepStrictEqual(result, expected);
 });
@@ -326,14 +326,14 @@ test('scrapePostContributor basic editor', () => {
             </div>`;
 
   const node = el(html);
-  const result = scrapePostContributor(node);
+  const result = scrapePostContributor(node, document);
   const expected = {
     contributorType: 'author',
     isOwner: true,
     timestamp: '2014-01-16 20:53:40Z',
     name: 'StinkyTofu',
     userId: -1,
-    username: '',
+    userSlug: '',
   };
   deepStrictEqual(result, expected);
 });

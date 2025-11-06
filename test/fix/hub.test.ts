@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractFromDoc, HubResult } from '../../src/hub';
+import { extractFromDoc, HubResult } from '../../src/sites/hub';
 import { setupDom } from '../utils/test-utils';
 import { join } from 'node:path';
 import { BaseSidecar, loadFixtures } from './fix';
