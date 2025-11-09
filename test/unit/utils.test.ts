@@ -1,9 +1,12 @@
-import { test } from 'vitest';
+import { describe, expect, it, test } from 'vitest';
 import { strictEqual } from 'node:assert';
 import {
-  jaccardSimilarity, jaroWinklerSimilarity, levenshteinSimilarity, toKebabCase, toKebabCaseI18n, toPascalCase, toPascalCaseI18n,
+  h,
+  isLabelRedundant,
+  jaccardSimilarity, jaroWinklerSimilarity, levenshteinSimilarity, toKebabCase, toKebabCaseI18n,
+  toPascalCase, toPascalCaseI18n,
 } from '../../src/utils';
-import { assertApproxEqual } from '../utils/test-utils';
+import { assertApproxEqual, docEl } from '../utils/test-utils';
 
 test('toKebabCase', () => {
   const words = [
@@ -223,5 +226,162 @@ test('Levenshtein, Jaro-Winkler, and Jaccard Similarity Tests', () => {
     assertApproxEqual(levenshteinSimilarity(a, b), expected.lev, 0.01, `Levenshtein similarity failed for "${a}" and "${b}"`);
     assertApproxEqual(jaroWinklerSimilarity(a, b), expected.jw, 0.01, `Jaro-Winkler similarity failed for "${a}" and "${b}"`);
     assertApproxEqual(jaccardSimilarity(a, b), expected.jac, 0.01, `Jaccard similarity failed for "${a}" and "${b}"`);
+  });
+});
+
+
+// describe('Intra-link redundancy: title vs href', () => {
+//   // 1) Scheme-only difference -> redundant (naive fails)
+//   it('treats "martinfowler.com/… " vs "http://martinfowler.com/…" as redundant', () => {
+//     const text = 'martinfowler.com/articles/newMethodology.html';
+//     const href = 'http://martinfowler.com/articles/newMethodology.html';
+//     expect(isTextRedundantForHref(text, href)).toBe(true);
+//     // naiveContains happens to pass here (text is contained in href), included for completeness:
+//     expect(isCaptionSimilar(text, href)).toBe(true);
+//   });
+
+//   // 2) www alias -> redundant (naive usually passes; keep as a sanity check)
+//   it('treats "youtube.com/watch?v=ID" vs "https://www.youtube.com/watch?v=ID" as redundant', () => {
+//     const text = 'youtube.com/watch?v=wymmCdLdPvM';
+//     const href  = 'https://www.youtube.com/watch?v=wymmCdLdPvM';
+//     expect(isTextRedundantForHref(text, href)).toBe(true);
+//     // naiveContains passes here too:
+//     expect(isCaptionSimilar(text, href)).toBe(true);
+//   });
+
+//   // 3) Mobile alias (m.youtube.com) -> redundant (naive FAILS: different host strings)
+//   it('treats mobile vs canonical YouTube host as redundant', () => {
+//     const text = 'm.youtube.com/watch?v=wymmCdLdPvM';
+//     const href  = 'https://www.youtube.com/watch?v=wymmCdLdPvM';
+//     expect(isTextRedundantForHref(text, href)).toBe(true);
+//     // naiveContains fails (m.youtube.com not contained in www.youtube.com):
+//     expect(isCaptionSimilar(text, href)).toBe(false);
+//   });
+
+//   // 4) Wikipedia mobile alias (en.m.wikipedia.org) -> redundant (naive FAILS)
+//   it('treats Wikipedia mobile subdomain as redundant vs canonical', () => {
+//     const text = 'en.m.wikipedia.org/wiki/Hofstadter\'s_law';
+//     const href  = 'https://en.wikipedia.org/wiki/Hofstadter%27s_law';
+//     // console.log(decodeURIComponent(text));
+//     // console.log(decodeURIComponent(href));
+//     // console.log('----');
+//     expect(isTextRedundantForHref(text, href)).toBe(true);
+//     // naiveContains fails for both m. and %27:
+//     expect(isCaptionSimilar(text, href)).toBe(true);
+//   });
+
+//   // 5) Percent-encoding vs literal apostrophe -> redundant (naive FAILS)
+//   it('handles % decoding: Grinberg%27s_theorem vs Grinberg\'s_theorem', () => {
+//     const text = 'http://en.wikipedia.org/wiki/Grinberg\'s_theorem';
+//     const href  = 'http://en.wikipedia.org/wiki/Grinberg%27s_theorem';
+//     expect(isTextRedundantForHref(text, href)).toBe(true);
+//     expect(isCaptionSimilar(text, href)).toBe(true);
+//   });
+
+//   // 6) Last segment equivalence -> redundant (title equals last path segment)
+//   it('treats last path segment alone as redundant vs full URL', () => {
+//     const text = 'newMethodology.html';
+//     const href  = 'https://martinfowler.com/articles/newMethodology.html';
+//     expect(isTextRedundantForHref(text, href)).toBe(true);
+//     // naiveContains fails unless the segment appears inside the longer string (it does); still good to check:
+//     expect(isCaptionSimilar(text, href)).toBe(true);
+//   });
+
+//   // 7) Trailing slash noise -> redundant
+//   it('ignores trailing slashes when deciding redundancy', () => {
+//     const text = 'wikipedia.org/wiki/Tetration';
+//     const href  = 'https://wikipedia.org/wiki/Tetration/';
+//     expect(isTextRedundantForHref(text, href)).toBe(true);
+//     expect(isCaptionSimilar(text, href)).toBe(true);
+//   });
+
+//   // 8) Short human text (<= 15) -> NOT redundant even if substring
+//   it('keeps short human-ish titles regardless (≤15 chars)', () => {
+//     const text = 'Numberphile'; // ≤ 15
+//     const href  = 'https://www.youtube.com/watch?v=_-M_3oV75Lw';
+//     expect(isTextRedundantForHref(text, href)).toBe(false);
+//     // naiveContains also false; included for symmetry:
+//     expect(isCaptionSimilar(text, href)).toBe(false);
+//   });
+
+//   // 9) Generic words like "here" must not force redundancy (naive would mark false negative/positive inconsistently)
+//   it('does not mark very short generic words as redundant', () => {
+//     const text = 'here';
+//     const href  = 'https://example.com/some/path';
+//     expect(isTextRedundantForHref(text, href)).toBe(false);
+//     // naiveContains is false here (fine), but would be true for hrefs containing "here" in the path, which is undesirable.
+//   });
+
+//   // 10) Distinct meaningful title -> NOT redundant
+//   it('keeps meaningful titles that add information', () => {
+//     const text = 'Burnside’s problem — overview';
+//     const href  = 'http://en.wikipedia.org/wiki/Burnside\'s_problem';
+//     expect(isTextRedundantForHref(text, href)).toBe(false);
+//     expect(isCaptionSimilar(text, href)).toBe(false);
+//   });
+
+//   // 11) Tooltip case (treat as another caption): redundant against href
+//   it('would drop a tooltip that merely repeats the URL', () => {
+//     const tooltip = 'youtube.com/watch?v=ASoz_NuIvP0';
+//     const href    = 'https://www.youtube.com/watch?v=ASoz_NuIvP0';
+//     expect(isTextRedundantForHref(tooltip, href)).toBe(true);
+//   });
+
+//   // 12) Query must be preserved in href but can still be redundant by title
+//   it('respects query strings while still deduping the title', () => {
+//     const text = 'youtube.com/watch?v=ASoz_NuIvP0';
+//     const href  = 'https://www.youtube.com/watch?v=ASoz_NuIvP0';
+//     expect(isTextRedundantForHref(text, href)).toBe(true);
+//   });
+// });
+
+describe('isLabelRedundant', () => {
+  it('wiki-style title vs URL last-segment (underscores, decoding, relative, query)', () => {
+    expect(isLabelRedundant('Non existing page', './Non_existing_page?action=edit&redlink=1')).toBe(true);
+    expect(isLabelRedundant('Main Page', './Main_Page')).toBe(true);
+    expect(isLabelRedundant('Cauchy stress tensor', '/wiki/Cauchy_stress_tensor')).toBe(true);
+    expect(isLabelRedundant('Tensor (disambiguation)', '/wiki/Tensor_(disambiguation)')).toBe(true);
+    expect(isLabelRedundant('Tensor (disambiguation)', 'https://en.wikipedia.org/wiki/Tensor_(disambiguation)')).toBe(true);
+    expect(isLabelRedundant('Tensor', '/wiki/Tensor_field')).toBe(true);
+    expect(isLabelRedundant('Vector field', 'https://en.wikipedia.org/wiki/Vector_field')).toBe(true);
+    expect(isLabelRedundant('Tensor field', 'https://en.wikipedia.org/wiki/Tensor_field')).toBe(true);
+    expect(isLabelRedundant('stress–energy tensor', 'https://en.wikipedia.org/wiki/Stress-energy_tensor')).toBe(true);
+    expect(isLabelRedundant('Stress–energy tensor', 'https://en.wikipedia.org/wiki/Stress%E2%80%93energy_tensor')).toBe(true);
+    expect(isLabelRedundant('link', '/wiki/Link')).toBe(true);
+    expect(isLabelRedundant('', '/wiki/Foo')).toBe(false);
+    expect(isLabelRedundant('Foo', '')).toBe(false);
+    expect(isLabelRedundant('Completely unrelated', '/wiki/Tensor_field')).toBe(false);
+
+    expect(isLabelRedundant('martinfowler.com/articles/newMethodology.html', 'http://martinfowler.com/articles/newMethodology.html')).toBe(true);
+    expect(isLabelRedundant('m.youtube.com/watch?v=wymmCdLdPvM', 'https://m.youtube.com/watch?v=wymmCdLdPvM')).toBe(true);
+    expect(isLabelRedundant('youtube.com/watch?v=_-M_3oV75Lw', 'https://www.youtube.com/watch?v=_-M_3oV75Lw')).toBe(true);
+    expect(isLabelRedundant('http://en.wikipedia.org/wiki/Grinberg%27s_theorem', 'http://en.wikipedia.org/wiki/Grinberg\'s_theorem')).toBe(true);
+    expect(isLabelRedundant('this link', 'http://en.wikipedia.org/wiki/Chakravala_method')).toBe(false); // generic label
+    expect(isLabelRedundant('here', 'http://en.wikipedia.org/wiki/Classification_of_finite_simple_groups')).toBe(false); // generic label
+
+    expect(isLabelRedundant('example.com', 'https://example.com/foo%2')).toBe(true);
+    expect(isLabelRedundant('wiki', 'https://en.wikipedia.org/wiki/Tensor')).toBe(true);
+    expect(isLabelRedundant('redlink', '/wiki/Main_Page?action=edit&redlink=1')).toBe(true);
+    expect(isLabelRedundant('References', 'https://en.wikipedia.org/wiki/Tensor#References')).toBe(true);
+    // expect(isLabelRedundant('', '')).toBe(true);
+
+    expect(isLabelRedundant('/Café', '/wiki/Caf%C3%A9')).toBe(true);
+    expect(isLabelRedundant('/Café', '/wiki/Café')).toBe(true);
+    expect(isLabelRedundant('/Café', '/wiki/Cafe\u0301')).toBe(true);
+  });
+});
+
+describe('h()', () => {
+  test('h sets xlink:href on <use> with namespace', () => {
+    const doc = docEl('<div></div>');
+    const svg = h('svg:use', { __doc: doc, 'xlink:href': '#icon' });
+    expect(svg.getAttributeNS('http://www.w3.org/1999/xlink', 'href')).toBe('#icon');
+  });
+
+  test('h sets plain href on <use> (SVG2 style)', () => {
+    const doc = docEl('<div></div>');
+    const svg = h('svg:use', { __doc: doc, href: '#icon' });
+    expect(svg.getAttribute('href')).toBe('#icon');
+    expect(svg.getAttributeNS('http://www.w3.org/1999/xlink', 'href')).toBe(null);
   });
 });

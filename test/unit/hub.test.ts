@@ -194,17 +194,6 @@ test('toMd handles tagnames', () => {
   strictEqual(result, expected);
 });
 
-// test('toMd handles images', () => {
-//   const html = `
-// <div class="comment-body markdown-body js-preview-body" style="min-height: 123px;"><a target="_blank" rel="noopener noreferrer" href="https://private-user-images.githubusercontent.com/78566945/505766843-63995a69-9d24-4253-ae7b-1ffa041f3276.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjE1MTYwMzksIm5iZiI6MTc2MTUxNTczOSwicGF0aCI6Ii83ODU2Njk0NS81MDU3NjY4NDMtNjM5OTVhNjktOWQyNC00MjUzLWFlN2ItMWZmYTA0MWYzMjc2LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTEwMjYlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUxMDI2VDIxNTUzOVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWU0NzQxYzIxYzMyNzgwODkxZjcxOWZhMDE5Yzg2OWJjMzIxNmYxYjE5MWJjMjE2NTMzMzg3NjBlYzJhNmNjOTMmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.seYJsl5C33j6zt_EcTVHQAQaZxHRFd-ydUdR86k5kvk"><img width="48" height="48" alt="icon-full-48" src="https://private-user-images.githubusercontent.com/78566945/505766843-63995a69-9d24-4253-ae7b-1ffa041f3276.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjE1MTYwMzksIm5iZiI6MTc2MTUxNTczOSwicGF0aCI6Ii83ODU2Njk0NS81MDU3NjY4NDMtNjM5OTVhNjktOWQyNC00MjUzLWFlN2ItMWZmYTA0MWYzMjc2LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTEwMjYlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUxMDI2VDIxNTUzOVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWU0NzQxYzIxYzMyNzgwODkxZjcxOWZhMDE5Yzg2OWJjMzIxNmYxYjE5MWJjMjE2NTMzMzg3NjBlYzJhNmNjOTMmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.seYJsl5C33j6zt_EcTVHQAQaZxHRFd-ydUdR86k5kvk" style="max-width: 100%; height: auto; max-height: 48px;"></a></div>
-// `;
-//   const expected = `
-// <img width="48" height="48" alt="icon-full-48" src="https://github.com/user-attachments/assets/63995a69-9d24-4253-ae7b-1ffa041f3276" />
-// `.trim();
-//   const result = toMd(el(html)).trim();
-//   strictEqual(result, expected);
-// }
-
 test('toMd handles...', () => {
   const html = `
 <div class="comment js-suggested-changes-container" data-thread-side="">
@@ -248,20 +237,6 @@ test('toMd handles...', () => {
 `.trim();
   const result = toMd(el(html));
   strictEqual(result, expected);
-});
-
-test('toMd handles...', () => {
-  const html = `
-
-  `.trim();
-
-  const expected = `
-
-`.trim();
-  const result = toMd(el(html));
-  // strictEqual(result, expected);
-  void expected;
-  void result;
 });
 
 test('toMd handles...', () => {

@@ -1,7 +1,10 @@
 import { hasOfType, isNumberish, isString, parseJsonAs } from './typing.js';
 import {
-  alphaLabel,
-  isCaptionSimilar, isElement, isHTML, isImage, isInput, isListItem, isOList, isPre, isTableCell, isTableHeader, isText, isTextArea, isUList, lastUrlSegment, log, toPascalCase,
+  alphaLabel, parseHeadingLevel, log, toPascalCase,
+  isLabelRedundant, isElement, isHTML, isImage, isInput, isListItem, isOList, isPre,
+  isTableCell, isTableHeader, isText, isTextArea, isUList, isBreak,
+  isLabelGeneric,
+  safeDecode,
 } from './utils.js';
 
 void log; // lint hack
@@ -20,7 +23,6 @@ export type ToHtmlContext = {
 type GlueChildren = (
   node: Node,
   glueMode: 'block' | 'list' | 'listItem' | 'inline',
-  wsMode?: 'normal' | 'pre' | 'pre-line',
   opts?: Partial<ToMdContext>,
 ) => string;
 
@@ -30,19 +32,23 @@ export type ToMdElementHandler = (
   glueChildren: GlueChildren
 ) => { skip?: boolean; md?: string; };
 
+export type MathFenceStyle = 'dollar' | 'bracket';
+
 export type ToMdContext = {
   elementHandler?: ToMdElementHandler;  // optional per-element override handler
   skipCustomHandler: boolean;           // skip custom handling for this subtree
   isRoot: boolean;                      // true only for top-level call (whitespace handling)
-  dedupe: boolean;                      // dedupe captions/alt text/etc.
+  mathFence: MathFenceStyle;            // $$ or \[\] for block math, $ or \(\) for inline
+  filterRedundantLabel: boolean;        // dedupe captions/alt text/etc by removing redundant labels
+  filterGenericLabels: boolean;         // remove generic labels like "click here" or "this", etc.
   deCaption: string;                    // caption dedupe token for figures/tables
   inListItem: boolean;                  // inside a list item (<li>)
-  compact: boolean;                     // inside a table (<table>)
+  compact: boolean;                     // inside a table (<table>), so no linefeeds
   anchorRefs: string[] | null;          // collect in table and print below
   imageRefs: string[] | null;           // collect in table and print below
   olStart: number;                      // starting index for ordered list
-  // quoteDepth: number;                   // current blockquote nesting level
   lastChar: string;                     // last emitted char (spacing state, internal)
+  wsMode: 'normal' | 'pre';             // whitespace handling mode  // | 'pre-line'
 };
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
@@ -192,23 +198,32 @@ function copyStyleAttr(dest: HTMLElement, src: HTMLElement, allowStyles: boolean
   if (styleString) dest.setAttribute('style', styleString);
 }
 
+const blockyTags = new Set([
+  'BR', 'DIV', 'P', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'ADDRESS',
+  'TABLE', 'UL', 'OL', 'LI', 'PRE', 'BLOCKQUOTE', 'HR', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+]);
+
 export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): string {
   const ctx: ToMdContext = {
     ...opts,
     isRoot: opts.isRoot ?? true,
     skipCustomHandler: opts.skipCustomHandler ?? false,
+    mathFence: opts.mathFence ?? 'bracket',
     olStart: opts.olStart ?? 1,
     lastChar: opts.lastChar ?? '',
-    dedupe: opts.dedupe ?? true,
+    filterRedundantLabel: opts.filterRedundantLabel ?? true,
+    filterGenericLabels: opts.filterGenericLabels ?? false,
     deCaption: opts.deCaption ?? '',
     inListItem: opts.inListItem ?? false,
     compact: opts.compact ?? false,
     anchorRefs: opts.anchorRefs ?? null,
     imageRefs: opts.imageRefs ?? null,
+    wsMode: opts.wsMode ?? 'normal',
   };
 
-  const glueChildren: GlueChildren = (node, glueMode, wsMode = 'normal', opts = {}) => {
+  const glueChildren: GlueChildren = (node, glueMode, opts = {}) => {
     const gcx: ToMdContext = { ...ctx, ...opts };
+    const wsMode = gcx.wsMode;
 
     const parts: string[] = [];
     const entryChar: string = gcx.lastChar;
@@ -219,10 +234,20 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     for (let i = 0; i < childNodes.length; i++) {
       const child = childNodes[i];
       let md = '';
+
+      // --- text nodes ---
       if (isText(child)) {
-        md = child.textContent!;
-        if (/^\s*$/.test(md)) { // all whitespace
-          if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1)) {
+        // norm \r\n to \n
+        md = child.textContent?.replace(/\r\n?/g, '\n') ?? '';
+
+        // lookahead to next node for better pretty-print handling
+        const next = childNodes[i + 1]; const nextIsBlocky = isElement(next) && blockyTags.has(next.tagName);
+        if (wsMode === 'normal' && nextIsBlocky) md = md.replace(/[ \t\n]+$/, '');
+        if (md === '') continue;
+
+        // handle pure-whitespace text nodes
+        if (/^\s+$/.test(md)) { // all whitespace
+          if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1) && !nextIsBlocky) {
             md = ' ';
             ch = md;
             parts.push(md);
@@ -230,27 +255,41 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           continue;
         }
 
+        // normalize internal whitespace
         switch (wsMode) {
           case 'normal': md = md.replace(/\s+/g, ' '); break;
           case 'pre': break;
-          case 'pre-line': md = md.replace(/[ \t]+/g, ' '); break;
+          // case 'pre-line': md = md.replace(/[ \t]+/g, ' '); break;
           default: throw new Error(`Unsupported whitespace mode: ${String(wsMode)}`);
         }
       }
+      // --- element nodes ---
       else if (isElement(child)) {
         md = toMd(child, { ...gcx, isRoot: false, lastChar: ch });
       }
 
-      const curIsBlock = md.startsWith('\n');
+      // --- whitespace trimming between children ---
+      const isBrTag = isBreak(child);
+      const curIsBlock = /^[ \t]*\n/.test(md);
       const prevPart = parts.length > 0 ? parts[parts.length - 1] : '';
       const prevIsBlock = prevPart.endsWith('\n');
-      const keepStartIndent = glueMode === 'listItem' || glueMode === 'list';
+      const keepStartIndent = glueMode === 'listItem' || glueMode === 'list'; // has leading semantic indent
 
-      const trimCurStart = !keepStartIndent && (prevIsBlock || (!curIsBlock && /\s/.test(ch)));
-      const trimPrevEnd = !trimCurStart && curIsBlock && parts.length > 0;
+      const trimCurStart = !keepStartIndent && (prevIsBlock || (!curIsBlock && /\s/.test(ch))) && !isBrTag;
+      const trimPrevEnd = !trimCurStart && curIsBlock && !!prevPart && !isBrTag;
 
       if (trimCurStart) md = md.trimStart();
       if (trimPrevEnd) parts[parts.length - 1] = parts[parts.length - 1].trimEnd();
+
+      // console.log(
+      //   '[glue child]',
+      //   `node.tag=${isElement(child) ? child.tagName : 'TEXT'}`,
+      //   `curIsBlock=${curIsBlock}`,
+      //   `prevIsBlock=${prevIsBlock}`,
+      //   `trimCurStart=${trimCurStart}`,
+      //   `trimPrevEnd=${trimPrevEnd}`,
+      //   `md="${md.replace(/\n/g, '\\n')}"`,
+      // );
 
       parts.push(md);
       ch = md.length > 0 ? md[md.length - 1] : ch;
@@ -277,6 +316,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     if (trimStart) glued = glued.trimStart();
     if (trimEnd) glued = glued.trimEnd();
 
+    // console.log('[glue]', `node.tag=${isElement(node) ? node.tagName : 'TEXT'}`, `result="${glued.replace(/\n/g, '\\n')}"`);
     return glued ? `${safePrefix}${glued}${suffix}` : '';
   };
 
@@ -291,34 +331,40 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
   if (siteResult?.md) {
     result = siteResult.md;
   } else { // --- default handling for HTML elements ---
-    switch (node.tagName.toUpperCase()) {
+    const tagName = node.tagName.toUpperCase();
+    switch (tagName) {
       case 'BODY':
       case 'DIV': {
-        result = glueChildren(node, 'block', 'normal');
+        result = glueChildren(node, 'block');
         break;
       }
 
       case 'P': {
-        result = glueChildren(node, 'block', 'normal');
+        result = glueChildren(node, 'block');
         break;
       }
 
-      case 'SPAN':
+      case 'SPAN': {
+        result = glueChildren(node, 'inline');
+        // result = ctx.lastChar === ' ' ? result.trimStart() : result;
+        break;
+      }
+
       case 'NOBR': {
-        result = glueChildren(node, 'inline', 'normal');
-        result = ctx.lastChar === ' ' ? result.trimStart() : result;
+        result = glueChildren(node, 'inline');
+        result = result.replace(/\s+/g, ' ');
         break;
       }
 
       case 'EM':
       case 'I': {
-        result = `*${glueChildren(node, 'inline', 'normal')}*`;
+        result = `*${glueChildren(node, 'inline')}*`;
         break;
       }
 
       case 'B':
       case 'STRONG': {
-        result = `**${glueChildren(node, 'inline', 'normal')}**`;
+        result = `**${glueChildren(node, 'inline')}**`;
         break;
       }
 
@@ -328,33 +374,52 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
 
       case 'BR': {
-        result = '  \n';
+        result = ctx.wsMode === 'pre' ? '\n' : '  \n';
+        // result = '  \n';
+        // result = ctx.lastChar === '\n' ? '\n' : '  \n';
         break;
       }
 
-      case 'A': {
-        const safeDecode = (u: string) => { try { return decodeURIComponent(u); } catch { return u; } };
-        const href = safeDecode(getNormalizedUrl(node, 'href'));
-        const lastSeg = lastUrlSegment(href);
-        let toolTip = (node.getAttribute('title') ?? '').replace(/\s+/g, ' ').trim();
-        let linkText = glueChildren(node, 'inline', 'normal', (toolTip ? { deCaption: toolTip } : {})).trim();
+      case 'A':
+      case 'IMG': {
+        const isImg = tagName === 'IMG';
 
-        // inside tables, collect links for reference list
-        if (ctx.anchorRefs && href) {
-          const refNum = ctx.anchorRefs.indexOf(href) + 1 || ctx.anchorRefs.push(href);
-          linkText = linkText || toolTip || `link ${refNum}`;
-          result = `[${linkText}][${refNum}]`; // or [linkText](#refNum)?
+        const urlAttr = isImg ? 'src' : 'href';
+        const url = safeDecode(getNormalizedUrl(node, urlAttr));
+        let title = node.getAttribute('title')?.replace(/\s+/g, ' ').trim() ?? '';
+        let linkText = isImg
+          ? node.getAttribute('alt')?.replace(/\s+/g, ' ').trim() ?? ''
+          : glueChildren(node, 'inline', (title ? { deCaption: title } : {})).trim();
+        const mark = isImg ? '!' : '';
+
+        // inside tables, collect reference-style links/images
+        const refs = isImg ? ctx.imageRefs : ctx.anchorRefs;
+        if (refs && url) {
+          const refNum = refs.indexOf(url) + 1 || refs.push(url);
+          const refLabel = isImg ? alphaLabel(refNum) : String(refNum);
+          const text = linkText || title || `${isImg ? 'image' : 'link'} ${refLabel}`;
+          result = `${mark}[${text}][${refLabel}]`; // or [linkText](#refNum)?
           break;
         }
 
-        // dedupe. text—Markdown is final output; LLMs/humans dontt need repeated info. (prefer figcaption > href > aText > title)
-        const toolTipIsDupe = ctx.dedupe && [linkText, ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(toolTip, o));
-        const linkTextIsDupe = ctx.dedupe && [ctx.deCaption, lastSeg, href].some((o) => isCaptionSimilar(linkText, o));
+        const titleIsDupe = [linkText, ctx.deCaption, url].some((o) =>
+          (ctx.filterRedundantLabel && isLabelRedundant(title, o)) ||
+          (ctx.filterGenericLabels && isLabelGeneric(title, o))
+        );
+        const linkTextIsDupe = [ctx.deCaption, url].some((o) =>
+          (ctx.filterRedundantLabel && isLabelRedundant(linkText, o)) ||
+          (ctx.filterGenericLabels && isLabelGeneric(linkText, o))
+        );
 
-        toolTip = toolTip && !toolTipIsDupe ? ` "${toolTip}"` : '';
+        title = title && !titleIsDupe ? title : '';
         linkText = linkText && !linkTextIsDupe ? linkText : '';
-        result = href ? `[${linkText}](${href}${toolTip})` : linkText;
 
+        // promote title if empty linkText
+        if (!linkText && title) { linkText = title; title = ''; };
+
+        result = url || linkText || title
+          ? `${mark}[${linkText}](${url}${(url && title ? ` "${title}"` : '')})`
+          : '';
         break;
       }
 
@@ -364,9 +429,10 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       case 'H4':
       case 'H5':
       case 'H6': {
-        const level = +node.tagName[1];
+        // const level = +node.tagName[1];
+        const level = parseHeadingLevel(node as HTMLHeadingElement);
         const hashes = '#'.repeat(level);
-        result = `\n\n${hashes} ${glueChildren(node, 'inline', 'normal')}\n\n`;
+        result = `\n\n${hashes} ${glueChildren(node, 'inline')}\n\n`;
         break;
       }
 
@@ -378,7 +444,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       case 'UL':
       case 'OL': {
         const startIndex = +(node.getAttribute('start') || '1');
-        result = glueChildren(node, 'list', 'normal', { olStart: startIndex });
+        result = glueChildren(node, 'list', { olStart: startIndex });
         break;
       }
 
@@ -398,7 +464,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
         const pad = ' '.repeat(bullet.length);
 
-        result = glueChildren(node, 'listItem', 'normal', { inListItem: true });
+        result = glueChildren(node, 'listItem', { inListItem: true });
 
         // Normalize leading/trailing newlines
         result = result.startsWith('\n\n') ? result.slice(2) : result;
@@ -430,7 +496,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       case 'PRE': {
         // const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
-        result = glueChildren(node, 'inline', 'pre');
+        result = glueChildren(node, 'inline', { wsMode: 'pre' });
         if (ctx.compact) {
           result = result.replace(/^\n+/, '').replace(/\n+$/, '');
           result = result.replace(/\r?\n/g, '\\n').replace(/\t/g, '\\t');
@@ -441,7 +507,9 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         } else {
           result = result.replace(/\r\n/g, '\n').replace(/\n+$/, '');
           const fence = '```';
-          result = `${fence}\n${result}\n${fence}\n\n`;
+          const margin = ctx.inListItem ? '\n' : '\n\n';
+          result = `${margin}${fence}\n${result}\n${fence}${margin}`;
+          // result = `\n${fence}\n${result}\n${fence}\n\n`;
         }
 
         break;
@@ -460,7 +528,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
 
       case 'BLOCKQUOTE': {
-        result = glueChildren(node, 'block', 'normal');
+        result = glueChildren(node, 'block');
         const bqPrefix = result.match(new RegExp('^\\n*'))?.[0] ?? '';
         const bqSuffix = result.match(/\n*$/)?.[0] ?? '';
 
@@ -477,146 +545,17 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         break;
       }
 
-      case 'IMG': {
-        let src = getNormalizedUrl(node, 'src');
-        src = decodeURIComponent(src);
-        const srcSeg = lastUrlSegment(src);
-        let alt = (node.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
-        let title = (node.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
-
-        if (ctx.imageRefs && src) {
-          const refNum = ctx.imageRefs.indexOf(src) + 1 || ctx.imageRefs.push(src);
-          const refAlpha = alphaLabel(refNum);
-          alt = alt || title || `image ${refNum}`;
-          result = `![${alt}][${refAlpha}]`;
-          break;
-        }
-        // dedupe. text—Markdown is final output; LLMs/humans don't need repeated info. (prefer figcaption > src > alt > title)
-        const isTitleDupe = isCaptionSimilar(title, alt) || isCaptionSimilar(title, ctx.deCaption) || isCaptionSimilar(title, srcSeg);
-        const isAltDupe = isCaptionSimilar(alt, ctx.deCaption) || isCaptionSimilar(alt, srcSeg); // TODO: consider not deduping alt
-        title = isTitleDupe && ctx.dedupe ? '' : title;
-        alt = isAltDupe && ctx.dedupe ? '' : alt;
-
-        title = title ? ` "${title}"` : '';
-        result = src ? `![${alt}](${src}${title})` : '';
-        break;
-      }
-
       case 'DEL':
       case 'S':
       case 'STRIKE': {
-        result = `~~${glueChildren(node, 'inline', 'normal')}~~`;
+        result = `~~${glueChildren(node, 'inline')}~~`;
         break;
       }
 
       case 'KBD': {
-        result = `<kbd>${glueChildren(node, 'inline', 'normal')}</kbd>`;
+        result = `<kbd>${glueChildren(node, 'inline')}</kbd>`;
         break;
       }
-
-      // case 'TABLE': {
-      //   const anchorRefs: string[] = [];
-      //   const imageRefs: string[] = [];
-      //   const tctx = { ...ctx, compact: true, anchorRefs, imageRefs };
-
-      //   class TCol { constructor(public md: string, public span: number) {} }
-      //   class TRow {
-      //     public readonly isHeader: boolean;
-      //     public readonly cols: ReadonlyArray<TCol>;
-      //     public readonly physicalCols: ReadonlyArray<string>;
-
-      //     constructor(cols: ReadonlyArray<TCol>, isHeader = false) {
-      //       this.isHeader = isHeader;
-      //       this.cols = cols;
-
-      //       const phys: string[] = [];
-      //       for (const col of cols) {
-      //         phys.push(col.md);                 // first physical col gets content
-      //         for (let i = 1; i < col.span; i++) phys.push(''); // placeholders
-      //       }
-      //       this.physicalCols = phys;
-      //     }
-      //   }
-
-      //   type Align = 'l' | 'c' | 'r';
-      //   const colAligns: (Align | null)[] = []; // filled from the first header row encountered
-
-      //   const rows = [...node.querySelectorAll('tr')];
-      //   const table: TRow[] = [];
-
-      //   for (const r of rows) {
-      //     const cells = [...r.children].filter((c) => isTableHeader(c) || isTableCell(c));
-      //     const isHeader = cells.some(isTableHeader);
-      //     const cols = cells.map((c) => new TCol(toMd(c, tctx), c.colSpan));
-      //     const trow = new TRow(cols, isHeader);
-      //     table.push(trow);
-
-      //     // first header row we see defines alignment per *physical* column.
-      //     if (isHeader && colAligns.length === 0) {
-      //       for (const cell of cells) {
-      //         const m = cell.getAttribute('style')?.match(/text-align\s*:\s*(left|center|right)/);
-      //         const a = m ? (m[1][0] as Align) : null;
-      //         for (let i = 0; i < cell.colSpan; i++) colAligns.push(a);
-      //       }
-      //     }
-      //   }
-
-      //   // Physical columns
-      //   const nCols = Math.max(0, ...table.map((r) => r.physicalCols.length));
-      //   if (nCols !== colAligns.length) {
-      //     for (let i = colAligns.length; i < nCols; i++) colAligns.push(null);
-      //   }
-
-      //   // Ensure header at index 0 (spoof if first author row wasn't header
-      //   if (table.length && !table[0].isHeader) {
-      //     table.unshift(new TRow(Array.from({ length: nCols }, () => new TCol('', 1)), true));
-      //   }
-
-      //   // insert separator row after header
-      //   table.splice(1, 0, new TRow(Array.from({ length: nCols }, () => new TCol('', 1)), false));
-
-      //   const rowParts: string[] = [];
-      //   for (let i = 0; i < table.length; i++) {
-      //     const row = table[i];
-      //     if (row.physicalCols.length !== nCols) {
-      //       log('WARNING: table row column count mismatch, skipping row:', row, row.physicalCols, nCols);
-      //     }
-
-      //     const colParts: string[] = [];
-      //     for (let j = 0; j < row.physicalCols.length; j++) {
-      //       let md = row.physicalCols[j].trim().replaceAll('|', '\\|');
-
-      //       let leftMark = ' ';
-      //       let rightMark = ' ';
-
-      //       if (i === 1) { // separator row
-      //         md = '---';
-      //         leftMark = colAligns[j] === 'l' || colAligns[j] === 'c' ? ':' : ' ';
-      //         rightMark = colAligns[j] === 'r' || colAligns[j] === 'c' ? ':' : ' ';
-      //       }
-
-      //       if (md === '') {
-      //         md = ' ';
-      //         leftMark = rightMark = '';
-      //       }
-
-      //       colParts.push(`${leftMark}${md}${rightMark}`);
-      //     }
-      //     rowParts.push(`|${colParts.join('|')}|`);
-      //   }
-
-      //   const anchorRefsParts = anchorRefs.map((href, idx) => `[${idx + 1}]: ${href}`);
-      //   const imageRefsParts  = imageRefs.map((href, idx) => `[${alphaLabel(idx + 1)}]: ${href}`);
-
-      //   if (anchorRefsParts.length || imageRefsParts.length) {
-      //     rowParts.push('');
-      //     if (anchorRefsParts.length) rowParts.push(...anchorRefsParts);
-      //     if (imageRefsParts.length)  rowParts.push(...imageRefsParts);
-      //   }
-
-      //   result = `\n\n${rowParts.join('\n')}\n\n`;
-      //   break;
-      // }
 
       case 'TABLE': {
         const anchorRefs: string[] = [];
@@ -739,7 +678,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       case 'TH':
       case 'TD': {
-        result = glueChildren(node, 'inline', 'normal');
+        result = glueChildren(node, 'inline');
 
         // norm vertical breaks; inline whitespace is valid in GFM tables
         if (/[\n\f\v\r\u0085\u2028\u2029]/.test(result)) { // u085 = next line, u2028 = line separator, u2029 = paragraph separator. NEL is not considered ws in JS though..
@@ -780,7 +719,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
 
       case 'FIGCAPTION': {
-        result = glueChildren(node, 'inline', 'normal').trim();
+        result = glueChildren(node, 'inline').trim();
         break;
       }
 
@@ -830,8 +769,41 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         break;
       }
 
+      case 'MATH': {
+        // handle only TeX source for now
+        if (node.hasAttribute('data-xlet')) {
+          const tex = node.textContent ?? '';
+
+          let display = node.getAttribute('display');
+          if (display !== 'block' && display !== 'inline') {
+            console.warn('Unsupported MATH display type:', display);
+            result = `<math>${tex}</math>`;
+            break;
+          }
+          display = ctx.compact ? 'inline' : display;
+
+          const lFence = ctx.mathFence === 'dollar'
+            ? (display === 'block' ? '$$' : '$')
+            : (display === 'block' ? '\\[' : '\\(');
+          const rFence = ctx.mathFence === 'dollar'
+            ? (display === 'block' ? '$$' : '$')
+            : (display === 'block' ? '\\]' : '\\)');
+
+          result = display === 'block'
+            ? `\n\n${lFence}\n${tex}\n${rFence}\n\n`
+            : `${lFence}${tex}${rFence}`;
+
+          break;
+        }
+
+        result = glueChildren(node, 'inline');
+        result = `<${node.tagName.toLowerCase()}>${result}</${node.tagName.toLowerCase()}>`;
+        console.warn('Unsupported MATH element:', node);
+        break; // prefer default handling
+      }
+
       default: {
-        result = glueChildren(node, 'inline', 'normal');
+        result = glueChildren(node, 'inline');
         result = `<${node.tagName.toLowerCase()}>${result}</${node.tagName.toLowerCase()}>`;
         // result = node.outerHTML || '';
         break;

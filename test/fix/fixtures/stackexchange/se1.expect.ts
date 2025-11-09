@@ -7,7 +7,7 @@ export default {
     posts: [
       {
         bodyHtml: '<DIV>\n                \n<P><A href="http://en.wikipedia.org/wiki/Tensor',
-        bodyMd: '[Wikipedia](http://en.wikipedia.org/wiki/Tensor) says that a linear tr',
+        bodyMd: '[](http://en.wikipedia.org/wiki/Tensor) says that a linear tr',
         contributors: [
           {
             contributorType: 'editor',
@@ -176,8 +176,8 @@ export default {
         vote: 20,
       },
       {
-        bodyHtml: '<DIV>\n<P>Let <math>T : V \\mapsto W</math>.  Then define <math>\\tau: V ',
-        bodyMd: 'Let <math>T : V \\mapsto W</math>. Then define <math>\\tau: V \\times W^*',
+        bodyHtml: '<DIV>\n<P>Let <math data-xlet="" display="inline">T : V \\mapsto W</math>.  Then define <math data-xlet="" display="inline">\\tau: V ',
+        bodyMd: 'Let \\(T : V \\mapsto W\\). Then define \\(\\tau: V \\times W^*',
         contributors: [
           {
             contributorType: 'author',
@@ -250,8 +250,8 @@ export default {
             vote: 0,
           },
           {
-            bodyHtml: '<SPAN>Can the argument go both ways without assuming that <math>W</mat',
-            bodyMd: 'Can the argument go both ways without assuming that <math>W</math> is ',
+            bodyHtml: '<SPAN>Can the argument go both ways without assuming that <math data-xlet="" display="inline">W</mat',
+            bodyMd: 'Can the argument go both ways without assuming that \\(W\\) is ',
             contributors: [
               {
                 contributorType: 'commenter',

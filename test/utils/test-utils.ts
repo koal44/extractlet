@@ -24,20 +24,28 @@ export function setupDom() {
 
 // Each call creates a new JSDOM instance to break prototype chain assumptions.
 // This ensures tests will fail if src code relies on instanceof checks.
-export function el(html: string, selector = 'body > *', base?: string): Element | null {
-  // document.body.innerHTML = html;
-  // return document.querySelector(selector);
-
-  const dom = new JSDOM(html, { url: base });
-  return dom.window.document.querySelector(selector);
+export function el(html: string, base?: string): Element {
+  const doc = new JSDOM(html, { url: base }).window.document;
+  const first = doc.body.firstElementChild;
+  if (!first) {
+    const preview = html.length > 200 ? `${html.slice(0, 200)  }…` : html;
+    throw new Error(`el(): no <body> child from HTML: ${preview}`);
+  }
+  return first;
 }
 
-export function mathEl(html: string): MathMLElement {
+export function mathEl(html: string, base?: string): MathMLElement {
+  // normalize to a proper MathML root and ensure xmlns is present
   html = /^\s*<math\b/i.test(html)
     ? html.replace(/^(\s*<math)(?![^>]*\bxmlns=)/i, '$1 xmlns="http://www.w3.org/1998/Math/MathML"')
     : `<math xmlns="http://www.w3.org/1998/Math/MathML">${html}</math>`;
 
-  return el(html) as MathMLElement;
+  return el(html, base) as MathMLElement;
+}
+
+export function docEl(html: string, base?: string): Document {
+  const doc = new JSDOM(html, { url: base }).window.document;
+  return doc;
 }
 
 export function assertNodeEqual(actual: Node | string | null, expected: Node | string | null) {

@@ -31,7 +31,7 @@
 import {
   h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isScript, htmlToElementK, htmlToElement,
 } from '../utils';
-import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext } from '../core';
+import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext, ToMdContext } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
 import { asAbsUrl, Locator, pickEl, pickEls, pickVal } from '../locator';
 
@@ -97,7 +97,7 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
   const tagName = node.tagName.toUpperCase();
   switch (tagName) {
     case 'DIV': {
-      let md = gc(node, 'inline', 'normal');
+      let md = gc(node, 'inline');
       if (node.classList.contains('snippet')) {
         md = md.replace(/\n*$/, '\n\n');
         md = `<!-- begin snippet: -->\n\n${md}<!-- end snippet -->\n\n`;
@@ -105,7 +105,7 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
       return { md };
     }
     case 'PRE': {
-      let md = gc(node, 'inline', 'pre');
+      let md = gc(node, 'inline', { wsMode: 'pre' });
       md = md.replace(/\n*$/, '\n');
 
       const lang = [...node.classList].find((cls) => cls.startsWith('lang-'))?.slice(5) || '';
@@ -121,7 +121,7 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
       return { md };
     }
     case 'BLOCKQUOTE': {
-      let md = gc(node, 'block', 'normal');
+      let md = gc(node, 'block');
       const isSpoiler = node.classList.contains('spoiler');
       const marker = isSpoiler ? '>!' : '>';
       const bqPrefix = md.match(new RegExp('^\\n*'))?.[0] ?? '';
@@ -134,10 +134,30 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
     }
   }
 
+  // handle MathJax scripts
+  if (isScript(node)) {
+    if (!node.matches('script[type^="math/tex"], [id^="MathJax" i]')) { // never: shouldSkip() should've filtered
+      console.warn('Unexpected script node in toHtmlElemHandler:', node);
+      return {};
+    }
+
+    const isDisplayByType = node.matches('script[type*="mode=display" i]');
+    const isDisplayByWrapper = !!node.parentElement?.matches('div[class~=MathJax i]');
+
+    const math = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
+    math.toggleAttribute('data-xlet', true);
+    math.setAttribute('display', isDisplayByType || isDisplayByWrapper ? 'block' : 'inline');
+    math.textContent = node.textContent?.trim() ?? '';
+
+    const md = toMd(math, ctx);
+
+    return { md };
+  }
+
   return {};
 };
 
-export function toMd(node: Node | null, opts: Partial<ToHtmlContext> = {}) {
+export function toMd(node: Node | null, opts: Partial<ToMdContext> = {}) {
   return _toMd(node, { ...opts, elementHandler: toMdElemHandler });
 }
 
@@ -146,9 +166,20 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, _ctx) => {
   if (!isElement(node)) throw new Error('toHtmlElemHandler called with non-element node');
 
   // display the original MathJax LaTeX content
-  if (isScript(node)) { // non-MathJax scripts have already been filtered out
+  if (isScript(node)) {
+    if (!node.matches('script[type^="math/tex"], [id^="MathJax" i]')) { // never: shouldSkip() should've filtered
+      console.warn('Unexpected script node in toHtmlElemHandler:', node);
+      return {};
+    }
+
+    const isDisplayByType = node.matches('script[type*="mode=display" i]');
+    const isDisplayByWrapper = !!node.parentElement?.matches('div[class~=MathJax i]');
+
     const math = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
-    math.textContent = node.textContent;
+    math.toggleAttribute('data-xlet', true);
+    math.setAttribute('display', isDisplayByType || isDisplayByWrapper ? 'block' : 'inline');
+    math.textContent = node.textContent?.trim() ?? '';
+
     return { node: math };
   }
 
@@ -222,9 +253,12 @@ function scrapePosts(doc: Document): Post[] {
 
   for (const post of pickEls(seTable['posts_items'], doc)) {
     // post body
-    const bodyEl = toHtml(pickEl(seTable['post_body'], doc, post));
-    const bodyHtml = bodyEl?.outerHTML;
-    const bodyMd = toMd(bodyEl);
+    // const bodyEl = toHtml(pickEl(seTable['post_body'], doc, post));
+    // const bodyHtml = bodyEl?.outerHTML;
+    // const bodyMd = toMd(bodyEl);
+    const bodyEl = pickEl(seTable['post_body'], doc, post);
+    const bodyHtml = bodyEl ? toHtml(bodyEl)?.outerHTML : undefined;
+    const bodyMd = bodyEl ? toMd(bodyEl) : '';
 
     // contributors
     const sigNodes = pickEls(seTable['sig_items'], doc, post);
@@ -234,9 +268,13 @@ function scrapePosts(doc: Document): Post[] {
 
     // comments
     const comments = pickEls(seTable['comment_items'], doc, post).map((comment) => {
-      const cBodyEl = toHtml(pickEl(seTable['comment_body'], doc, comment));
-      const bodyHtml = cBodyEl?.outerHTML;
-      const bodyMd = toMd(cBodyEl);
+      // const cBodyEl = toHtml(pickEl(seTable['comment_body'], doc, comment));
+      // const bodyHtml = cBodyEl?.outerHTML;
+      // const bodyMd = toMd(cBodyEl);
+      const cBodyEl = pickEl(seTable['comment_body'], doc, comment);
+      const bodyHtml = cBodyEl ? toHtml(cBodyEl)?.outerHTML : undefined;
+      const bodyMd = cBodyEl ? toMd(cBodyEl) : '';
+
       const contributors = [scrapeCommentContributor(comment, doc)];
       const vote = scrapeCommentVote(comment, doc);
       return { bodyHtml, bodyMd, contributors, vote };
@@ -406,7 +444,7 @@ function buildContribsAndVotes(contributors: Contributor[], voteCount: number): 
 }
 
 function buildPosts(data: SEResult, doc: Document): HTMLElement {
-  const div = h('div', { class: 'posts' }) as HTMLDivElement;
+  const div = h('div', { class: 'posts' });
   data.posts.forEach(function(post, idx) {
     const postNode = h('div', { class: 'post' });
     div.appendChild(postNode);
@@ -459,7 +497,7 @@ function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTML
     commentsDiv.appendChild(commentBodyDiv);
   });
 
-  return h('div', { class: mode.class }, bodyDiv, postContribsDiv, commentsDiv) as HTMLDivElement;
+  return h('div', { class: mode.class }, bodyDiv, postContribsDiv, commentsDiv);
 }
 
 export function extractFromDoc(root: Document = document): SEResult | undefined {

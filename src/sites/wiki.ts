@@ -39,9 +39,11 @@
 
 import {
   log, h, injectCss, createMultiToggle, multiToggleCss, isElement, isDiv, isHeading, isText, htmlToElementK, jaroWinklerSimilarity, createCopyButton, copyButtonCss, warn, isHTML, isDoc, warnNull,
+  parseHeadingLevel,
 } from '../utils';
 import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
+import type { HLevel } from '../types/primitives';
 
 export type WikiResult = {
   baseUrl: string; // Base URL of the wiki page
@@ -154,7 +156,7 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
 
 export class WikiNode {
   title: string; // Title of this section
-  level: number; // 1 = <h1>, 2 = <h2>, etc.
+  level: HLevel; // 1 = <h1>, 2 = <h2>, etc.
   sectionNum: number; // Section number, starting from 0 (root section is 0)
   html: HTMLDivElement | null; // HTML content of this section
   htmlStr: string | null; // Used during serialization
@@ -162,31 +164,32 @@ export class WikiNode {
   raw: string; // Raw text content of this section
   children: WikiNode[]; // Child sections
 
-  constructor(title: string, level: number, sectionNum: number) {
+  constructor(title: string, level: HLevel, sectionNum: number) {
     this.title = title;
     this.level = level;
     this.sectionNum = sectionNum;
-    this.html = h('div', { class: 'wikinode-section-content' }) as HTMLDivElement;
+    this.html = h('div', { class: 'wikinode-section-content' });
     this.htmlStr = null;
     this.md = '';
     this.raw = '';
     this.children = [];
   }
 
-  static buildFromHTML(root: Document | HTMLElement): WikiNode | null {
+  // static buildFromHTML(root: Document | HTMLElement): WikiNode | null {
+  static buildFromHTML(root: Element | Document): WikiNode | null {
     const title = root.querySelector('h1#firstHeading')?.textContent?.trim() ?? '';
     if (!title) return warnNull('No title found in the provided root element');
 
     let curSectionNum = 0;
     let currentNode = new WikiNode(title, 1, curSectionNum);
-    const currentMdDiv = h('div') as HTMLDivElement;
+    const currentMdDiv = h('div', { __doc: root.ownerDocument ?? root });
     const rootNode = currentNode;
 
     for (const htmlNode of root.querySelector('div#mw-content-text > div.mw-parser-output')?.children ?? []) {
       const firstChild = htmlNode.children[0];
 
       if (isDiv(htmlNode) && isHeading(firstChild)) {
-        const level = parseInt(firstChild.tagName[1]);
+        const level = parseHeadingLevel(firstChild);
         const title = firstChild.textContent?.trim() ?? '';  // TODO: extract from html?
         curSectionNum++;
         // currentNode.md = currentNode.md.trim(); // alt
@@ -239,16 +242,16 @@ export class WikiNode {
       if (!heading) return warnNull('No heading found in the provided element');
       const title = heading.textContent?.trim() ?? '';
       if (!title) return warnNull('No title found in the provided element');
-      const level = heading.tagName[1];
+      const level = parseHeadingLevel(heading);
       const sectionId = root.getAttribute('data-mw-section-id');
       if (!sectionId) return warnNull('No data-mw-section-id found in the section element');
 
-      curWikiNode = new WikiNode(title, +level, +sectionId);
+      curWikiNode = new WikiNode(title, level, +sectionId);
       const sectChildren = [...root.children].filter((el) => el !== heading);
       childElems = sectChildren;
     }
 
-    const currentMdDiv = h('div') as HTMLDivElement;
+    const currentMdDiv = h('div', { __doc: root.ownerDocument ?? root });
     for (const child of childElems) {
       if (child.tagName.toLowerCase() === 'section') {
         curWikiNode.addChild(WikiNode.buildFromParsoidHTML(child));
@@ -417,7 +420,7 @@ function renderHtml(node: WikiNode): HTMLDivElement {
   const copyBtn = createCopyButton(copyText, 'Copied HTML!');
   const titleElem = h(`h${node.level}`, { class: 'html-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
-  const container = h('div', { class: 'html-wikinode-section' }, titleBar) as HTMLDivElement;
+  const container = h('div', { class: 'html-wikinode-section' }, titleBar);
   container.id = `html-section-${node.sectionNum}`;
 
   if (node.html) container.appendChild(node.html);
@@ -431,7 +434,7 @@ function renderMd(node: WikiNode): HTMLDivElement {
   const copyBtn = createCopyButton(node.getFullMd(), 'Copied Markdown!');
   const titleElem = h(`h${node.level}`, { class: 'md-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
-  const container = h('div', { class: 'md-wikinode-section' }, titleBar) as HTMLDivElement;
+  const container = h('div', { class: 'md-wikinode-section' }, titleBar);
   container.id = `md-section-${node.sectionNum}`;
 
   // const out = `${'='.repeat(node.level)} ${node.title} ${'='.repeat(node.level)}\n\n${node.md}`;
@@ -447,7 +450,7 @@ function renderRaw(node: WikiNode): HTMLDivElement {
   const copyBtn = createCopyButton(node.raw, 'Copied Wikitext!');
   const titleElem = h(`h${node.level}`, { class: 'raw-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
-  const container = h('div', { class: 'raw-wikinode-section' }, titleBar) as HTMLDivElement;
+  const container = h('div', { class: 'raw-wikinode-section' }, titleBar);
   container.id = `raw-section-${node.sectionNum}`;
 
   const rawBody = stripHeading(node);

@@ -91,7 +91,6 @@ describe('htmlify() negative cases', () => {
 describe('el helper', () => {
   test('should support svg', () => {
     const svg = el('<svg></svg>');
-    assert(svg !== null, 'svg should not be null');
     const svgElement = svg.ownerDocument.defaultView?.SVGElement;
     assert(svgElement !== undefined, 'SVGElement constructor should exist');
     assert(svg instanceof svgElement, 'svg should be instanceof SVGElement');
@@ -99,7 +98,6 @@ describe('el helper', () => {
 
   test('should partially support MathML elements in JSDOM', () => {
     const math = el('<math><mi>x</mi></math>');
-    assert(math !== null, 'math should not be null');
     assert(typeof math === 'object');
 
     const mathElementCtor = math.ownerDocument.defaultView?.MathMLElement;
@@ -122,7 +120,7 @@ describe('el helper', () => {
 
 test('el, h and htmlify should handle MathML', () => {
   const math = el('<math><mi>x</mi></math>');
-  assert(math !== null, 'math should not be null');
+  // assert(math !== null, 'math should not be null');
   strictEqual(String(math), '[object Element]');
   strictEqual(math.namespaceURI, 'http://www.w3.org/1998/Math/MathML');
 

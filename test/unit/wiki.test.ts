@@ -1,7 +1,9 @@
 /* eslint-disable no-irregular-whitespace */
-import { describe, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { normalizeWikitext, parseRawIntoSections, toHtml, toMd, WikiNode } from '../../src/sites/wiki';
-import { el, assertNodeEqual, setupDom, logPandocWtToMd, logPandocHtmlToMd } from '../utils/test-utils';
+import {
+  el, assertNodeEqual, setupDom, logPandocWtToMd, logPandocHtmlToMd, docEl,
+} from '../utils/test-utils';
 import { deepEqual, strictEqual } from 'node:assert';
 
 setupDom();
@@ -173,7 +175,7 @@ test('toHtml Tensor Para1 Sentence4', () => {
 
   const expected = '<p>For example, the components of an order-<span>2</span> tensor <span style="font-style:italic;">T</span> could be denoted <span><i>T</i><sub><i>ij</i></sub></span> , where <span style="font-style:italic;">i</span> and <span style="font-style:italic;">j</span> are indices running from <span>1</span> to <span style="font-style:italic;">n</span>, or also by <span><i>T</i><span style="white-space: nowrap;"> </span><span><span style="display:inline-block;margin-bottom:-0.3em;vertical-align:-0.4em;line-height:0.8;font-size:80%;text-align:left"><sup style="font-size:inherit;line-height:inherit;vertical-align:baseline"><i>i</i></sup><br><sub style="font-size:inherit;line-height:inherit;vertical-align:baseline"><i>j</i></sub></span></span></span>.</p>';
 
-  assertNodeEqual(toHtml(el(html)), el(expected));
+  assertNodeEqual(toHtml(el(html)), expected);
 });
 
 test('toHtml strips meta', () => {
@@ -208,6 +210,13 @@ test('toMd converts anchor to markdown', () => {
   const html = '<a href="foo" title="bar">baz</a>';
   const result = toMd(el(html));
   const expected = '[baz](foo "bar")';
+  strictEqual(result, expected);
+});
+
+test('toMd converts full link when given baseUrl', () => {
+  const html = '<a href="/wiki/foo" title="bar">baz</a>';
+  const result = toMd(el(html, 'https://en.wikipedia.org/wiki/Lalala'));
+  const expected = '[baz](https://en.wikipedia.org/wiki/foo "bar")';
   strictEqual(result, expected);
 });
 
@@ -257,8 +266,8 @@ test('WikiNode.buildFromHTML produces double linefeeds between top-level childre
     </div>
   </div>
 </main>`.trim();
-  const htmlEl = el(html) as HTMLDivElement;
-  const result = WikiNode.buildFromHTML(htmlEl);
+  const doc = docEl(html);
+  const result = WikiNode.buildFromHTML(doc);
   const expectedMd = `
 For other uses, see [](/wiki/Tensor_(disambiguation)).
 
@@ -791,7 +800,7 @@ caption
     // [[Category:Foo]]
     const html = '<link rel="mw:PageProp/Category" href="./Category:Foo">';
     const expectedMd = '';
-    strictEqual(toMd(el(html)), expectedMd);
+    strictEqual(toMd(docEl(html)), expectedMd);
   });
 
   test('autolinked (free) external URL', () => {
@@ -833,7 +842,7 @@ caption
         RFC 1945
       </a>
     `.trim();
-    const expectedMd = '[RFC 1945](http://tools.ietf.org/html/rfc1945)';
+    const expectedMd = '[](http://tools.ietf.org/html/rfc1945)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -902,7 +911,7 @@ caption
     // const wikiText = '{{foo|unused value|paramname=used value}}';
     // logPandocWtToMd(wikiText);
     const html = `
-      <body prefix="mw: http://mediawiki.org/rdf/ mwns10: http://en.wikipedia.org/wiki/Template%58">
+      <div prefix="mw: http://mediawiki.org/rdf/ mwns10: http://en.wikipedia.org/wiki/Template%58">
         <span typeof="mw:Transclusion" about="#mwt1" data-mw='{"parts": [{"template":{"target":{"wt":"foo","href":"./Template:Foo"},"params":{"1":{"wt":"unused value"},"paramname":{"wt":"used value"}},"i":0}}]}'>
           Some text content
         </span>
@@ -911,7 +920,7 @@ caption
             <td>used value</td>
           </tr>
         </table>
-      </body>`.trim();
+      </div>`.trim();
     // logPandocHtmlToMd(html);
 
     const expectedMd = `
@@ -922,17 +931,19 @@ Some text content
 | used value |
 `.trim();
 
-    const resultMd = toMd(el(html, 'body'));
+    const resultMd = toMd(el(html));
     strictEqual(resultMd, expectedMd);
   });
 
   test('Parsoid mw:Annotation meta tags are ignored', () => {
     const html = `
+<div>
 <meta typeof="mw:Annotation/translate" data-mw='{"rangeId":"mwa0","extendedRange":false,"wtOffsets":[0,11]}'/>
 <p>One paragraph.</p>
 
 <p>And another.
 </p><meta typeof="mw:Annotation/translate/End" data-mw='{"wtOffsets":[41,53]}'/>
+</div>
 `.trim();
 
     const expectedMd = `
@@ -940,10 +951,51 @@ One paragraph.
 
 And another.`.trim();
 
-    const resultMd = toMd(el(html, 'body'));
+    const resultMd = toMd(el(html));
     strictEqual(resultMd, expectedMd);
   });
 });
+
+test('wiki MD uses absolute links within section container', () => {
+  const doc = docEl(`
+    <html><body>
+      <h1 id="firstHeading">Tensor</h1>
+      <div id="mw-content-text"><div class="mw-parser-output">
+        <div><p>See <a href="/wiki/Foo" title="Baz">Foo</a> and <a href="/wiki/Bar">Bar</a>.</p></div>
+      </div></div>
+    </body></html>
+  `, 'https://en.wikipedia.org/wiki/Tensor');
+  // if (!doc) throw new Error('Failed to create test document');
+  // console.log(doc);
+
+  const root = WikiNode.buildFromHTML(doc);
+  if (!root) throw new Error('Failed to build WikiNode from test document');
+  const md = root.children[0]?.md ?? root.md;
+  // console.log(md);
+  expect(md).toBe('See [Baz](https://en.wikipedia.org/wiki/Foo) and [](https://en.wikipedia.org/wiki/Bar).');
+});
+
+test('parsoid wiki MD uses absolute links within section container', () => {
+  const doc = docEl(`
+    <html>
+      <head><title>Tensor</title></head>
+      <body>
+        <!-- Parsoid lead section -->
+        <section data-mw-section-id="0">
+          <p>See <a href="/wiki/Foo" title="Baz">Foo</a> and <a href="/wiki/Bar">Bar</a>.</p>
+        </section>
+      </body>
+    </html>
+  `, 'https://en.wikipedia.org/wiki/Tensor');
+  // if (!doc) throw new Error('Failed to create test document');
+
+  const root = WikiNode.buildFromParsoidHTML(doc);
+  if (!root) throw new Error('Failed to build WikiNode from Parsoid HTML');
+
+  const md = root.children[0]?.md ?? root.md;
+  expect(md).toBe('See [Baz](https://en.wikipedia.org/wiki/Foo) and [](https://en.wikipedia.org/wiki/Bar).');
+});
+
 
 // test('foo', () => {
 //   const html = `

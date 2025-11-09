@@ -1,3 +1,4 @@
+import type { HLevel } from './types/primitives';
 import { hasOfType, isNonEmptyString, isNumber } from './typing';
 
 type LogOptions = {
@@ -80,20 +81,39 @@ export function log(...args: unknown[]): void {
   }
 }
 
+type AttrValue = string | number | boolean | null | undefined;
+type HAttrs = Record<string, AttrValue | Document> & { __doc?: Document; };
+
+export function h<K extends keyof SVGElementTagNameMap>(tag: `svg:${K}`, attrs?: HAttrs, ...children: (string | Node | null)[]): SVGElementTagNameMap[K];
+export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs?: HAttrs, ...children: (string | Node | null)[]): HTMLElementTagNameMap[K];
+export function h<K extends keyof MathMLElementTagNameMap>(tag: `math:${K}`, attrs?: HAttrs, ...children: (string | Node | null)[]): MathMLElementTagNameMap[K];
 export function h(
   tag: string, // e.g. 'div', 'svg:circle', 'math:mi'
-  attrs: Record<string, any> = {}, // e.g. { class: 'my-class', id: 'my-id', 'xlink:href': '#foo' }
+  attrs: HAttrs = {}, // e.g. { class: 'my-class', id: 'my-id', 'xlink:href': '#foo', __doc: document }
   ...children: (string | Node | null)[] // e.g. 'Hello', document.createElement('span'), null
 ): HTMLElement | SVGElement | MathMLElement {
 
+  const doc = attrs.__doc ?? document;
+
   const node: HTMLElement | SVGElement | MathMLElement =
-    tag.startsWith('math:') ? document.createElementNS('http://www.w3.org/1998/Math/MathML', tag.slice(5)) :
-    tag.startsWith('svg:') ? document.createElementNS('http://www.w3.org/2000/svg', tag.slice(4)) :
-    document.createElement(tag);
+    tag.startsWith('math:') ? doc.createElementNS('http://www.w3.org/1998/Math/MathML', tag.slice(5)) :
+    tag.startsWith('svg:') ? doc.createElementNS('http://www.w3.org/2000/svg', tag.slice(4)) :
+    doc.createElement(tag);
 
   for (const [key, value] of Object.entries(attrs)) {
+    if (key === '__doc') continue;
+    // assert value is AttrValue
+    if (typeof value === 'object' && isDoc(value)) {
+      console.warn('Ignoring document attribute in h():', value);
+      continue;
+    }
+
     if (key === 'xlink:href') {
       node.setAttributeNS('http://www.w3.org/1999/xlink', 'href', String(value));
+    } else if (value === true) {
+      node.toggleAttribute(key, true);
+    } else if (value === false || value === null || value === undefined) {
+      node.toggleAttribute(key, false);
     } else {
       node.setAttribute(key, String(value));
     }
@@ -101,9 +121,9 @@ export function h(
 
   children.forEach((child) => {
     if (typeof child === 'string') {
-      node.appendChild(document.createTextNode(child));
+      node.appendChild(doc.createTextNode(child));
     } else if (isNode(child)) {
-      node.appendChild(child);
+      node.appendChild(child.ownerDocument === doc ? child : doc.importNode(child, true));
     }
     // else ignore null/undefined/non-node children
   });
@@ -413,7 +433,7 @@ export function createCopyButton(
     focusable: 'false',
   }, iconPath);
 
-  const button = h('button', { class: 'copybutton' }, icon) as HTMLButtonElement;
+  const button = h('button', { class: 'copybutton' }, icon);
   button.addEventListener('click', () => {
     void (async function() {
       const text = typeof copyText === 'function' ? copyText() : copyText;
@@ -444,7 +464,7 @@ export function createCopyButton(
     button.addEventListener('focus', updateTitle);
   }
 
-  return h('div', { class: 'copybutton-wrapper' }, button, response) as HTMLDivElement;
+  return h('div', { class: 'copybutton-wrapper' }, button, response);
 }
 
 // Bad idea. css parsing is complex and if doing inline styles,
@@ -521,6 +541,9 @@ export function isAnchor(node?: Node | null): node is HTMLAnchorElement {
 }
 export function isImage(node?: Node | null): node is HTMLImageElement {
   return !!node && isElement(node) && node.tagName.toUpperCase() === 'IMG';
+}
+export function isBreak(node?: Node | null): node is HTMLBRElement {
+  return !!node && isElement(node) && node.tagName.toUpperCase() === 'BR';
 }
 export function isFigure(node?: Node | null): node is HTMLElement {
   return !!node && isElement(node) && node.tagName.toUpperCase() === 'FIGURE';
@@ -700,31 +723,41 @@ export function jaccardSimilarity(a: string, b: string): number {
   return union ? inter / union : 0;
 }
 
-export function isCaptionSimilar(
-  a?: string,
-  b?: string,
-  {
-    unicode = 'NFC',
-    lower = true,
-    underscores = true,
-    trim = true,
-    punct = false,
-    trailingSlash = true,
-  } = {}
-): boolean {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  const norm = (s: string) => {
-    if (!s) return '';
-    if (trailingSlash) s = s.replace(/\/+$/, '');
-    if (punct) s = s.replace(/[.,:;?!'"\-–—]/g, '');
-    s = s.normalize(unicode);
-    if (underscores) s = s.replace(/_/g, ' ');
-    if (lower) s = s.toLocaleLowerCase('en');
-    if (trim) s = s.trim();
-    return s;
-  };
-  return norm(a) === norm(b);
+export function isLabelRedundant(label?: string, reference?: string): boolean {
+  if (!label || !reference) return false;
+
+  const nRef = norm(reference);
+  const nLabel = norm(label);
+
+  return (nLabel.length >= 3 && nRef.includes(nLabel));
+
+  // ---- helper ----
+  function norm(s: string): string {
+    let out = s;
+    try { out = decodeURIComponent(out); } catch { /* ignore malformed escapes */ }
+    return out
+      .normalize('NFC')
+      .toLowerCase()
+      .replace(/[.,:;?!'"()[\]\-–—\s_/\\…]+/g, '');
+  }
+}
+
+export function isLabelGeneric(label?: string, reference?: string): boolean {
+  if (!label) return true;
+  const toks = label.normalize('NFC').toLowerCase().split(/[^0-9\p{L}]+/u).filter(Boolean);
+  const generic = new Set([
+    'here', 'click', 'me', 'tap',
+    'more', 'read', 'learn', 'see', 'view', 'findout',
+    'details', 'info', 'information',
+    'continue', 'reading', 'keep', 'next',
+    'article', 'post', 'page', 'source',
+    'link', 'this', 'the', 'my', 'a', 'an',
+  ]);
+  const kept = toks.filter((w) => !generic.has(w));
+  const content = kept.join('');
+
+  if (content.length === 0) return true;
+  return isLabelRedundant(content, reference);
 }
 
 export function lastUrlSegment(url: string): string {
@@ -759,3 +792,19 @@ export function alphaLabel(idx1: number): string {
   while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
   return s;
 }
+
+export function parseHeadingLevel(el: HTMLHeadingElement): HLevel {
+  const n = parseInt(el.tagName.slice(1), 10);
+  if (n < 1 || n > 6 || !Number.isInteger(n)) {
+    console.warn(`[WikiNode] invalid heading level: ${el.tagName}`);
+    return Math.min(6, Math.max(1, Math.trunc(n))) as HLevel;
+  }
+  return n as HLevel;
+}
+
+export function safeDecode(u?: string | null): string {
+  if (!u) return '';
+  try { return decodeURIComponent(u); }
+  catch { return u; }
+};
+

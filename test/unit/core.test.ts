@@ -383,9 +383,9 @@ test('toMd anchor nested em', () => {
 });
 
 test('toMd a inline full url', () => {
-  const html = '<a href="https://example.com">Click here</a>';
+  const html = '<a href="https://example.com">Click baby</a>';
   const result = toMd(el(html));
-  const expected = '[Click here](https://example.com/)';
+  const expected = '[Click baby](https://example.com/)';
   strictEqual(result, expected);
 });
 
@@ -399,7 +399,7 @@ test('toMd a inline relative url', () => {
 test('toMd a with empty href is unlinked', () => {
   const html = '<a href="">No link</a>';
   const result = toMd(el(html));
-  const expected = 'No link'; // Don't treat as markdown link
+  const expected = '[No link]()';
   strictEqual(result, expected);
 });
 
@@ -421,6 +421,27 @@ test('toMd a with bold child', () => {
   const html = '<a href="https://example.com"><b>Link</b></a>';
   const result = toMd(el(html));
   const expected = '[**Link**](https://example.com/)';
+  strictEqual(result, expected);
+});
+
+test('toMd img with empty src renders alt as plain text', () => {
+  const html = '<img src="" alt="Diagram">';
+  const result = toMd(el(html));
+  const expected = '![Diagram]()';
+  strictEqual(result, expected);
+});
+
+test('toMd img without src renders alt only (ignores title)', () => {
+  const html = '<img alt="Logo" title="Company logo">';
+  const result = toMd(el(html));
+  const expected = '![Logo]()';
+  strictEqual(result, expected);
+});
+
+test('toMd img keeps alt even if redundant with filename', () => {
+  const html = '<img src="/images/a.png" alt="a.png" title="a.png">';
+  const result = toMd(el(html, 'https://example.com/'));
+  const expected = '![](https://example.com/images/a.png)';
   strictEqual(result, expected);
 });
 
@@ -667,7 +688,7 @@ test('toMd complex mixed markup case', () => {
 <p>This is the second paragraph.<br>
 It contains a manual line break above.</p>
 <h2>Header Two</h2>
-<p>Another paragraph here with a <a href="https://example.com">link</a>.</p>
+<p>Another paragraph here with a <a href="https://example.com">Im a Link!</a>.</p>
 <hr>
 <p><strong>Bold line.</strong><br>
 <em>Italic line.</em><br>
@@ -686,7 +707,7 @@ It contains a manual line break above.
 
 ## Header Two
 
-Another paragraph here with a [link](https://example.com/).
+Another paragraph here with a [Im a Link!](https://example.com/).
 
 ---
 
@@ -1214,7 +1235,7 @@ test('toMd imgs combined dump', () => {
 </div>`;
 
   const expected = '![wikilogo](https://i.sstatic.net/fzsVsZw6.png) ![wikilogo](https://i.sstatic.net/fzsVsZw6.png "Wikipedia Logo") ![](https://i.sstatic.net/fzsVsZw6.png) ![](https://i.sstatic.net/fzsVsZw6.png) ![wiki logo](https://i.sstatic.net/fzsVsZw6.png "logo for wiki") [](https://example.com/)';
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -1228,7 +1249,7 @@ here's an inline image: ![wikilogo](https://i.sstatic.net/fzsVsZw6.png). it's a 
 ![wikilogo](https://i.sstatic.net/fzsVsZw6.png)
 `.trim();
 
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -1236,7 +1257,7 @@ test('toMd inline html kbd', () => {
   const html = '<div><p>To reboot your computer, press <kbd>ctrl</kbd>+<kbd>alt</kbd>+<kbd>del</kbd>.</p></div>';
   const expected = 'To reboot your computer, press <kbd>ctrl</kbd>+<kbd>alt</kbd>+<kbd>del</kbd>.';
 
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -1244,7 +1265,7 @@ test('toMd kbd with styling', () => {
   const html = '<div><p>To reboot your computer, press <kbd><b>ctrl</b></kbd>+<i><kbd>alt</kbd></i>+<kbd><strong>del</strong></kbd>.</p></div>';
   const expected = 'To reboot your computer, press <kbd>**ctrl**</kbd>+*<kbd>alt</kbd>*+<kbd>**del**</kbd>.';
 
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -1253,7 +1274,7 @@ test('toMd sub sup', () => {
 
   const expected = 'H<sub>2</sub>O, and E = mc<sup>2</sup>';
 
-  const result = toMd(el(html)).trim();
+  const result = toMd(el(html));
   strictEqual(result, expected);
 });
 
@@ -1342,7 +1363,7 @@ describe('toMd tables', () => {
 | Bob | | \`<div>hi</div>\` | link |
 `.trim();
 
-    const result = toMd(el(html)).trim();
+    const result = toMd(el(html));
     strictEqual(result, expected);
   });
 
@@ -1375,7 +1396,7 @@ describe('toMd tables', () => {
 | 2nd | Row | #2 hello |
 `.trim();
 
-    const result = toMd(el(html)).trim();
+    const result = toMd(el(html));
     strictEqual(result, expected);
   });
 
@@ -1501,7 +1522,7 @@ describe('toMd tables', () => {
 | سلام | 😊 | mix😊é |
 `.trim();
 
-    const result = toMd(el(html)).trim();
+    const result = toMd(el(html));
     // log(result, { escapeWhitespace: false, jsonifyStrings: false });
     strictEqual(result, expected);
   });
@@ -1536,7 +1557,7 @@ describe('toMd tables', () => {
     // |       | Math   | Science |
     // | Alice | 90     | 95      |
 
-    const result = toMd(el(html, 'div'));
+    const result = toMd(el(html));
     strictEqual(result, expected);
   });
 
@@ -1570,7 +1591,7 @@ describe('toMd tables', () => {
 | Alice | 90 | 95 | | | |
 `.trim();
 
-    const result = toMd(el(html, 'div'));
+    const result = toMd(el(html));
     strictEqual(result, expected);
   });
 
@@ -1771,7 +1792,7 @@ line2</textarea>
       </div>
     `.trim();
 
-    const out = toHtml(el(html)) as HTMLElement;
+    const out = toHtml(el(html));
 
     const expected = `
       <div>
@@ -1850,7 +1871,7 @@ describe('tables with vertical inclinations', () => {
 [6]: https://en.wikipedia.org/wiki/baz
 `.trim();
 
-    const result = toMd(el(html, undefined, 'https://en.wikipedia.org'));
+    const result = toMd(el(html, 'https://en.wikipedia.org'));
     strictEqual(result, expected);
   });
 
@@ -1884,7 +1905,7 @@ describe('tables with vertical inclinations', () => {
       </ul>
     </div>`;
 
-    const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
+    const doc = el(html, 'https://en.wikipedia.org/wiki/');
 
     const expected = `
 | Group | Figures |
@@ -1924,7 +1945,7 @@ describe('tables with vertical inclinations', () => {
           </tr></tbody>
         </table>
       </div>`;
-    const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
+    const doc = el(html, 'https://en.wikipedia.org/wiki/');
 
     const expected = `
 | Col | Stuff |
@@ -1959,7 +1980,7 @@ describe('table cell rendering: blockquote & code in <td>', () => {
           </tr></tbody>
         </table>
       </div>`;
-    const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
+    const doc = el(html, 'https://en.wikipedia.org/wiki/');
     const actual = toMd(doc);
     // console.log(actual);
     const expected = `
@@ -1998,7 +2019,7 @@ describe('table cell rendering: blockquote & code in <td>', () => {
           </tbody>
         </table>
       </div>`;
-    const doc = el(html, undefined, 'https://en.wikipedia.org/wiki/');
+    const doc = el(html, 'https://en.wikipedia.org/wiki/');
     const actual = toMd(doc);
     // console.log(actual);
     const expected = `
@@ -2028,7 +2049,7 @@ describe('in compact mode', () => {
 > Quoted line 1.
 > Quoted line 2 with [Foo](https://en.wikipedia.org/wiki/Foo).
 `.trim();
-    const out = toMd(el(html), { compact: true, dedupe: false });
+    const out = toMd(el(html), { compact: true, filterRedundantLabel: false });
     // console.log(out);
     strictEqual(out, expected);
   });
@@ -2054,7 +2075,7 @@ describe('in compact mode', () => {
 >> Inner para A.
 >> Inner para B.
 `.trim();
-    const out = toMd(el(html), { compact: true, dedupe: false });
+    const out = toMd(el(html), { compact: true, filterRedundantLabel: false });
     strictEqual(out, expected);
   });
 
@@ -2102,7 +2123,7 @@ describe('in compact mode', () => {
 >> InnerY.
 `.trim();
 
-    const out = toMd(el(html), { compact: true }).trim();
+    const out = toMd(el(html), { compact: true });
     strictEqual(out, expected);
   });
 
@@ -2149,3 +2170,92 @@ Inline: \`sum(x[i] for i in S)\`
   });
 });
 
+describe('toMd, NOBR handling', () => {
+  it('collapses internal line breaks to single spaces', () => {
+    const html = `
+      <div>
+        <p>A <nobr>alpha
+beta
+gamma</nobr> Z.</p>
+      </div>`.trim();
+
+    const actual = toMd(el(html));
+    const expected = `A alpha beta gamma Z.`;
+    expect(actual).toBe(expected);
+  });
+
+  it('treats <br> inside <nobr> as a space', () => {
+    const html = `
+      <div>
+        <p>Phone:<nobr>+1<br />555<br />1234</nobr></p>
+      </div>`.trim();
+
+    const actual = toMd(el(html));
+    const expected = `Phone:+1 555 1234`;
+    expect(actual).toBe(expected);
+  });
+
+  it('preserves inline markup without introducing breaks', () => {
+    const html = `
+      <div>
+        <p>Ref <nobr><em>Foo</em>
+          <strong>Bar</strong>   Baz</nobr> end.
+        </p>
+      </div>`.trim();
+    const actual = toMd(el(html));
+    const expected = `Ref *Foo* **Bar** Baz end.`;
+    expect(actual).toBe(expected);
+  });
+});
+
+describe('toMd, BR handling', () => {
+  it('emits soft line breaks for <br> in normal mode (no collapsing)', () => {
+    const html = `
+      <div>
+        <div>Alpha<span><br />Beta<br /><br /><br />Gamma</span>Omega</div>
+      </div>`
+      .trim();
+    const actual = toMd(el(html));
+    const expected = `Alpha  \nBeta  \n  \n  \nGammaOmega`.trim();
+    expect(actual).toBe(expected);
+  });
+
+  it('trims trailing ASCII run before <br> in normal mode', () => {
+    const html = `<p>X   <br/>Y</p>`;
+    expect(toMd(el(html))).toBe('X  \nY');
+  });
+
+  it('collapses single ASCII space before <br> to soft break', () => {
+    const html = `<p>X <br/>Y</p>`;
+    expect(toMd(el(html))).toBe('X  \nY');
+  });
+
+  it('preserves NBSP before <br> (semantic space)', () => {
+    const html = `<p>X\u00A0<br/>Y</p>`;
+    expect(toMd(el(html))).toBe('X   \nY');
+  });
+
+  it('uses a hard LF inside a PRE tag (wsMode = pre)', () => {
+    const html = `<pre>foo   <br/>bar</pre>`;
+    expect(toMd(el(html))).toBe('```\nfoo   \nbar\n```');
+  });
+
+  it('can spam multiple hard LFs while in pre mode', () => {
+    const html = `<pre>x<br/><br/><br/>y</pre>`;
+    expect(toMd(el(html))).toBe('```\nx\n\n\ny\n```');
+  });
+
+  it('uses soft breaks and hard breaks depending on context; preserves trim spacing within PRE', () => {
+    const html = `<div>before<pre> a  <br/>b\t</pre>after</div>`;
+    const expected = `
+before
+
+\`\`\`
+ a  \nb\t
+\`\`\`
+
+after
+`.trim();
+    expect(toMd(el(html))).toBe(expected);
+  });
+});

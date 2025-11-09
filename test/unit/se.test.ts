@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import { expect, test } from 'vitest';
 import { strictEqual, deepStrictEqual } from 'node:assert';
 import { toMd, toHtml, scrapePostContributor } from '../../src/sites/se';
 import { el, assertNodeEqual, setupDom } from '../utils/test-utils';
@@ -35,7 +35,7 @@ test('toHtml test1', () => {
     <div>
       <p>
         <a href="http://en.wikipedia.org/wiki/Tensor">Wikipedia</a> says that a linear transformation is a \n        \n        
-        <math>(1,1)</math> tensor.
+        <math data-xlet="" display="inline">(1,1)</math> tensor.
       </p>
     </div>`.trim();
   assertNodeEqual(result, expected);
@@ -55,7 +55,7 @@ test('toHtml mathjax script', () => {
     <div>
       <p>
         Result:
-        <math>(x+y)^2</math>
+        <math data-xlet="" display="inline">(x+y)^2</math>
         is the formula.
       </p>
     </div>`.trim();
@@ -336,4 +336,78 @@ test('scrapePostContributor basic editor', () => {
     userSlug: '',
   };
   deepStrictEqual(result, expected);
+});
+
+test('', () => {
+  const html = `
+<div class="s-prose js-post-body" itemprop="text">
+  <p>For an integer 
+    <span class="math-container">
+      <span class="MathJax_Preview" style=""></span>
+      <span class="MathJax" id="MathJax-Element-33-Frame" tabindex="0" style="position: relative;" data-mathml="&lt;math
+        xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mi&gt;n&lt;/mi&gt;&lt;/math&gt;" role="presentation">
+      </span>
+      <script type="math/tex" id="MathJax-Element-33">n</script></span>, let's seek integral solutions of 
+    <span class="math-container">
+      <span class="MathJax_Preview" style=""></span>
+      <span class="MathJax" id="MathJax-Element-34-Frame" tabindex="0" style="position: relative;" data-mathml="" role="presentation">
+      </span>
+      <script type="math/tex" id="MathJax-Element-34">x^3 + y^3 + z^3 = n</script></span>. 
+  </p>
+  <p>1) When 
+    <span class="math-container">
+      <span class="MathJax_Preview" style=""></span>
+      <span class="MathJax" id="MathJax-Element-35-Frame" tabindex="0" style="position: relative;" data-mathml="&lt;math
+        xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mi&gt;n&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;29&lt;/mn&gt;&lt;/math&gt;" role="presentation">
+      </span>
+      <script type="math/tex" id="MathJax-Element-35">n = 29</script>
+    </span> a solution is easy to find: 
+    <span class="math-container">
+      <span class="MathJax_Preview" style=""></span>
+      <span class="MathJax" id="MathJax-Element-36-Frame" tabindex="0" style="position: relative;" data-mathml="" role="presentation">
+      </span>
+      <script type="math/tex" id="MathJax-Element-36">(x,y,z) = (3,1,1)</script></span>. 
+  </p>
+  <p>2) When 
+    <span class="math-container">
+      <span class="MathJax_Preview" style=""></span>
+      <span class="MathJax" id="MathJax-Element-37-Frame" tabindex="0" style="position: relative;" data-mathml="&lt;math
+        xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mi&gt;n&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;33&lt;/mn&gt;&lt;/math&gt;" role="presentation">
+      </span>
+      <script type="math/tex" id="MathJax-Element-37">n = 33</script>
+    </span> it is harder to find a solution, but one is known: 
+
+    <span class="math-container">
+      <span class="MathJax_Preview" style=""></span>
+      <div class="MathJax_Display" style="text-align: center;">
+        <span class="MathJax" id="MathJax-Element-38-Frame" tabindex="0" style="text-align: center; position: relative;" data-mathml="" role="presentation">
+        </span>
+      </div>
+      <script type="math/tex; mode=display" id="MathJax-Element-38">
+(x,y,z) = (8866128975287528, -8778405442862239, -2736111468807040).
+</script>
+    </span>
+This was found in 2019 by Andrew Booker. See 
+    <a href="https://people.maths.bris.ac.uk/~maarb/papers/cubesv1.pdf" rel="noreferrer">https://people.maths.bris.ac.uk/~maarb/papers/cubesv1.pdf</a> and 
+    <a href="https://www.youtube.com/watch?v=ASoz_NuIvP0" rel="noreferrer">https://www.youtube.com/watch?v=ASoz_NuIvP0</a>.
+  </p>
+</div>
+`.trim();
+  const actual = toMd(toHtml(el(html)));
+  // console.log(actual);
+  const expected = `
+For an integer \\(n\\), let's seek integral solutions of \\(x^3 + y^3 + z^3 = n\\).
+
+1) When \\(n = 29\\) a solution is easy to find: \\((x,y,z) = (3,1,1)\\).
+
+2) When \\(n = 33\\) it is harder to find a solution, but one is known:
+
+\\[
+(x,y,z) = (8866128975287528, -8778405442862239, -2736111468807040).
+\\]
+
+This was found in 2019 by Andrew Booker. See [](https://people.maths.bris.ac.uk/~maarb/papers/cubesv1.pdf) and [](https://www.youtube.com/watch?v=ASoz_NuIvP0).
+`.trim();
+
+  expect(actual).toBe(expected);
 });

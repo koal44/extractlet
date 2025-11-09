@@ -361,11 +361,11 @@ function shouldSkip(node: Node | null): boolean {
 const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
   if (shouldSkip(node)) return { skip: true };
   if (node.matches('td.comment-body')) {
-    const md = gc(node, 'block', 'normal');
+    const md = gc(node, 'block');
     return { md };
   }
   if (node.matches('em, i')) {
-    return { md: `_${gc(node, 'inline', 'normal')}_` }; // use _..._ rather than *...*
+    return { md: `_${gc(node, 'inline')}_` }; // use _..._ rather than *...*
   }
   if (node.matches('br')) return { md: '\n' }; // without the double space
   if (node.matches('input[type="checkbox"]')) {
@@ -403,7 +403,7 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
 }
 
 function buildPosts(data: HubResult, doc: Document): HTMLElement {
-  const div = h('div', { class: 'posts' }) as HTMLDivElement;
+  const div = h('div', { class: 'posts' });
   data.posts.forEach(function(post, idx) {
     const postNode = h('div', { class: 'post' });
     div.appendChild(postNode);
@@ -439,7 +439,7 @@ function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTML
   const postBody = renderBody(postBodyStr);
   const bodyDiv = h('div', { class: 'post-body' }, postBody);
 
-  return h('div', { class: mode.class }, bodyDiv, contribLine(post)) as HTMLDivElement;
+  return h('div', { class: mode.class }, bodyDiv, contribLine(post));
 }
 
 function contribLine(p: Post): string {
