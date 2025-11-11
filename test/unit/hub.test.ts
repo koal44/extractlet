@@ -55,39 +55,6 @@ Removed obsolete GrammarCompilationTest.java to fix build issues
   strictEqual(result, expected);
 });
 
-//   const html2 = `<div class="comment js-suggested-changes-container" data-thread-side="">
-//   <div class="comment-body markdown-body js-preview-body" style="min-height: 543px;"><h3 dir="auto">heading</h3>
-// <p dir="auto"><strong>bold</strong><br>
-// <em>italics</em></p>
-// <blockquote>
-// <p dir="auto">quote</p>
-// </blockquote>
-// <p dir="auto"><code class="notranslate">code</code><br>
-// <a href="https://example.com" rel="nofollow">a link</a></p>
-// <ol dir="auto">
-// <li>item1</li>
-// <li>item2</li>
-// </ol>
-// <ul class="contains-task-list">
-// <li>
-// <p dir="auto">itemA</p>
-// </li>
-// <li>
-// <p dir="auto">itemB</p>
-// </li>
-// <li class="task-list-item">
-// <p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> done</p>
-// </li>
-// <li class="task-list-item">
-// <p dir="auto"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> not done</p>
-// </li>
-// </ul>
-// <a target="_blank" rel="noopener noreferrer" href="https://private-user-images.githubusercontent.com/78566945/505755490-dd2c.png?jwt=eyJ0e"><img width="1024" height="1024" alt="Robot_icon svg" src="https://private-user-images.githubusercontent.com/78566945/505755490-dd2cb34d-e93b-45be-a3b3-26caaac727fb.png?jwt=eyJ0e" style="max-width: 100%; height: auto; max-height: 1024px;"></a>
-// <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/koal44/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/koal44" aria-keyshortcuts="Alt+ArrowUp">@koal44</a> (mention)
-//  <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="224292480" data-permission-text="Title is private" data-url="https://github.com/antlr/antlr4/issues/1839" data-hovercard-type="issue" data-hovercard-url="/antlr/antlr4/issues/1839/hovercard" href="https://github.com/antlr/antlr4/issues/1839" aria-keyshortcuts="Alt+ArrowUp">#1839</a> (reference)
-// <p dir="auto">Duplicate of <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="224292480" data-permission-text="Title is private" data-url="https://github.com/antlr/antlr4/issues/1839" data-hovercard-type="issue" data-hovercard-url="/antlr/antlr4/issues/1839/hovercard" href="https://github.com/antlr/antlr4/issues/1839" aria-keyshortcuts="Alt+ArrowUp">#1839</a> (saved reply)</p></div>
-// </div>`;
-
 test('toMd handles...', () => {
   const html = `
 <div class="comment js-suggested-changes-container" data-thread-side="">

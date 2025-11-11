@@ -808,3 +808,9 @@ export function safeDecode(u?: string | null): string {
   catch { return u; }
 };
 
+export function nodeName(node: Node | null): string {
+  if (!node) return '#null';
+  if (isText(node)) return '#text';
+  if (isElement(node)) return node.id ? `#${node.tagName.toLowerCase()}#${node.id}` : node.tagName.toLowerCase();
+  return `#${node.nodeName}`;
+}

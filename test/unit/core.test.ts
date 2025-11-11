@@ -201,6 +201,7 @@ test('toMd empty divs do not add spacing', () => {
       <p>World</p>
     </div>`;
   const result = toMd(el(html));
+  // console.log(`----------------\n${result}\n----------------`);
   const expected = 'Hello\n\nWorld';
   strictEqual(result, expected);
 });
@@ -1090,7 +1091,7 @@ indent the &gt;'s four spaces.</p>
    > Skip a line and indent the >'s four spaces.
 4. Preformatted text in a list item:
    \`\`\`
-   Skip a line and indent eight spaces.
+    Skip a line and indent eight spaces.
     That's four spaces for the list
     and four to trigger the code block.
    \`\`\`
@@ -1236,6 +1237,7 @@ test('toMd imgs combined dump', () => {
 
   const expected = '![wikilogo](https://i.sstatic.net/fzsVsZw6.png) ![wikilogo](https://i.sstatic.net/fzsVsZw6.png "Wikipedia Logo") ![](https://i.sstatic.net/fzsVsZw6.png) ![](https://i.sstatic.net/fzsVsZw6.png) ![wiki logo](https://i.sstatic.net/fzsVsZw6.png "logo for wiki") [](https://example.com/)';
   const result = toMd(el(html));
+  // console.log(`--------------\n${result}\n--------------`);
   strictEqual(result, expected);
 });
 
@@ -1677,6 +1679,7 @@ test('toMd listitem with two paragraphs', () => {
   <p>Para 2</p>
 </li>`.trim();
   const result = toMd(el(html));
+  // console.log(`----------------\n${result}\n----------------`);
   const expected = `
 - Para 1
   Para 2`.trim();
@@ -2232,7 +2235,7 @@ describe('toMd, BR handling', () => {
 
   it('preserves NBSP before <br> (semantic space)', () => {
     const html = `<p>X\u00A0<br/>Y</p>`;
-    expect(toMd(el(html))).toBe('X   \nY');
+    expect(toMd(el(html))).toBe('X  \nY');
   });
 
   it('uses a hard LF inside a PRE tag (wsMode = pre)', () => {
@@ -2259,3 +2262,724 @@ after
     expect(toMd(el(html))).toBe(expected);
   });
 });
+
+describe('toMd – <pre> handling (no <br>)', () => {
+  it('renders simple pre as fenced code with exact text', () => {
+    const html = `<pre>line1\nline2</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      'line1',
+      'line2',
+      '```',
+    ].join('\n'));
+  });
+
+  it('preserves leading/trailing spaces and tabs exactly', () => {
+    const html = `<pre>\tfoo  \n  bar\t</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      '\tfoo  ',
+      '  bar\t',
+      '```',
+    ].join('\n'));
+  });
+
+  it('decodes entities and preserves the resulting characters', () => {
+    const html = `<pre>&lt;div class="x"&gt;A&amp;B&lt;/div&gt;</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      '<div class="x">A&B</div>',
+      '```',
+    ].join('\n'));
+  });
+
+  it('treats inline markup as literal text (no emphasis/links)', () => {
+    const html = `<pre>*not italics* [link](x) _nope_</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      '*not italics* [link](x) _nope_',
+      '```',
+    ].join('\n'));
+  });
+
+  it('collapses <pre><code>…</code></pre> into a single fenced block', () => {
+    const html = `<pre><code>const x = 1;\n</code></pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      'const x = 1;',
+      '```',
+    ].join('\n'));
+  });
+
+  it('concatenates child text nodes inside <pre> verbatim', () => {
+    const html = `<pre>foo<span> </span>bar<span>  </span>baz</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      'foo bar  baz',
+      '```',
+    ].join('\n'));
+  });
+
+  it('preserves NBSP exactly inside <pre>', () => {
+    const html = `<pre>foo\u00A0bar</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      'foo\u00A0bar',
+      '```',
+    ].join('\n'));
+  });
+
+  it('ensures final newline before closing fence even if source lacks it', () => {
+    const html = `<pre>no-trailing-newline</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      'no-trailing-newline',
+      '```',
+    ].join('\n'));
+  });
+
+  it('surrounds <pre> with blank lines in block context', () => {
+    const html = `<div><div>before</div><pre>x</pre><div>after</div></div>`;
+    expect(toMd(el(html))).toBe([
+      'before',
+      '',
+      '```',
+      'x',
+      '```',
+      '',
+      'after',
+    ].join('\n'));
+  });
+
+  it('switches fence when payload contains triple backticks', () => {
+    const html = `<pre>alpha\n\`\`\`\nbeta</pre>`;
+    // Accept either automatic fence upgrade or escaping strategy; assuming upgrade:
+    expect(toMd(el(html))).toBe([
+      '````',
+      'alpha',
+      '```',
+      'beta',
+      '````',
+    ].join('\n'));
+  });
+});
+
+describe.skip('toMd – <pre> torture pack (no <br>)', () => {
+  it('preserves mixed ASCII spaces, tabs, NBSP, and trailing spaces', () => {
+    const html = `<pre>␠foo␠\tbar␠\u00A0baz␠␠</pre>`
+      .replace(/␠/g, ' ');
+    expect(toMd(el(html))).toBe([
+      '```',
+      ' foo \tbar \u00A0baz  ', // 2 trailing ASCII spaces must survive
+      '```',
+    ].join('\n'));
+  });
+
+  it('decodes entities then preserves literally', () => {
+    const html = `<pre>&lt;h1&gt;A&amp;B&nbsp;C&lt;/h1&gt;</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      '<h1>A&B\u00A0C</h1>', // NBSP remains NBSP
+      '```',
+    ].join('\n'));
+  });
+
+  it('concatenates child nodes verbatim (spans, emphasis, code)', () => {
+    const html = `<pre>foo<span>  </span><em>*</em><code>bar</code>_baz_</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      'foo  *bar_baz_', // no markdown parsing; literal characters
+      '```',
+    ].join('\n'));
+  });
+
+  it('ensures a final newline if source has none', () => {
+    const html = `<pre>no-trailing-newline</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      'no-trailing-newline',
+      '```',
+    ].join('\n'));
+  });
+
+  it('preserves leading and trailing blank lines inside <pre>', () => {
+    const html = `<pre>\n\nalpha\n\nbeta\n\n</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      '',
+      'alpha',
+      '',
+      'beta',
+      '',
+      '```',
+    ].join('\n'));
+  });
+
+  it('normalizes CRLF to LF before preservation', () => {
+    const html = `<pre>line1\r\nline2\r\nline3</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      'line1',
+      'line2',
+      'line3',
+      '```',
+    ].join('\n'));
+  });
+
+  it('handles zero-width spaces and combining marks verbatim', () => {
+    const ZWSP = '\u200B';
+    const COMB = 'e\u0301'; // e + combining acute
+    const html = `<pre>${ZWSP}a${ZWSP} ${COMB}</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      '\u200Ba\u200B e\u0301',
+      '```',
+    ].join('\n'));
+  });
+
+  it('upgrades fence when payload contains ```', () => {
+    const html = `<pre>alpha\n\`\`\`\ninside\n\`\`\`\nomega</pre>`;
+    // Expect fence upgrade to tildes for this block
+    expect(toMd(el(html))).toBe([
+      '````',
+      'alpha',
+      '```',
+      'inside',
+      '```',
+      'omega',
+      '````',
+    ].join('\n'));
+  });
+
+  it('chooses fence long enough when payload contains ~~~~', () => {
+    const html = `<pre>aaa\n~~~~\nbbb</pre>`;
+    // Either switch to backticks (preferred) or longer tildes.
+    expect(toMd(el(html))).toBe([
+      '```',
+      'aaa',
+      '~~~~',
+      'bbb',
+      '```',
+    ].join('\n'));
+  });
+
+  it('keeps exact leading spaces caused by pretty-print + inline child on first line', () => {
+    const html = `<pre> <span>x</span> y</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      ' x y',
+      '```',
+    ].join('\n'));
+  });
+
+  it('multiple adjacent <pre> blocks round-trip with blank lines between', () => {
+    const html = `<div><pre>a</pre><pre>b</pre></div>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      'a',
+      '```',
+      '',
+      '```',
+      'b',
+      '```',
+    ].join('\n'));
+  });
+
+  it('empty <pre> becomes empty fenced block', () => {
+    const html = `<pre></pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      '',
+      '```',
+    ].join('\n'));
+  });
+
+  it('list-item context: fences align and inner bytes remain verbatim', () => {
+    const html = `
+      <ol>
+        <li><pre>  a\n b</pre>
+        </li>
+      </ol>`.replace(/^\s+|\n\s+$/g, '');
+    const result = toMd(el(html));
+    // console.log(result);
+    expect(result).toBe(`
+1.
+   \`\`\`
+     a
+    b
+   \`\`\`
+`.trim());
+  });
+
+  it('nested markup inside pre/code is flattened: <pre><code>…</code></pre>', () => {
+    const html = `<pre><code> const x=1;\n  const y=2;</code></pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      ' const x=1;',
+      '  const y=2;',
+      '```',
+    ].join('\n'));
+  });
+
+  it('very long line is untouched (no wrapping)', () => {
+    const long = 'x'.repeat(200);
+    const html = `<pre>${long}</pre>`;
+    expect(toMd(el(html))).toBe([
+      '```',
+      long,
+      '```',
+    ].join('\n'));
+  });
+});
+
+describe('toMd – list first-child policy (two-item <ol>)', () => {
+  it('p (single paragraph → inline)', () => {
+    const html = `
+      <ol>
+        <li><p>Alpha para only</p></li>
+        <li><p>Bravo para only</p></li>
+      </ol>
+    `.trim();
+
+    const expected = `
+1. Alpha para only
+2. Bravo para only
+`.trim();
+
+    expect(toMd(el(html))).toBe(expected);
+  });
+
+  it('p (multiple paragraphs → first inline, rest indented)', () => {
+    const html = `
+      <ol>
+        <li>
+          <p>Alpha first paragraph.</p>
+          <p>Alpha second paragraph.</p>
+        </li>
+        <li>
+          <p>Bravo first paragraph.</p>
+          <p>Bravo second paragraph.</p>
+        </li>
+      </ol>
+    `.trim();
+
+    const expected = `
+1. Alpha first paragraph.
+   Alpha second paragraph.
+2. Bravo first paragraph.
+   Bravo second paragraph.
+`.trim();
+
+    expect(toMd(el(html))).toBe(expected);
+  });
+
+  it('div (generic block → on next line)', () => {
+    const html = `
+      <ol>
+        <li><div>Alpha in a div</div></li>
+        <li><div>Bravo in a div</div></li>
+      </ol>
+    `.trim();
+
+    const expected = `
+1.
+   Alpha in a div
+2.
+   Bravo in a div
+`.trim();
+
+    expect(toMd(el(html))).toBe(expected);
+  });
+
+  it('span (inline → same line)', () => {
+    const html = `
+      <ol>
+        <li><span>Alpha in a span</span></li>
+        <li><span>Bravo in a span</span></li>
+      </ol>
+    `.trim();
+
+    const expected = `
+1. Alpha in a span
+2. Bravo in a span
+`.trim();
+
+    expect(toMd(el(html))).toBe(expected);
+  });
+
+  it('strong/b (inline → same line)', () => {
+    const html = `
+      <ol>
+        <li><strong>Alpha</strong> bold</li>
+        <li><b>Bravo</b> bold</li>
+      </ol>
+    `.trim();
+
+    const expected = `
+1. **Alpha** bold
+2. **Bravo** bold
+`.trim();
+
+    expect(toMd(el(html))).toBe(expected);
+  });
+
+  it('a (inline link → same line)', () => {
+    const html = `
+      <ol>
+        <li><a href="https://x.test/a">Alpha link</a></li>
+        <li><a href="https://x.test/b">Bravo link</a></li>
+      </ol>
+    `.trim();
+
+    const expected = `
+1. [Alpha link](https://x.test/a)
+2. [Bravo link](https://x.test/b)
+`.trim();
+
+    expect(toMd(el(html))).toBe(expected);
+  });
+
+  it('h1 (block heading → on next line, indented)', () => {
+    const html = `
+      <ol>
+        <li><h1>Alpha Heading</h1></li>
+        <li><h1>Bravo Heading</h1></li>
+      </ol>
+    `.trim();
+
+    const expected = `
+1.
+   # Alpha Heading
+2.
+   # Bravo Heading
+`.trim();
+
+    expect(toMd(el(html))).toBe(expected);
+  });
+
+  it('nested ol (block list → on next line; inner list indented)', () => {
+    const html = `
+      <ol id="1">
+        <li id="2">
+          <ol id="3">
+            <li id="4">Alpha.1</li>
+            <li id="5">Alpha.2</li>
+          </ol>
+        </li>
+        <li id="6">
+          <ol id="7">
+            <li id="8">Bravo.1</li>
+            <li id="9">Bravo.2</li>
+          </ol>
+        </li>
+      </ol>
+    `.trim();
+
+    const expected = `
+1.
+   1. Alpha.1
+   2. Alpha.2
+2.
+   1. Bravo.1
+   2. Bravo.2
+`.trim();
+    //     const foo = `
+    // 1.
+    //    1. Alpha.1
+    //    2. Alpha.2
+    // 2. 1. Bravo.1
+    //    2. Bravo.2
+    // `;
+    const result = toMd(el(html));
+    // console.log(result);
+    expect(result).toBe(expected);
+  });
+});
+
+describe('inline whitespace contributed by elements', () => {
+  it('fuses adjacent inline spans with no separator', () => {
+    const html = `
+      <div>
+        <span>A</span><span>B</span>
+      </div>
+    `.trim();
+    const result = toMd(el(html));
+    const expected = `AB`;
+    strictEqual(result, expected);
+  });
+
+  it('preserves a single collapsed space when a whitespace-only span sits between inline spans', () => {
+    const html = `
+      <div>
+        <span>A</span><span> </span><span>B</span>
+      </div>
+    `.trim();
+    const result = toMd(el(html));
+    const expected = `A B`;
+    strictEqual(result, expected);
+  });
+
+  it('preserves a single collapsed space when a whitespace-only span sits between p tags', () => {
+    const html = `
+      <div>
+        <span>A</span><p> </p><span>B</span>
+      </div>
+    `.trim();
+    const result = toMd(el(html));
+    // console.log(`-------------\n${result}\n-------------`);
+    const expected = `A B`;
+    strictEqual(result, expected);
+  });
+
+  it('drops leading/trailing whitespace-only elements at container edges', () => {
+    const html = `
+      <div>
+        <span> </span><span>A</span><span> </span>
+      </div>
+    `.trim();
+    const result = toMd(el(html));
+    const expected = `A`;
+    strictEqual(result, expected);
+  });
+
+  it('does not emit a space when a whitespace-only element precedes a block emission', () => {
+    const html = `
+      <div>
+        <span>A</span><p> </p><p>B</p>
+      </div>
+    `.trim();
+    const result = toMd(el(html));
+    const expected = `A\n\nB`; // no "A ␣\n\nB"
+    strictEqual(result, expected);
+  });
+
+  it('does not insert a space for an empty element with no text between inline siblings', () => {
+    const html = `
+      <div>
+        <span>A</span><span></span><span>B</span>
+      </div>
+    `.trim();
+    const result = toMd(el(html));
+    const expected = `AB`; // no space — the middle <span> is empty, not whitespace
+    strictEqual(result, expected);
+  });
+
+  it('does not treat a nontext-only container with formatting whitespace as whitespace', () => {
+    const html = `
+      <div>
+        <div>
+          <img src="https://i.sstatic.net/fzsVsZw6.png" alt="wikilogo">
+        </div>
+      </div>
+    `.trim();
+
+    const result = toMd(el(html));
+    const expected = '![wikilogo](https://i.sstatic.net/fzsVsZw6.png)';
+    strictEqual(result, expected);
+  });
+
+
+});
+
+describe('toMd – list item formatting', () => {
+  it('UL: strong + text has no leading newline inside LI', () => {
+    const html = `
+      <ul><li><strong>Bold</strong> then text</li></ul>
+    `.trim();
+
+    const result = toMd(el(html));
+
+    expect(result).toBe(`
+- **Bold** then text
+`.trim());
+  });
+
+  it('UL: <br> soft-wraps continuation lines under bullet', () => {
+    const html = `
+      <ul><li>First line<br>Second line<br>Third</li></ul>
+    `.trim();
+
+    const result = toMd(el(html));
+
+    expect(result).toBe(`
+- First line  
+  Second line  
+  Third
+`.trim());
+  });
+
+  it('UL: two paragraphs in one LI keep a blank line with continuation indent', () => {
+    const html = `
+      <ul><li><p>Para1</p><p>Para2</p></li></ul>
+    `.trim();
+
+    const result = toMd(el(html));
+
+    expect(result).toBe(`
+- Para1
+  Para2
+`.trim());
+  });
+
+  it('UL: neighboring LIs remain intact across blank line inside previous item', () => {
+    const html = `
+      <ul>
+        <li><p>Para1</p><p>Para2</p></li>
+        <li><p>Next</p></li>
+      </ul>
+    `.trim();
+
+    const result = toMd(el(html));
+
+    expect(result).toBe(`
+- Para1
+  Para2
+- Next
+`.trim());
+  });
+
+  it('OL: honors start index and aligns continuation by marker width', () => {
+    const html = `
+      <ol start="9">
+        <li><p>L9 line1<br><br>line2</p></li>
+        <li><p>L10 line1<br>line2</p></li>
+      </ol>
+    `.trim();
+
+    const result = toMd(el(html));
+    // console.log(`----------------\n${result}\n----------------\n\n`);
+
+    expect(result).toBe(`
+9. L9 line1  
+  
+   line2
+10. L10 line1  
+    line2
+`.trim());
+  });
+
+  it('UL: preserves required space after marker even if content would begin with a newline', () => {
+    const html = `
+      <ul><li><p></p><p>A</p></li></ul>
+    `.trim();
+
+    const result = toMd(el(html));
+
+    expect(result).toBe(`
+- A
+`.trim());
+  });
+
+  it('UL: first child blockquote does not leave an extra blank line after marker', () => {
+    const html = `
+      <ul><li><blockquote><p>A</p><p>B</p></blockquote></li></ul>
+    `.trim();
+
+    const result = toMd(el(html));
+    // console.log(`----------------\n${result}\n----------------\n\n`);
+
+    expect(result).toBe(`
+- > A
+  > B
+`.trim());
+  });
+
+  it('UL: first child pre/code keeps bullet space, renders as a block', () => {
+    const html = `
+      <ul><li><pre><code>line</code></pre></li></ul>
+    `.trim();
+
+    const result = toMd(el(html));
+    // console.log(`------------\n${result}\n----------------\n`);
+
+    expect(result).toBe(`
+-
+  \`\`\`
+  line
+  \`\`\`
+`.trim());
+  });
+
+  it('UL: compact mode uses "• " and pads continuation to length of marker', () => {
+    const html = `
+      <ul><li>Cell item<br>wrap</li></ul>
+    `.trim();
+
+    const result = toMd(el(html), { compact: true });
+
+    expect(result).toBe(`
+• Cell item
+  wrap
+`.trim());
+  });
+
+  it('OL: <br><br> yields a blank line; continuation padded; no spaces-only line', () => {
+    const html = `
+      <ol start="9">
+        <li><p>L9 line1<br><br>line2</p></li>
+      </ol>
+    `.trim();
+
+    const result = toMd(el(html));
+    expect(result).toBe(`
+9. L9 line1  
+  
+   line2
+`.trim());
+  });
+
+  it('UL: single <br> keeps continuation pad on next line', () => {
+    const html = `
+      <ul><li>First<br>Second</li></ul>
+    `.trim();
+
+    const result = toMd(el(html));
+    // console.log(`------------\n${result}\n----------------\n`);
+    expect(result).toBe(`
+- First  
+  Second
+  `.trim());
+  });
+
+  it('handles hard breaks', () => {
+    const html = `
+      <ol start="9">
+        <li><p>line1<br><br>line2</p></li>
+        <li><p>line1<br><br><br>line2</p></li>
+      </ol>
+    `.trim();
+
+    const result = toMd(el(html), { brMode: 'hard' });
+    expect(result).toBe(`
+9. line1
+
+   line2
+10. line1
+
+
+    line2
+`.trim());
+  });
+
+  it('UL: <br> with brMode=escape', () => {
+    const html = `<ul><li>A<br>B</li></ul>`;
+    const result = toMd(el(html), { brMode: 'escape' });
+    expect(result).toBe(`
+- A\\
+  B
+  `.trim());
+  });
+
+  it('compact mode collapses <br> to a space regardless of brMode', () => {
+    const html = `<ul><li>X<br>Y</li></ul>`;
+    const r1 = toMd(el(html), { compact: true, brMode: 'hard' });
+    const r2 = toMd(el(html), { compact: true, brMode: 'escape' });
+    const r3 = toMd(el(html), { compact: true, brMode: 'soft' });
+    // console.log(`---\n${r1}\n---`); console.log(`---\n${r2}\n---`); console.log(`---\n${r3}\n---`);
+    expect(r1).toBe(`• X\n  Y`);
+    expect(r2).toBe(`• X\n  Y`);
+    expect(r3).toBe(`• X\n  Y`);
+  });
+
+});
+

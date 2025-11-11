@@ -2,12 +2,12 @@ import { hasOfType, isNumberish, isString, parseJsonAs } from './typing.js';
 import {
   alphaLabel, parseHeadingLevel, log, toPascalCase,
   isLabelRedundant, isElement, isHTML, isImage, isInput, isListItem, isOList, isPre,
-  isTableCell, isTableHeader, isText, isTextArea, isUList, isBreak,
-  isLabelGeneric,
-  safeDecode,
+  isTableCell, isTableHeader, isText, isTextArea, isUList, isBreak, isParagraph,
+  isLabelGeneric, safeDecode, nodeName, isBlockquote,
 } from './utils.js';
 
 void log; // lint hack
+void nodeName; // lint hack
 
 export type ToHtmlElementHandler = (
   elem: Element,
@@ -20,9 +20,10 @@ export type ToHtmlContext = {
   allowStyles: ReadonlySet<string> | boolean;  // style allowlist or true/false for all/none
 };
 
+type GlueMode = 'block' | 'list' | 'listItem' | 'inline';
 type GlueChildren = (
-  node: Node,
-  glueMode: 'block' | 'list' | 'listItem' | 'inline',
+  node: Element,
+  glueMode: GlueMode,
   opts?: Partial<ToMdContext>,
 ) => string;
 
@@ -49,6 +50,7 @@ export type ToMdContext = {
   olStart: number;                      // starting index for ordered list
   lastChar: string;                     // last emitted char (spacing state, internal)
   wsMode: 'normal' | 'pre';             // whitespace handling mode  // | 'pre-line'
+  brMode: 'soft' | 'hard' | 'escape';   // how to treat <br> tags
 };
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
@@ -198,11 +200,6 @@ function copyStyleAttr(dest: HTMLElement, src: HTMLElement, allowStyles: boolean
   if (styleString) dest.setAttribute('style', styleString);
 }
 
-const blockyTags = new Set([
-  'BR', 'DIV', 'P', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'ADDRESS',
-  'TABLE', 'UL', 'OL', 'LI', 'PRE', 'BLOCKQUOTE', 'HR', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
-]);
-
 export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): string {
   const ctx: ToMdContext = {
     ...opts,
@@ -219,18 +216,20 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     anchorRefs: opts.anchorRefs ?? null,
     imageRefs: opts.imageRefs ?? null,
     wsMode: opts.wsMode ?? 'normal',
+    brMode: opts.brMode ?? 'soft',
   };
 
   const glueChildren: GlueChildren = (node, glueMode, opts = {}) => {
+    // TODO: generalize for nodes other than Element?
     const gcx: ToMdContext = { ...ctx, ...opts };
     const wsMode = gcx.wsMode;
 
     const parts: string[] = [];
-    const entryChar: string = gcx.lastChar;
     let ch = gcx.lastChar;
 
     // --- handle glueing child nodes ---
     const childNodes = node.childNodes;
+    // console.log('[glue start]', `${nodeName(node)}`, `length=${childNodes.length}`, `glueMode=${glueMode}`, `wsMode=${wsMode}`);
     for (let i = 0; i < childNodes.length; i++) {
       const child = childNodes[i];
       let md = '';
@@ -239,18 +238,15 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       if (isText(child)) {
         // norm \r\n to \n
         md = child.textContent?.replace(/\r\n?/g, '\n') ?? '';
-
-        // lookahead to next node for better pretty-print handling
-        const next = childNodes[i + 1]; const nextIsBlocky = isElement(next) && blockyTags.has(next.tagName);
-        if (wsMode === 'normal' && nextIsBlocky) md = md.replace(/[ \t\n]+$/, '');
-        if (md === '') continue;
+        // console.log('text node md:', `"${md.replace(/\n/g, '\\n')}"`);
 
         // handle pure-whitespace text nodes
         if (/^\s+$/.test(md)) { // all whitespace
-          if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1) && !nextIsBlocky) {
-            md = ' ';
+          if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1) /*&& !nextIsBlocky*/) {
+            md = wsMode === 'normal' ? ' ' : md;
             ch = md;
             parts.push(md);
+            // console.log('[glue child]', `${nodeName(node)} > ${i + 1}:${nodeName(child)}`, `ch="${ch.replace(/\n/, '\\n')}"`);
           }
           continue;
         }
@@ -266,58 +262,78 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       // --- element nodes ---
       else if (isElement(child)) {
         md = toMd(child, { ...gcx, isRoot: false, lastChar: ch });
+        const raw = (child.textContent ?? '').replace(/\r\n?/g, '\n');
+
+        // ---- handle empty elements (rare case) ----
+        if (md === '' && raw === '') continue;
+        if ((/^\s+$/.test(md) || (md === '' && /^\s+$/.test(raw))) && !isBreak(child)) { // all whitespace
+          if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1)) {
+            md = wsMode === 'normal' ? ' ' : md;
+            ch = md;
+            parts.push(md);
+            // console.log('[glue child]', `${nodeName(node)} > ${i + 1}:${nodeName(child)}`, `ch="${ch.replace(/\n/, '\\n')}"`);
+          }
+          continue;
+        }
       }
 
       // --- whitespace trimming between children ---
-      const isBrTag = isBreak(child);
-      const curIsBlock = /^[ \t]*\n/.test(md);
-      const prevPart = parts.length > 0 ? parts[parts.length - 1] : '';
-      const prevIsBlock = prevPart.endsWith('\n');
-      const keepStartIndent = glueMode === 'listItem' || glueMode === 'list'; // has leading semantic indent
+      if (wsMode === 'normal') {
+        const curIsBrTag = isBreak(child);
+        const curIsBlock = /^[ \t]*\n/.test(md);
+        const prevPart = parts.length > 0 ? parts[parts.length - 1] : '';
+        const prevIsBlock = prevPart.endsWith('\n');
+        const prevIsBrTag = isBreak(childNodes[i - 1]);
+        const keepStartIndent = glueMode === 'listItem' || glueMode === 'list'; // has leading semantic indent
 
-      const trimCurStart = !keepStartIndent && (prevIsBlock || (!curIsBlock && /\s/.test(ch))) && !isBrTag;
-      const trimPrevEnd = !trimCurStart && curIsBlock && !!prevPart && !isBrTag;
+        const trimCurStart = !keepStartIndent && (prevIsBlock || (!curIsBlock && /\s/.test(ch))) && !curIsBrTag;
+        const trimPrevEnd = !trimCurStart && curIsBlock && !!prevPart && !prevIsBrTag;
 
-      if (trimCurStart) md = md.trimStart();
-      if (trimPrevEnd) parts[parts.length - 1] = parts[parts.length - 1].trimEnd();
+        if (trimCurStart) md = md.trimStart();
+        if (trimPrevEnd) parts[parts.length - 1] = parts[parts.length - 1].trimEnd();
 
-      // console.log(
-      //   '[glue child]',
-      //   `node.tag=${isElement(child) ? child.tagName : 'TEXT'}`,
-      //   `curIsBlock=${curIsBlock}`,
-      //   `prevIsBlock=${prevIsBlock}`,
-      //   `trimCurStart=${trimCurStart}`,
-      //   `trimPrevEnd=${trimPrevEnd}`,
-      //   `md="${md.replace(/\n/g, '\\n')}"`,
-      // );
+        // console.log(
+        //   '[glue trimming]',
+        //   `[${nodeName(node)} > ${i + 1}:${nodeName(child)}]`,
+        //   `curIsBlock=${curIsBlock}`,
+        //   `prevIsBlock=${prevIsBlock}`,
+        //   `trimCurStart=${trimCurStart}`,
+        //   `trimPrevEnd=${trimPrevEnd}`,
+        //   `md="${md.replace(/\n/g, '\\n')}"`,
+        // );
+      }
 
       parts.push(md);
       ch = md.length > 0 ? md[md.length - 1] : ch;
+      // console.log('[glue child]', `${nodeName(node)} > ${i + 1}:${nodeName(child)}`, `ch="${ch.replace(/\n/, '\\n')}"`);
     }
+    // console.log('[glue loop end]');
 
-    // --- handle the bookending glue ---
+    let glued = parts.join('');
+    glued = frameMd(glued, glueMode, gcx);
+
+    // console.log('[glue end]', `${nodeName(node)}`, `result="${glued.replace(/\n/g, '\\n')}"`);
+    return glued;
+  };
+
+  const frameMd = (md: string, glueMode: GlueMode, fcx: ToMdContext ): string => {
     const glueRules = {
-      block: gcx.inListItem
-        ? { prefix: '\n\n', suffix: '\n',   trimStart: true,  trimEnd: true }
-        : { prefix: '\n\n', suffix: '\n\n', trimStart: true,  trimEnd: true },
-      list: gcx.inListItem
-        ? { prefix: '\n',   suffix: '',     trimStart: true,  trimEnd: true }
-        : { prefix: '\n',   suffix: '\n\n', trimStart: true,  trimEnd: true },
-      listItem:
-        { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
-      inline:
-        { prefix: '',     suffix: '',     trimStart: false, trimEnd: false },
+      block: fcx.inListItem
+        ? { prefix: '\n', suffix: '\n', trimStart: true, trimEnd: true }
+        : { prefix: '\n\n', suffix: '\n\n', trimStart: true, trimEnd: true },
+      list: fcx.inListItem
+        ? { prefix: '\n', suffix: '', trimStart: true, trimEnd: true }
+        : { prefix: '\n', suffix: '\n\n', trimStart: true, trimEnd: true },
+      listItem: { prefix: '', suffix: '', trimStart: false, trimEnd: false },
+      inline: { prefix: '', suffix: '', trimStart: false, trimEnd: false },
     };
 
     const { prefix, suffix, trimStart, trimEnd } = glueRules[glueMode];
-    const safePrefix = entryChar === '\n' ? '' : prefix;
 
-    let glued = parts.join('');
-    if (trimStart) glued = glued.trimStart();
-    if (trimEnd) glued = glued.trimEnd();
-
-    // console.log('[glue]', `node.tag=${isElement(node) ? node.tagName : 'TEXT'}`, `result="${glued.replace(/\n/g, '\\n')}"`);
-    return glued ? `${safePrefix}${glued}${suffix}` : '';
+    let out = md;
+    if (trimStart) out = out.trimStart();
+    if (trimEnd) out = out.trimEnd();
+    return out ? `${prefix}${out}${suffix}` : '';
   };
 
   if (!node || !isElement(node)) return '';
@@ -374,9 +390,14 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
 
       case 'BR': {
-        result = ctx.wsMode === 'pre' ? '\n' : '  \n';
-        // result = '  \n';
-        // result = ctx.lastChar === '\n' ? '\n' : '  \n';
+        switch (ctx.brMode) {
+          case 'escape': result = '\\\n'; break;
+          case 'hard':   result = '\n'; break;
+          case 'soft':   result = '  \n'; break;
+          // default: throw new Error(`Unsupported brMode: ${ctx.brMode satisfies never as string}`); // exhaustive check
+          default: throw new Error(`Unsupported brMode: ${String(ctx.brMode satisfies never)}`); // exhaustive check
+        }
+        if (ctx.wsMode === 'pre' || ctx.compact) result = '\n';
         break;
       }
 
@@ -429,15 +450,15 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       case 'H4':
       case 'H5':
       case 'H6': {
-        // const level = +node.tagName[1];
         const level = parseHeadingLevel(node as HTMLHeadingElement);
         const hashes = '#'.repeat(level);
-        result = `\n\n${hashes} ${glueChildren(node, 'inline')}\n\n`;
+        // result = `\n\n${hashes} ${glueChildren(node, 'inline')}\n\n`;
+        result = frameMd(`${hashes} ${glueChildren(node, 'inline')}`, 'block', ctx);
         break;
       }
 
       case 'HR': {
-        result = '\n\n---\n\n';
+        result = frameMd('---', 'block', ctx);
         break;
       }
 
@@ -467,30 +488,28 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         result = glueChildren(node, 'listItem', { inListItem: true });
 
         // Normalize leading/trailing newlines
-        result = result.startsWith('\n\n') ? result.slice(2) : result;
+        if (isParagraph(node.firstElementChild) || isBlockquote(node.firstElementChild)) {
+          result = result.startsWith('\n\n') ? result.slice(2) : result;
+          result = result.startsWith('\n') ? result.slice(1) : result;
+        }
+        // result = result.startsWith('\n\n') ? result.slice(1) : result;
         result = result.endsWith('\n') ? result : `${result}\n`;
 
-        const leadingWs = result.match(/^(\n*)/)?.[0] ?? '';
-        const trailingWs = result.match(/(\n*)$/)?.[0] ?? '';
-        result = result.slice(leadingWs.length, result.length - trailingWs.length);
+        const trailingLFs = result.match(/(\n*)$/)?.[0] ?? '';
+        result = result.slice(0, result.length - trailingLFs.length);
 
         // Split and compact layout
         const lines = result.split(/(\n+)/);
 
-        // Collapse \n\n before nested list bullets. (REVIEW: stylistic choice)
-        for (let i = 0; i < lines.length - 1; i++) {
-          if (lines[i].endsWith('\n\n') && /^(\d+\.\s|- )/.test(lines[i + 1])) {
-            lines[i] = lines[i].slice(0, -1); // trim one newline
-          }
-        }
-
         // Indent all lines after line breaks
-        result = lines.map((line) =>
-          line.startsWith('\n') ? line + pad : line
+        result = lines.map((line, i) =>
+          line.startsWith('\n') && !/^[ \t]+$/.test(lines[i + 1]) ? line + pad : line
         ).join('');
 
         // Reassemble
-        result = `${bullet}${leadingWs}${result}${trailingWs}`;
+        if (/^\s+/.test(result)) bullet = bullet.trimEnd();
+        result = `${bullet}${result}${trailingLFs}`;
+        // console.log('[toMd LI]', `result="${result.replace(/\n/g, '\\n')}"`);
         break;
       }
 
@@ -506,10 +525,8 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
             : `\n${fence}${result}${fence}\n`;
         } else {
           result = result.replace(/\r\n/g, '\n').replace(/\n+$/, '');
-          const fence = '```';
-          const margin = ctx.inListItem ? '\n' : '\n\n';
-          result = `${margin}${fence}\n${result}\n${fence}${margin}`;
-          // result = `\n${fence}\n${result}\n${fence}\n\n`;
+          const fence = '`'.repeat(1 + Math.max(2, ...(result.match(/`+/g) || []).map((s) => s.length)));
+          result = frameMd(`${fence}\n${result}\n${fence}`, 'block', ctx);
         }
 
         break;
@@ -672,7 +689,8 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           if (imageRefsParts.length)  rowParts.push(...imageRefsParts);
         }
 
-        result = `\n\n${rowParts.join('\n')}\n\n`;
+        result = rowParts.join('\n');
+        result = frameMd(result, 'block', ctx);
         break;
       }
 
