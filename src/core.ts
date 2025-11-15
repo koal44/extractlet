@@ -4,6 +4,7 @@ import {
   isLabelRedundant, isElement, isHTML, isImage, isInput, isListItem, isOList, isPre,
   isTableCell, isTableHeader, isText, isTextArea, isUList, isBreak, isParagraph,
   isLabelGeneric, safeDecode, nodeName, isBlockquote,
+  filterGenericLabel,
 } from './utils.js';
 
 void log; // lint hack
@@ -14,10 +15,19 @@ export type ToHtmlElementHandler = (
   ctx: ToHtmlContext
 ) => { skip?: boolean; node?: Node; };
 
+export type MathView = 'script' | 'image' | 'mathml';
+
 export type ToHtmlContext = {
   elementHandler?: ToHtmlElementHandler;       // optional per-element override handler
   skipCustomHandler: boolean;                  // skip custom handling for this subtree
   allowStyles: ReadonlySet<string> | boolean;  // style allowlist or true/false for all/none
+  mathView: 'script' | 'image' | 'mathml';     // how to render math
+};
+
+export const DefaultToHtmlContext: ToHtmlContext = {
+  skipCustomHandler: false,
+  allowStyles: false,
+  mathView: 'script',
 };
 
 type GlueMode = 'block' | 'list' | 'listItem' | 'inline';
@@ -33,6 +43,9 @@ export type ToMdElementHandler = (
   glueChildren: GlueChildren
 ) => { skip?: boolean; md?: string; };
 
+// export type  BrMode = typeof BR_MODE[number];
+// export type  MathFenceStyle = typeof MATH_FENCE_STYLE[number];
+export type BrMode = 'escape' | 'hard' | 'soft';
 export type MathFenceStyle = 'dollar' | 'bracket';
 
 export type ToMdContext = {
@@ -40,7 +53,7 @@ export type ToMdContext = {
   skipCustomHandler: boolean;           // skip custom handling for this subtree
   isRoot: boolean;                      // true only for top-level call (whitespace handling)
   mathFence: MathFenceStyle;            // $$ or \[\] for block math, $ or \(\) for inline
-  filterRedundantLabel: boolean;        // dedupe captions/alt text/etc by removing redundant labels
+  filterRedundantLabels: boolean;       // dedupe captions/alt text/etc by removing redundant labels
   filterGenericLabels: boolean;         // remove generic labels like "click here" or "this", etc.
   deCaption: string;                    // caption dedupe token for figures/tables
   inListItem: boolean;                  // inside a list item (<li>)
@@ -50,15 +63,33 @@ export type ToMdContext = {
   olStart: number;                      // starting index for ordered list
   lastChar: string;                     // last emitted char (spacing state, internal)
   wsMode: 'normal' | 'pre';             // whitespace handling mode  // | 'pre-line'
-  brMode: 'soft' | 'hard' | 'escape';   // how to treat <br> tags
+  brMode: BrMode;                       // how to treat <br> tags
+};
+
+export const DefaultToMdContext: ToMdContext = {
+  skipCustomHandler: false,
+  isRoot: true,
+  mathFence: 'bracket',
+  filterRedundantLabels: true,
+  filterGenericLabels: false,
+  deCaption: '',
+  inListItem: false,
+  compact: false,
+  anchorRefs: null,
+  imageRefs: null,
+  olStart: 1,
+  lastChar: '',
+  wsMode: 'normal',
+  brMode: 'soft',
 };
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
-  const ctx: ToHtmlContext = {
-    ...opts,
-    skipCustomHandler: opts.skipCustomHandler ?? false,
-    allowStyles: opts.allowStyles ?? new Set(),
-  };
+  const ctx: ToHtmlContext = { ...DefaultToHtmlContext, ...opts };
+  // const ctx: ToHtmlContext = {
+  //   ...opts,
+  //   skipCustomHandler: opts.skipCustomHandler ?? false,
+  //   allowStyles: opts.allowStyles ?? new Set(),
+  // };
 
   if (!node) return null;
 
@@ -201,23 +232,24 @@ function copyStyleAttr(dest: HTMLElement, src: HTMLElement, allowStyles: boolean
 }
 
 export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): string {
-  const ctx: ToMdContext = {
-    ...opts,
-    isRoot: opts.isRoot ?? true,
-    skipCustomHandler: opts.skipCustomHandler ?? false,
-    mathFence: opts.mathFence ?? 'bracket',
-    olStart: opts.olStart ?? 1,
-    lastChar: opts.lastChar ?? '',
-    filterRedundantLabel: opts.filterRedundantLabel ?? true,
-    filterGenericLabels: opts.filterGenericLabels ?? false,
-    deCaption: opts.deCaption ?? '',
-    inListItem: opts.inListItem ?? false,
-    compact: opts.compact ?? false,
-    anchorRefs: opts.anchorRefs ?? null,
-    imageRefs: opts.imageRefs ?? null,
-    wsMode: opts.wsMode ?? 'normal',
-    brMode: opts.brMode ?? 'soft',
-  };
+  const ctx: ToMdContext = { ...DefaultToMdContext, ...opts };
+  // const ctx: ToMdContext = {
+  //   ...opts,
+  //   isRoot: opts.isRoot ?? true,
+  //   skipCustomHandler: opts.skipCustomHandler ?? false,
+  //   mathFence: opts.mathFence ?? 'bracket',
+  //   olStart: opts.olStart ?? 1,
+  //   lastChar: opts.lastChar ?? '',
+  //   filterRedundantLabel: opts.filterRedundantLabel ?? true,
+  //   filterGenericLabels: opts.filterGenericLabels ?? false,
+  //   deCaption: opts.deCaption ?? '',
+  //   inListItem: opts.inListItem ?? false,
+  //   compact: opts.compact ?? false,
+  //   anchorRefs: opts.anchorRefs ?? null,
+  //   imageRefs: opts.imageRefs ?? null,
+  //   wsMode: opts.wsMode ?? 'normal',
+  //   brMode: opts.brMode ?? 'soft',
+  // };
 
   const glueChildren: GlueChildren = (node, glueMode, opts = {}) => {
     // TODO: generalize for nodes other than Element?
@@ -423,17 +455,18 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           break;
         }
 
-        const titleIsDupe = [linkText, ctx.deCaption, url].some((o) =>
-          (ctx.filterRedundantLabel && isLabelRedundant(title, o)) ||
-          (ctx.filterGenericLabels && isLabelGeneric(title, o))
-        );
-        const linkTextIsDupe = [ctx.deCaption, url].some((o) =>
-          (ctx.filterRedundantLabel && isLabelRedundant(linkText, o)) ||
-          (ctx.filterGenericLabels && isLabelGeneric(linkText, o))
-        );
+        const shouldDropLabel = (label: string, refs: string[]) =>
+          (ctx.filterGenericLabels && isLabelGeneric(label)) ||
+          refs.some((o) =>
+            (ctx.filterRedundantLabels && isLabelRedundant(label, o)) ||
+            (ctx.filterGenericLabels && ctx.filterRedundantLabels && isLabelRedundant(filterGenericLabel(label), o))
+          );
 
-        title = title && !titleIsDupe ? title : '';
-        linkText = linkText && !linkTextIsDupe ? linkText : '';
+        const dropTitle = shouldDropLabel(title, [linkText, ctx.deCaption, url]);
+        const dropLinkText = shouldDropLabel(linkText, [ctx.deCaption, url]);
+
+        title = title && !dropTitle ? title : '';
+        linkText = linkText && !dropLinkText ? linkText : '';
 
         // promote title if empty linkText
         if (!linkText && title) { linkText = title; title = ''; };
@@ -452,7 +485,6 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       case 'H6': {
         const level = parseHeadingLevel(node as HTMLHeadingElement);
         const hashes = '#'.repeat(level);
-        // result = `\n\n${hashes} ${glueChildren(node, 'inline')}\n\n`;
         result = frameMd(`${hashes} ${glueChildren(node, 'inline')}`, 'block', ctx);
         break;
       }

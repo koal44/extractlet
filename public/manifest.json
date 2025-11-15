@@ -37,5 +37,9 @@
     "256": "icons/icon-full-256.png",
     "512": "icons/icon-full-512.png"
   },
-  "incognito": "split"
+  "incognito": "split",
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
 }

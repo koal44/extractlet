@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Extractlet Options</title>
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="sticky-fieldset.css" />
+  <style>
+    /* Desktop-only layout: icon | form | preview */
+    :root {
+      --topbar-fs: 24px;
+      --topbar-lh: 1;
+      --topbar-pb: 32px;
+      --top-bar-height: calc(var(--topbar-fs) * var(--topbar-lh) + var(--topbar-pb));
+
+      --bg: #fff;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(6rem, 10rem) minmax(22rem, 0.8fr) minmax(20rem, 30rem);
+      gap: 1.2rem;
+      align-items: start;
+    }
+    .aside, .main, .preview { min-width: 0; }
+
+    /* Left: branding */
+    #app-icon { width:min(100%, 8rem); height:auto; display:block; }
+    .aside .meta { margin-top: 0.5rem; color:#666; }
+
+    /* Form + sections */
+    .fields {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    /* generated rows */
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      border-bottom: 1px solid #e5e5e5;
+      padding: 0.4rem 0 0.4rem 0.5rem;
+      position: relative;
+    }
+    .row.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 4px;
+      background: #c486ea;
+      border-radius: 3px;
+      height: 1.1lh;
+    }
+    .row:last-child { border-bottom: 0; }
+    .row label { flex: 1; font-weight: 500; }
+    .cell { flex-shrink: 0; }
+
+    /* Right: preview */
+    .aside {
+      position: sticky;
+      top: var(--top-bar-height);
+    }
+    .preview .surface {
+      min-height: 7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* .html-view { } */
+    .md-view {
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+
+    /* Sticky things */
+    .header {
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      padding-bottom: var(--topbar-pb);
+      font-size: var(--topbar-fs);
+      line-height: var(--topbar-lh);
+      font-weight: 600;
+      z-index: 2;
+      margin: 0;
+    }
+    .sticky-fs {
+      --sticky-legend-offset: var(--top-bar-height);
+      --sticky-legend-border-color: #999;
+      --sticky-legend-border-width: 1px;
+      --sticky-legend-border-radius: 3px;
+      --sticky-legend-bg: var(--bg);
+      margin-bottom: 2rem;
+    }
+    .sticky-fs > legend {
+      font-size: large;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      justify-content: unset;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 class="header">Extractlet Settings</h1>
+
+  <main>
+    <section class="layout">
+      <!-- Left: Icon / branding -->
+      <aside class="aside" aria-label="Extension icon">
+        <img
+          id="app-icon"
+          src="icons/icon-full-128.png"
+          srcset="icons/icon-full-128.png 1x, icons/icon-full-256.png 2x, icons/icon-full-512.png 4x"
+          alt="Extension icon"
+          width="128" height="128"
+        />
+        <div class="meta"><small>v<span id="app-version">—</span></small></div>
+      </aside>
+
+      <!-- Middle: Form (JS populates into the section containers) -->
+      <section class="main" aria-label="Settings form">
+        <form id="settings-form" novalidate>
+          <fieldset id="md-view" class="sticky-fs">
+            <legend><span>Markdown options</span></legend>
+            <div id="md-options" class="fields"></div>
+          </fieldset>
+
+          <fieldset id="html-view" class="sticky-fs" data-section="html">
+            <legend><span>HTML options</span></legend>
+            <div id="html-options" class="fields"></div>
+          </fieldset>
+        </form>
+      </section>
+
+      <!-- Right: Preview -->
+      <aside class="aside" aria-label="Preview of settings effect">
+        <fieldset class="preview sticky-fs" role="group" aria-labelledby="preview-legend">
+          <legend id="preview-legend"><span>Preview</span></legend>
+          <div id="preview-box" class="surface"></div>
+        </fieldset>
+      </aside>
+
+    </section>
+  </main>
+
+  <script src="browser-polyfill.js"></script>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

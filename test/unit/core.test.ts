@@ -2052,7 +2052,7 @@ describe('in compact mode', () => {
 > Quoted line 1.
 > Quoted line 2 with [Foo](https://en.wikipedia.org/wiki/Foo).
 `.trim();
-    const out = toMd(el(html), { compact: true, filterRedundantLabel: false });
+    const out = toMd(el(html), { compact: true, filterRedundantLabels: false });
     // console.log(out);
     strictEqual(out, expected);
   });
@@ -2078,7 +2078,7 @@ describe('in compact mode', () => {
 >> Inner para A.
 >> Inner para B.
 `.trim();
-    const out = toMd(el(html), { compact: true, filterRedundantLabel: false });
+    const out = toMd(el(html), { compact: true, filterRedundantLabels: false });
     strictEqual(out, expected);
   });
 

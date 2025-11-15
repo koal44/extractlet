@@ -272,11 +272,11 @@ export function createMultiToggle(
   }: {
     initState?: number;
     onToggle?: (newState: number) => void;
-    labels?: string[];
+    labels?: readonly string[];
     labelSide?: 'left' | 'right';
   } = {}
 ) {
-  if (!Array.isArray(labels) || labels.length === 0) {
+  if (labels.length === 0) {
     throw new Error('multi-toggle requires at least one label');
   }
   const checkbox = h('input', { type: 'checkbox', class: 'multi-toggle-checkbox', 'aria-label': 'Toggle view mode' });
@@ -301,6 +301,11 @@ export function createMultiToggle(
 
   checkbox.addEventListener('change', () => {
     setState((state + 1) % labels.length);
+  });
+
+  // swallow specSynthetic activation clicks
+  checkbox.addEventListener('click', (ev: MouseEvent | PointerEvent) => {
+    if (ev.target === checkbox && ev.detail === 0) ev.stopPropagation();
   });
 
   return wrapper;
@@ -742,8 +747,8 @@ export function isLabelRedundant(label?: string, reference?: string): boolean {
   }
 }
 
-export function isLabelGeneric(label?: string, reference?: string): boolean {
-  if (!label) return true;
+export function filterGenericLabel(label?: string): string {
+  if (!label) return '';
   const toks = label.normalize('NFC').toLowerCase().split(/[^0-9\p{L}]+/u).filter(Boolean);
   const generic = new Set([
     'here', 'click', 'me', 'tap',
@@ -755,9 +760,15 @@ export function isLabelGeneric(label?: string, reference?: string): boolean {
   ]);
   const kept = toks.filter((w) => !generic.has(w));
   const content = kept.join('');
+  return content;
+}
 
+export function isLabelGeneric(label?: string): boolean {
+  if (!label) return true;
+  const content = filterGenericLabel(label);
   if (content.length === 0) return true;
-  return isLabelRedundant(content, reference);
+  return false;
+  // return isLabelRedundant(content, reference);
 }
 
 export function lastUrlSegment(url: string): string {

@@ -1,0 +1,142 @@
+/*
+  Sticky legend + carried top border component
+
+  CONTRACT / USAGE:
+
+  Markup:
+    <fieldset class="sticky-fs">
+      <legend><span>Section title</span></legend>
+      <!-- content -->
+    </fieldset>
+
+  Required page-level variable:
+    :root {
+      --sticky-legend-offset: 4rem;
+    }
+    - This is the vertical offset where legends stick.
+    - It should equal the height of the header stack above the form.
+
+  Requirements / caveats:
+    - The scroll container is the viewport (body scrolls).
+    - Anything that must sit above the legends (e.g. header)
+      must have a higher z-index than the legends (default z=1).
+    - Background:
+        --sticky-legend-bg must visually match the background behind
+        the fieldset (usually the form/page bg).
+    - Pixel alignment:
+        For best border alignment, choose values for:
+          --sticky-legend-border-width
+          --sticky-legend-field-pad-x
+          --sticky-legend-pad-inline
+        so that (field_pad_x + pad_inline + border_width)
+        is an integer number of CSS pixels.
+    - Fieldset geometry:
+        Component adds margin-top and padding-bottom to make the
+        pill bisect the border and to make the sticky state bail out
+        before the fieldset bottom disappears.
+*/
+
+/* Page decides how far down the sticky line is */
+:root {
+  --sticky-legend-offset: 4rem; /* header stack height */
+}
+
+/* Sticky fieldset component */
+.sticky-fs {
+  /* Component defaults (override as needed) */
+  --sticky-legend-bg: #fff;
+  --sticky-legend-border-color: #999;
+  --sticky-legend-border-width: 4px;
+  --sticky-legend-border-radius: 16px; /* ≈ 1rem */
+  --sticky-legend-field-pad-x: 16px;   /* horizontal padding inside fieldset */
+  --sticky-legend-pad-inline: 0px;     /* additional inline padding on legend */
+  --sticky-legend-height: 16px;        /* visual height of legend bar */
+
+  /* Real fieldset border */
+  border: var(--sticky-legend-border-width) solid var(--sticky-legend-border-color);
+  border-radius: var(--sticky-legend-border-radius);
+  background: var(--sticky-legend-bg);
+
+  /* Move the box down so the pill can sit over the top border */
+  margin-top: calc(var(--sticky-legend-height) / 2);
+
+  /* Horizontal pad + extra bottom space so the legend bails early */
+  padding: 0 var(--sticky-legend-field-pad-x) var(--sticky-legend-height);
+
+  position: relative;
+}
+
+/* Sticky legend bar */
+.sticky-fs > legend {
+  position: sticky;
+  top: calc(var(--sticky-legend-offset) + 0.5 * var(--sticky-legend-height));
+  z-index: 1; /* below your header, above field content */
+
+  width: 100%;
+  display: flex;
+  justify-content: center; /* tweak as desired: flex-start, flex-end, etc */
+
+  font-weight: bold;
+  line-height: var(--sticky-legend-height);
+  background: var(--sticky-legend-bg);
+  padding: 0 var(--sticky-legend-pad-inline);
+  margin: 0;
+
+  box-sizing: border-box;
+}
+
+/* Background mask: blanks out the curved top region behind the pill */
+.sticky-fs > legend::before {
+  content: "";
+  position: absolute;
+
+  /* extend across border + padding horizontally */
+  left:  calc(-1 * (var(--sticky-legend-field-pad-x)
+                    + var(--sticky-legend-pad-inline)
+                    + var(--sticky-legend-border-width)));
+  right: calc(-1 * (var(--sticky-legend-field-pad-x)
+                    + var(--sticky-legend-pad-inline)
+                    + var(--sticky-legend-border-width)));
+
+  /* cover from above the pill center down to the bottom of the legend box */
+  top: calc(-0.5 * var(--sticky-legend-height));
+  bottom: 0;
+
+  background: var(--sticky-legend-bg);
+  z-index: -1;
+}
+
+/* Top border cap: fake rounded top edge that travels with the legend */
+.sticky-fs > legend::after {
+  content: "";
+  position: absolute;
+
+  left:  calc(-1 * (var(--sticky-legend-field-pad-x)
+                    + var(--sticky-legend-pad-inline)
+                    + var(--sticky-legend-border-width)));
+  right: calc(-1 * (var(--sticky-legend-field-pad-x)
+                    + var(--sticky-legend-pad-inline)
+                    + var(--sticky-legend-border-width)));
+
+  top: 0;
+  bottom: calc(-0.5 * var(--sticky-legend-height));
+
+  border: var(--sticky-legend-border-width) solid var(--sticky-legend-border-color);
+  border-bottom: 0;
+  border-radius: var(--sticky-legend-border-radius)
+                 var(--sticky-legend-border-radius) 0 0;
+  background: var(--sticky-legend-bg);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Legend pill text */
+.sticky-fs > legend > span {
+  position: relative;
+  padding: 0 .5rem;
+  background: var(--sticky-legend-bg);
+  line-height: var(--sticky-legend-height);
+
+  /* sit half over the real border line */
+  transform: translateY(calc(-0.5 * var(--sticky-legend-height)));
+}

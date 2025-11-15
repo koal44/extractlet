@@ -1,18 +1,5 @@
 export type Key = string | number | symbol;
 
-// export function hasAllOfType<K extends Key, V>(
-//   obj: unknown,
-//   keys: readonly K[],
-//   isV: (v: unknown) => v is V
-// ): obj is { [P in K]: V } {
-//   if (!isObjectLike(obj)) return false;
-//   for (const k of keys) {
-//     if (!(k in obj)) return false;
-//     if (!isV(obj[k])) return false;
-//   }
-//   return true;
-// }
-
 export function hasProp<K1 extends Key>(
   obj: unknown, key: K1
 ): obj is Record<K1, unknown>;
@@ -85,7 +72,7 @@ export function hasOfType<V>(
   }
 }
 
-// predicates
+// ---------- Basic type guards ----------
 export const isObjectLike = (x: unknown): x is Record<Key, unknown> =>
   typeof x === 'object' && x !== null;
 export const isObjectRecord = (x: unknown): x is Record<PropertyKey, unknown> =>
@@ -102,6 +89,11 @@ export const isFunction = (v: unknown): v is (...args: unknown[]) => unknown =>
   typeof v === 'function';
 export const isArray = (v: unknown): v is unknown[] => Array.isArray(v);
 export const isROArray = (v: unknown): v is readonly unknown[] => Array.isArray(v);
+export const isArrayOf = <T>(elemGuard: (x: unknown) => x is T) =>
+  (v: unknown): v is T[] => Array.isArray(v) && v.every(elemGuard);
+export const isStringArray = isArrayOf(isString);
+export const isNumberArray = isArrayOf(isNumber);
+export const isBooleanArray = isArrayOf(isBoolean);
 export const isRecord = (v: unknown): v is Record<Key, unknown> => isObjectLike(v);
 
 export const isNumericString = (v: unknown): v is `${number}` =>
@@ -126,3 +118,49 @@ export function parseJsonAs<T>(text: string, guard: (u: unknown) => u is T): T |
     return undefined;
   }
 }
+
+// ---------- Type utilities ----------
+
+export type UnionToIntersection<U> =
+  (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
+
+export type LastOf<U> =
+  UnionToIntersection<U extends any ? (k: U) => void : never> extends (k: infer L) => void ? L : never;
+
+export type UnionToTuple<U, L = LastOf<U>> =
+  [U] extends [never] ? [] : [...UnionToTuple<Exclude<U, L>>, L];
+
+export type Length<T extends readonly unknown[]> = T['length'];
+
+export type Permutations<T, K = T> =
+  [T] extends [never] ? [] :
+  T extends K ? [T, ...Permutations<Exclude<K, T>>] : never;
+
+// Insert X into tuple T at any position (produces a union of tuples)
+export type InsertAnywhere<T extends readonly unknown[], X> =
+  [X, ...T] | (T extends readonly [infer H, ...infer R]
+    ? [H, ...InsertAnywhere<R, X>]
+    : never);
+
+// decrement helper over small N
+export type Sub1<N extends number> =
+  N extends 0 ? never :
+  N extends 1 ? 0 :
+  N extends 2 ? 1 :
+  N extends 3 ? 2 :
+  N extends 4 ? 3 :
+  N extends 5 ? 4 :
+  N extends 6 ? 5 :
+  N extends 7 ? 6 :
+  N extends 8 ? 7 :
+  N extends 9 ? 8 : 9;
+
+// Add up to N extra elements (from union U) anywhere inside tuple T
+export type AddExtras<T extends readonly unknown[], U, N extends number> =
+  N extends 0 ? T
+  : T | AddExtras<InsertAnywhere<T, U>, U, Sub1<N>>;
+
+// all arrays that contain every member at least once (permutation),
+// plus up to MaxExtra duplicates of any members anywhere.
+export type CoversWithDupes<U extends string, MaxExtra extends number> =
+  AddExtras<Permutations<U>, U, MaxExtra>;
