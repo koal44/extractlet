@@ -7,7 +7,7 @@ import { extractFromDoc as hubExtraction } from '../src/sites/hub.js';
 import { setupDom } from '../test/utils/test-utils.js';
 import { readHtmlFile } from '../test/fix/fix.js';
 import path from 'path';
-import { isArray, isBoolean, isNumber, isObjectRecord, isString } from '../src/typing.js';
+import { isArray, isBoolean, isNumber, isObjectRecord, isString } from '../src/utils/typing.js';
 
 // allow console.log to print objects more deeply
 util.inspect.defaultOptions = { depth: 4, colors: true };

@@ -1,1 +1,0 @@
-export const EXTRACTED_DATA_STORAGE_PREFIX = 'extractedData:';

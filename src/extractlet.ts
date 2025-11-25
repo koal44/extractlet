@@ -1,7 +1,7 @@
 import browser from 'webextension-polyfill';
 import { setSite } from './normalize';
-import { repr, warn } from './utils';
-import { isObjectRecord, isNumber, hasOfType, isString } from './typing';
+import { repr, warn } from './utils/logging';
+import { isObjectRecord, isNumber, hasOfType, isString } from './utils/typing';
 
 const _sites = {
   se: {
@@ -27,20 +27,20 @@ function isSiteKind(v: unknown): v is SiteKind {
   return isString(v) && v in _sites;
 }
 
-export type XletMsg = {
+export type XletSnapshot = {
   site: SiteKind;
   timestamp: number;
   srcHtml: string;
   srcUrl: string;
 };
 
-export function isXletMsg(msg: unknown): msg is XletMsg {
-  if (!isObjectRecord(msg)) return warn(false, `[xlet:msg] Message is not an object record: ${repr(msg)}`);
-  if (!hasOfType(msg, 'site', isSiteKind)) return warn(false, `[xlet:msg] Message.site is invalid: ${repr(msg)}`);
-  if (!hasOfType(msg, 'timestamp', isNumber)) return warn(false, `[xlet:msg] Message.timestamp is not a number: ${repr(msg)}`);
-  if (!hasOfType(msg, 'srcHtml', isString)) return warn(false, `[xlet:msg] Message.srcHtml is not a string: ${repr(msg)}`);
-  if (!hasOfType(msg, 'srcUrl', isString)) return warn(false, `[xlet:msg] Message.srcUrl is not a string: ${repr(msg)}`);
-  msg satisfies XletMsg;
+export function isXletSnapshot(msg: unknown): msg is XletSnapshot {
+  if (!isObjectRecord(msg)) return warn(false, `[xlet:snap] Message is not an object record: ${repr(msg)}`);
+  if (!hasOfType(msg, 'site', isSiteKind)) return warn(false, `[xlet:snap] Message.site is invalid: ${repr(msg)}`);
+  if (!hasOfType(msg, 'timestamp', isNumber)) return warn(false, `[xlet:snap] Message.timestamp is not a number: ${repr(msg)}`);
+  if (!hasOfType(msg, 'srcHtml', isString)) return warn(false, `[xlet:snap] Message.srcHtml is not a string: ${repr(msg)}`);
+  if (!hasOfType(msg, 'srcUrl', isString)) return warn(false, `[xlet:snap] Message.srcUrl is not a string: ${repr(msg)}`);
+  msg satisfies XletSnapshot;
   return true;
 }
 

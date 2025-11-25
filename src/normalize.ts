@@ -1,6 +1,6 @@
 import type { SiteKind } from './extractlet';
-import { isFunction, isString } from './typing';
-import { isElement } from './utils';
+import { isFunction, isString } from './utils/typing';
+import { isElement } from './utils/dom';
 
 export const XLET_ATTRS = {
   site: 'data-xlet-site',

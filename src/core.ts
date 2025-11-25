@@ -1,13 +1,14 @@
 import { getLang } from './normalize.js';
-import { hasOfType, isNumberish, isString, parseJsonAs } from './typing.js';
-import {
-  alphaLabel, parseHeadingLevel, log, toPascalCase,
-  isElement, isHTML, isImage, isInput, isListItem, isOList, isPre, isBlockquote,
-  isTableCell, isTableHeader, isText, isTextArea, isUList, isBreak, isParagraph,
-  safeDecode, nodeName,
-  filterGenericLabel, isLabelRedundant, isLabelGeneric,
-} from './utils.js';
+import { hasOfType, isNumberish, isString, parseJsonAs } from './utils/typing.js';
+
 import { mathVendorToHtml, mathVendorToMd } from './math-vendor';
+import { log } from './utils/logging.js';
+import {
+  isBlockquote, isBreak, isElement, isHTML, isImage, isInput, isListItem,
+  isOList, isParagraph, isPre, isTableCell, isTableHeader, isText, isTextArea,
+  isUList, nodeName, parseHeadingLevel, safeDecode,
+} from './utils/dom.js';
+import { alphaLabel, filterGenericLabel, isLabelGeneric, isLabelRedundant, toPascalCase } from './utils/strings.js';
 
 void log; // lint hack
 void nodeName; // lint hack

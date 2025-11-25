@@ -5,7 +5,7 @@
   "gistUrl": "https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d",
   "main": "build.js",
   "scripts": {
-    "build": "tsx --env-file=.env build.ts",
+    "build": "tsx --env-file=.env scripts/build.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:fix": "vitest run --dir ./test/fix",

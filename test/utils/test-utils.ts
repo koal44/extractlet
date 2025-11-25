@@ -1,10 +1,10 @@
 import { JSDOM } from 'jsdom';
 import { AssertionError } from 'node:assert';
-import {
-  escapeHtml, isElement, isHTML, isNode, isText, log,
-} from '../../src/utils';
+import { isElement, isHTML, isNode, isText } from '../../src/utils/dom';
 import { execSync } from 'node:child_process';
-import { isString } from '../../src/typing';
+import { isString } from '../../src/utils/typing';
+import { escapeHtml } from '../../src/utils/strings';
+import { log } from '../../src/utils/logging';
 
 export function setupDom() {
   const dom = new JSDOM();

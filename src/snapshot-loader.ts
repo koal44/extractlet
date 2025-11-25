@@ -1,13 +1,7 @@
-import browser from 'webextension-polyfill';
-import { EXTRACTED_DATA_STORAGE_PREFIX } from './constants';
-import { type SiteKind, isXletMsg } from './extractlet';
-import {
-  loadSettings, observeSettings, settingsToContexts,
-  type XletContexts,
-} from './settings';
-import { h } from './utils';
-
-const ROOT_ID = 'xlet-root';
+import { loadSnapshot } from './snapshot-store';
+import { loadSettings, observeSettings, settingsToContexts, type XletContexts } from './settings';
+import { repr } from './utils/logging';
+import { h } from './utils/dom';
 
 export type PageState = {
   viewIdx: number;
@@ -18,12 +12,7 @@ function parseUuidFromUrl(): string | null {
   return params.get('uuid');
 }
 
-async function fetchXletMessage(uuid: string): Promise<unknown> {
-  const key = `${EXTRACTED_DATA_STORAGE_PREFIX}${uuid}`;
-  const storageData = await browser.storage.local.get(key);
-  return storageData[key];
-}
-
+const ROOT_ID = 'xlet-root';
 function getOrCreateRoot(doc: Document): HTMLElement {
   let root = doc.getElementById(ROOT_ID);
   if (!root) {
@@ -60,17 +49,18 @@ export type CreatePage = (
   }
 ) => void | Promise<void>;
 
-export async function loadResultsPage<K extends SiteKind>(
-  site: K,
+export async function loadResultsPage(
   createPage: CreatePage,
 ): Promise<void> {
   const uuid = parseUuidFromUrl();
   if (!uuid) {
-    return console.warn('[xlet:results-loader] No UUID provided in URL');
+    return console.warn('[xlet:snap-loader] No UUID provided in URL');
   }
 
-  const msg = await fetchXletMessage(uuid);
-  if (!isXletMsg(msg)) { return; }
+  const msg = await loadSnapshot(uuid);
+  if (!msg) {
+    return console.warn(`[xlet:snap-loader] No snapshot found in storage for UUID "${uuid}"`);
+  }
 
   // rehydrate the snapshot page
   const parser = new DOMParser();
@@ -78,7 +68,7 @@ export async function loadResultsPage<K extends SiteKind>(
   try {
     ensureBaseUrl(sourceDoc, msg.srcUrl);
   } catch (err) {
-    console.warn('[xlet:results-loader] Error setting sourceDoc location.href:', err);
+    console.warn(`[xlet:snap-loader] Error setting sourceDoc location.href: ${repr(err)}`);
   }
 
   // target document is the current document

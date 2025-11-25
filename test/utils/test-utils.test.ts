@@ -2,7 +2,7 @@
 import { describe, it, test } from 'vitest';
 import assert, { notStrictEqual, strictEqual } from 'node:assert';
 import { el, setupDom, htmlify, assertNodeEqual, mathEl } from './test-utils';
-import { h } from '../../src/utils';
+import { h } from '../../src/utils/dom';
 
 setupDom();
 

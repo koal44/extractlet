@@ -1,14 +1,13 @@
 import { describe, expect, it, test } from 'vitest';
 import { strictEqual } from 'node:assert';
-import {
-  addStyle,
-  h,
-  htmlToElementK,
-  isLabelRedundant,
-  jaccardSimilarity, jaroWinklerSimilarity, levenshteinSimilarity, repr, toKebabCase, toKebabCaseI18n,
-  toPascalCase, toPascalCaseI18n,
-} from '../../src/utils';
+
 import { assertApproxEqual, docEl, setupDom } from '../utils/test-utils';
+import {
+  isLabelRedundant, jaccardSimilarity, jaroWinklerSimilarity, levenshteinSimilarity,
+  toKebabCase, toKebabCaseI18n, toPascalCase, toPascalCaseI18n,
+} from '../../src/utils/strings';
+import { addStyle, h, htmlToElementK } from '../../src/utils/dom';
+import { repr } from '../../src/utils/logging';
 
 test('toKebabCase', () => {
   const words = [

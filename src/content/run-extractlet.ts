@@ -1,6 +1,6 @@
 import browser from 'webextension-polyfill';
-import { repr } from '../utils';
-import { detectSite, injectPageNorm, type XletMsg } from '../extractlet';
+import { repr } from '../utils/logging';
+import { detectSite, injectPageNorm, type XletSnapshot } from '../extractlet';
 
 void (async () => {
   const sourceDoc = document;
@@ -17,7 +17,7 @@ void (async () => {
   await injectPageNorm(site);
 
   // create message
-  const msg: XletMsg = {
+  const msg: XletSnapshot = {
     site,
     timestamp: Date.now(),
     srcHtml: sourceDoc.documentElement.outerHTML,
@@ -26,7 +26,7 @@ void (async () => {
 
   // send message
   try {
-    await browser.runtime.sendMessage<XletMsg>(msg);
+    await browser.runtime.sendMessage<XletSnapshot>(msg);
   } catch (err) {
     console.error(`[xlet:msg] Error sending ${site} message: ${repr(err)}`);
     alert(`Error sending ${site} message. Check console for details.`);

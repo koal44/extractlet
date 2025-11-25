@@ -8,7 +8,7 @@ import { setupDom } from '../test/utils/test-utils.js';
 import { readHtmlFile } from '../test/fix/fix.js';
 import type { MathView } from '../src/core.js';
 import { toMd, toHtml } from '../src/core.js';
-import { isElement } from '../src/utils.js';
+import { isElement } from '../src/utils/dom.js';
 
 setupDom();
 

@@ -37,17 +37,19 @@
  * - Permalinks and raw URLs are in <head> as <link> tags, but structure differs slightly.
  */
 
-import {
-  log, h, repr, warn, htmlToElementK,
-  isElement, isDiv, isHeading, isText, isHTML, isDoc,
-  createCopyButton, copyButtonCss, createMultiToggle, multiToggleCss, injectCss,
-  parseHeadingLevel, jaroWinklerSimilarity,
-  type HLevel,
-} from '../utils';
+
 import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
 import type { XletContexts } from '../settings';
-import type { CreatePage } from '../results-loader';
+import type { CreatePage } from '../snapshot-loader';
+import { copyButtonCss, createCopyButton } from '../ui/copy-button';
+import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
+import type { HLevel } from '../utils/dom';
+import {
+  h, htmlToElementK, injectCss, isDiv, isDoc, isElement, isHeading, isHTML, isText, parseHeadingLevel,
+} from '../utils/dom';
+import { log, repr, warn } from '../utils/logging';
+import { jaroWinklerSimilarity } from '../utils/strings';
 
 export type WikiResult = {
   baseUrl: string; // Base URL of the wiki page

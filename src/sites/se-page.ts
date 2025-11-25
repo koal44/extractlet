@@ -1,7 +1,7 @@
 import { createPage } from './se';
-import { repr } from '../utils';
-import { loadResultsPage } from '../results-loader';
+import { repr } from '../utils/logging';
+import { loadResultsPage } from '../snapshot-loader';
 
-void loadResultsPage('se', createPage).catch((err) => {
+void loadResultsPage(createPage).catch((err) => {
   console.error('[xlet:se-page] Error in se page script:', repr(err));
 });

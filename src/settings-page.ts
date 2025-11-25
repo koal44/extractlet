@@ -1,11 +1,10 @@
 import type { XletSettingKey, XletSettings } from './settings';
 import { loadSettings, observeSettings, saveSettings, settingsToContexts, XLET_SETTINGS } from './settings';
-import type { MultiToggleDiv } from './utils';
-import {
-  createMultiToggle, h, htmlToElement, injectCss, isForm, multiToggleCss, repr,
-} from './utils';
+import { createMultiToggle, multiToggleCss, type MultiToggleDiv } from './ui/multi-toggle';
+import { h, htmlToElement, injectCss, isForm } from './utils/dom';
 import { toHtml, toMd } from './core';
 import browser from 'webextension-polyfill';
+import { repr } from './utils/logging';
 
 let _settings: XletSettings | null = null;
 let _activePreviewKey: XletSettingKey | null = null;

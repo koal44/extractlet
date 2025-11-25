@@ -8,3 +8,4 @@ scratch/
 vendor/**
 !/vendor/_patches/
 !vendor/_patches/**
+.gitattributes

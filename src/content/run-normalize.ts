@@ -1,5 +1,5 @@
 import { getSite, normalizeDoc } from '../normalize';
-import { repr } from '../utils';
+import { repr } from '../utils/logging';
 
 // Page-side bootstrap: used when this module is loaded via <script src="...normalize.js">
 (function runPageNorm() {

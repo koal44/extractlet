@@ -29,17 +29,18 @@
  */
 
 import {
-  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss,
-  isText, isElement, htmlToElementK, htmlToElement,
-  warn,
-} from '../utils';
+  h, htmlToElement, htmlToElementK, injectCss, isElement, isText,
+} from '../utils/dom';
+import { copyButtonCss, createCopyButton } from '../ui/copy-button';
+import { warn } from '../utils/logging';
+import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext, ToMdContext } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
-import type { Locator } from '../locator';
-import { asAbsUrl, pickEl, pickEls, pickVal } from '../locator';
+import type { Locator } from '../utils/locator';
+import { asAbsUrl, pickEl, pickEls, pickVal } from '../utils/locator';
 import { getLang, hasSkip, markSkip, setLang } from '../normalize';
 import type { XletContexts } from '../settings';
-import type { CreatePage } from '../results-loader';
+import type { CreatePage } from '../snapshot-loader';
 
 type Contributor = {
   contributorType: 'author' | 'editor' | 'commenter';
@@ -98,7 +99,7 @@ function shouldSkip(node: Node): boolean {
   return false;
 }
 
-const toMdElemHandler: ToMdElementHandler = (el, ctx, gc) => {
+const toMdElemHandler: ToMdElementHandler = (el, _ctx, gc) => {
   normalizeElement(el);
   if (shouldSkip(el)) return { skip: true };
   const tagName = el.tagName.toUpperCase();

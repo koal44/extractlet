@@ -52,19 +52,22 @@
  * - Canonical URL: link[rel="canonical"] is resolved against document.baseURI for absolute form.
  */
 
-import {
-  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText,
-  isElement, htmlToElementK, htmlToElement, formatDateWithRelative,
-  warn,
-} from '../utils';
+
 import type { ToHtmlContext, ToMdElementHandler, ToMdContext, ToHtmlElementHandler } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
 import {
   pickVal, pickEl, pickEls, asLastPathSeg, asIdFrag, asAbsUrl,
   type Locator,
-} from '../locator';
+} from '../utils/locator';
 import type { XletContexts } from '../settings';
-import type { CreatePage } from '../results-loader';
+import type { CreatePage } from '../snapshot-loader';
+import {
+  h, htmlToElement, htmlToElementK, injectCss, isElement, isText,
+} from '../utils/dom';
+import { copyButtonCss, createCopyButton } from '../ui/copy-button';
+import { warn } from '../utils/logging';
+import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
+import { formatDateWithRelative } from '../utils/strings';
 
 export type HubResult = {
   permalink: string;
@@ -361,7 +364,7 @@ function shouldSkip(node: Node | null): boolean {
   return true;
 }
 
-const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
+const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   if (shouldSkip(node)) return { skip: true };
   if (node.matches('td.comment-body')) {
     const md = gc(node, 'block');
@@ -507,7 +510,7 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
   });
 
   const copyTxt = `${copyArr.join('\n').trimEnd()}\n`;
-  return createCopyButton(copyTxt, responseTxt, hintTxt);
+  return createCopyButton(copyTxt, responseTxt, hintTxt, { doc });
 }
 
 export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): HubResult | undefined {

@@ -1,6 +1,7 @@
 import type { MathView, ToHtmlContext, ToMdContext } from './core';
 import { getMathMl, getTex } from './normalize';
-import { h, htmlToElementK, repr } from './utils';
+import { h, htmlToElementK } from './utils/dom';
+import { repr } from './utils/logging';
 
 export function frameMath(tex: string, display: DisplayMode, ctx: ToMdContext) {
   // if (!tex) return ''; // if it happens, leave it visible for debugging

@@ -136,7 +136,7 @@ export function parseJsonAs<T>(text: string, guard: (u: unknown) => u is T): T |
   }
 }
 
-// ---------- Type utilities ----------
+// ---------- Type Wizardry ----------
 
 export type UnionToIntersection<U> =
   (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;

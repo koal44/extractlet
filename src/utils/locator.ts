@@ -1,4 +1,4 @@
-import { repr, warn } from './utils';
+import { repr, warn } from './logging';
 
 export type Locator = { sel: string; attr?: string; valMap?: ValMapFn; };
 export type ValMapFn = (v: string, doc: Document, scope?: ParentNode) => string;

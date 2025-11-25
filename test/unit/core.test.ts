@@ -2,7 +2,7 @@ import { strictEqual } from 'node:assert';
 import { describe, expect, it, test } from 'vitest';
 import { toHtml, toMd } from '../../src/core';
 import { el, assertNodeEqual, setupDom, logPandocHtmlToMd } from '../utils/test-utils';
-import { log } from '../../src/utils';
+import { log } from '../../src/utils/logging';
 void log; // eslint whining
 
 setupDom();

@@ -4,9 +4,9 @@ import type {
   ToMdContext, ToHtmlContext,
 } from './core';
 import { DefaultToHtmlContext, DefaultToMdContext } from './core';
-import type { Permutations } from './typing';
-import { isBoolean, isString } from './typing';
-import { warn } from './utils';
+import type { Permutations } from './utils/typing';
+import { isBoolean, isString } from './utils/typing';
+import { warn } from './utils/logging';
 
 type SpecValueType = string | boolean | number;
 type ContextKind = 'markdown' | 'html';
