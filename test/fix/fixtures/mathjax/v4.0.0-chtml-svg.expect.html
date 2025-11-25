@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>v4.0.0-chtml [svg]</title>
+  <style>
+.xlet-math-svg.xlet-math-inline {
+  display: inline-block;
+}
+.xlet-math-tex.xlet-math-block,
+.xlet-math-svg.xlet-math-block {
+  display: block;
+  text-align: center;
+}
+.xlet-math-mathml {
+  padding-top: 0.2em;
+  padding-bottom: 0.2em;
+}
+  </style>
+</head>
+<body>
+
+<div data-xlet-case="inline">
+  Inline TeX: <math xmlns="http://www.w3.org/1998/Math/MathML" class="xlet-math-mathml xlet-math-inline">
+  <mi>E</mi>
+  <mo>=</mo>
+  <mi>m</mi>
+  <msup>
+    <mi>c</mi>
+    <mn>2</mn>
+  </msup>
+</math>.
+</div>
+
+<div data-xlet-case="block">
+  Display TeX:
+  <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" class="xlet-math-mathml xlet-math-block">
+  <msubsup>
+    <mo>∫</mo>
+    <mrow>
+      <mo>−</mo>
+      <mi mathvariant="normal">∞</mi>
+    </mrow>
+    <mrow>
+      <mi mathvariant="normal">∞</mi>
+    </mrow>
+  </msubsup>
+  <msup>
+    <mi>e</mi>
+    <mrow>
+      <mo>−</mo>
+      <msup>
+        <mi>x</mi>
+        <mn>2</mn>
+      </msup>
+    </mrow>
+  </msup>
+  <mspace width="0.167em"></mspace>
+  <mi>d</mi>
+  <mi>x</mi>
+  <mo>=</mo>
+  <msqrt>
+    <mi>π</mi>
+  </msqrt>
+  <mo>.</mo>
+</math>
+</div>
+
+<div data-xlet-case="chem">
+  Chemistry:
+  <math xmlns="http://www.w3.org/1998/Math/MathML" class="xlet-math-mathml xlet-math-inline">
+  <mrow>
+    <mn>2</mn>
+    <mspace width="0.167em"></mspace>
+    <mrow>
+      <mi mathvariant="normal">H</mi>
+    </mrow>
+    <msub>
+      <mrow>
+        <mrow>
+          <mpadded width="0">
+            <mphantom>
+              <mi>A</mi>
+            </mphantom>
+          </mpadded>
+        </mrow>
+      </mrow>
+      <mrow>
+        <mrow>
+          <mpadded height="0">
+            <mn>2</mn>
+          </mpadded>
+        </mrow>
+      </mrow>
+    </msub>
+    <mrow></mrow>
+    <mo>+</mo>
+    <mrow></mrow>
+    <mrow>
+      <mi mathvariant="normal">O</mi>
+    </mrow>
+    <msub>
+      <mrow>
+        <mrow>
+          <mpadded width="0">
+            <mphantom>
+              <mi>A</mi>
+            </mphantom>
+          </mpadded>
+        </mrow>
+      </mrow>
+      <mrow>
+        <mrow>
+          <mpadded height="0">
+            <mn>2</mn>
+          </mpadded>
+        </mrow>
+      </mrow>
+    </msub>
+    <mrow></mrow>
+    <mrow>
+      <mo stretchy="true"></mo>
+    </mrow>
+    <mrow></mrow>
+    <mn>2</mn>
+    <mspace width="0.167em"></mspace>
+    <mrow>
+      <mi mathvariant="normal">H</mi>
+    </mrow>
+    <msub>
+      <mrow>
+        <mrow>
+          <mpadded width="0">
+            <mphantom>
+              <mi>A</mi>
+            </mphantom>
+          </mpadded>
+        </mrow>
+      </mrow>
+      <mrow>
+        <mrow>
+          <mpadded height="0">
+            <mn>2</mn>
+          </mpadded>
+        </mrow>
+      </mrow>
+    </msub>
+    <mrow>
+      <mi mathvariant="normal">O</mi>
+    </mrow>
+  </mrow>
+</math>.
+</div>
+
+<div data-xlet-case="phys">
+  Physics:
+  <math xmlns="http://www.w3.org/1998/Math/MathML" class="xlet-math-mathml xlet-math-inline">
+  <mfrac>
+    <mrow>
+      <mrow>
+        <mi mathvariant="normal">d</mi>
+      </mrow>
+      <mi>p</mi>
+    </mrow>
+    <mrow>
+      <mrow>
+        <mi mathvariant="normal">d</mi>
+      </mrow>
+      <mi>t</mi>
+    </mrow>
+  </mfrac>
+  <mo>=</mo>
+  <mi>q</mi>
+  <mrow>
+    <mo minsize="1.2em" maxsize="1.2em">(</mo>
+  </mrow>
+  <mi mathvariant="bold">E</mi>
+  <mo>+</mo>
+  <mi mathvariant="bold">v</mi>
+  <mo>×</mo>
+  <mi mathvariant="bold">B</mi>
+  <mrow>
+    <mo minsize="1.2em" maxsize="1.2em">)</mo>
+  </mrow>
+</math>.
+</div>
+
+<div data-xlet-case="mathml">
+  MathML input:
+
+<math xmlns="http://www.w3.org/1998/Math/MathML" class="xlet-math-mathml xlet-math-inline">
+  <mrow>
+    <msup>
+      <mi>e</mi>
+      <mi>x</mi>
+    </msup>
+    <mo>=</mo>
+    <munder>
+      <mo>∑</mo>
+      <mrow>
+        <mi>n</mi>
+        <mo>=</mo>
+        <mn>0</mn>
+      </mrow>
+    </munder>
+    <mfrac>
+      <msup>
+        <mi>x</mi>
+        <mi>n</mi>
+      </msup>
+      <mrow>
+        <mi>n</mi>
+        <mo>!</mo>
+      </mrow>
+    </mfrac>
+  </mrow>
+</math>
+</div>
+
+
+
+</body>
+</html>

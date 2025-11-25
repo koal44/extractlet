@@ -1,0 +1,79 @@
+diff --git a/test/_mathjax-v2.1.0-harness.html b/test/_mathjax-v2.1.0-harness.html
+new file mode 100644
+index 000000000..e76c4ac7d
+--- /dev/null
++++ b/test/_mathjax-v2.1.0-harness.html
+@@ -0,0 +1,73 @@
++<!DOCTYPE html>
++<html>
++<head>
++  <meta charset="UTF-8">
++  <title>MathJax v2.1.0 harness</title>
++
++  <!-- v2 config -->
++  <script type="text/x-mathjax-config">
++    MathJax.Hub.Config({
++      jax: ["input/TeX", "input/MathML", "output/HTML-CSS"],
++      extensions: ["tex2jax.js", "mml2jax.js"],
++      tex2jax: {
++        inlineMath: [['$','$'], ['\\(','\\)']],
++        displayMath: [['$$','$$'], ['\\[','\\]']]
++      },
++      TeX: {
++        extensions: [
++          "AMSmath.js",
++          "AMSsymbols.js",
++          "mhchem.js"
++          // physics.js not available in 2.7.9
++        ]
++      }
++    });
++  </script>
++
++  <script type="text/javascript" src="../MathJax.js?config=TeX-AMS_HTML-full"></script>
++</head>
++
++<body>
++
++<div data-xlet-case="inline">
++  Inline TeX: $E = mc^2$.
++</div>
++
++<div data-xlet-case="block">
++  Display TeX:
++  $$\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}.$$
++</div>
++
++<div data-xlet-case="chem">
++  Chemistry:
++  $\ce{2H2 + O2 -> 2H2O}$.
++</div>
++
++<div data-xlet-case="mathml">
++  MathML input:
++
++<math xmlns="http://www.w3.org/1998/Math/MathML">
++  <mrow>
++    <msup>
++      <mi>e</mi>
++      <mi>x</mi>
++    </msup>
++    <mo>=</mo>
++    <munder>
++      <mo data-mjx-texclass="OP">∑</mo>
++      <mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow>
++    </munder>
++    <mfrac>
++      <msup><mi>x</mi><mi>n</mi></msup>
++      <mrow><mi>n</mi><mo>!</mo></mrow>
++    </mfrac>
++  </mrow>
++</math>
++</div>
++
++<!-- This page is a manual harness for Extractlet:
++     open in a browser, let MathJax render, and copy
++     outerHTML snapshots for actual test fixtures. -->
++
++</body>
++</html>

@@ -94,7 +94,7 @@ export default tseslint.config(
       'func-call-spacing': ['warn', 'never'],
       '@stylistic/quote-props': ['warn', 'as-needed'],
       '@typescript-eslint/consistent-type-definitions': ['warn', 'type'], // or 'interface'
-      // '@typescript-eslint/consistent-type-imports': ['warn', { prefer: 'type-imports' }],
+      '@typescript-eslint/consistent-type-imports': ['warn', { prefer: 'type-imports' }],
       // '@stylistic/operator-linebreak': ['warn', 'before', { overrides: { '?': 'ignore', ':': 'ignore', '=': 'after' } }],
       // '@typescript-eslint/consistent-type-assertions': ['warn', { assertionStyle: 'as', objectLiteralTypeAssertions: 'allow' }],
       // 'padding-line-between-statements': ['warn',
@@ -118,17 +118,27 @@ export default tseslint.config(
           requireLast: true,
         },
       }],
+      
       // 'no-duplicate-imports': ['warn', { allowSeparateTypeImports: true }],
     }
   },
-  // {
-  //   files: ['eslint.config.mjs'],
-  //   rules: { '@typescript-eslint/*': 'off' },
-  //   languageOptions: {
-  //     parser: undefined,
-  //   },
-  // },
   {
-    ignores: ['dist/**', 'dist-ff/**', '**/gen/**', 'eslint.config.mjs'],
+    files: ['src/sites/**/*.ts', 'src/normalize.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: 'CallExpression[callee.property.name="setAttribute"]',
+          message: '[DOM-NORMALIZE] Avoid Element#setAttribute(). Use the normalization helpers from normalize.ts so attributes stay within the allowed set.',
+        },
+        {
+          selector: 'CallExpression[callee.property.name="toggleAttribute"]',
+          message: '[DOM-NORMALIZE] Avoid Element#toggleAttribute(). Use the normalization helpers from normalize.ts instead.',
+        },
+      ],
+    },
+  },
+  {
+    ignores: ['dist/**', 'dist-ff/**', '**/gen/**', 'eslint.config.mjs', 'vendor/**'],
   }
 );

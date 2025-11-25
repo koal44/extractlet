@@ -1,11 +1,13 @@
+import { getLang } from './normalize.js';
 import { hasOfType, isNumberish, isString, parseJsonAs } from './typing.js';
 import {
   alphaLabel, parseHeadingLevel, log, toPascalCase,
-  isLabelRedundant, isElement, isHTML, isImage, isInput, isListItem, isOList, isPre,
+  isElement, isHTML, isImage, isInput, isListItem, isOList, isPre, isBlockquote,
   isTableCell, isTableHeader, isText, isTextArea, isUList, isBreak, isParagraph,
-  isLabelGeneric, safeDecode, nodeName, isBlockquote,
-  filterGenericLabel,
+  safeDecode, nodeName,
+  filterGenericLabel, isLabelRedundant, isLabelGeneric,
 } from './utils.js';
+import { mathVendorToHtml, mathVendorToMd } from './math-vendor';
 
 void log; // lint hack
 void nodeName; // lint hack
@@ -15,19 +17,19 @@ export type ToHtmlElementHandler = (
   ctx: ToHtmlContext
 ) => { skip?: boolean; node?: Node; };
 
-export type MathView = 'script' | 'image' | 'mathml';
+export type MathView = 'tex' | 'svg' | 'mathml';
 
 export type ToHtmlContext = {
   elementHandler?: ToHtmlElementHandler;       // optional per-element override handler
   skipCustomHandler: boolean;                  // skip custom handling for this subtree
   allowStyles: ReadonlySet<string> | boolean;  // style allowlist or true/false for all/none
-  mathView: 'script' | 'image' | 'mathml';     // how to render math
+  mathView: MathView;                          // how to render math
 };
 
 export const DefaultToHtmlContext: ToHtmlContext = {
   skipCustomHandler: false,
   allowStyles: false,
-  mathView: 'script',
+  mathView: 'tex',
 };
 
 type GlueMode = 'block' | 'list' | 'listItem' | 'inline';
@@ -43,8 +45,6 @@ export type ToMdElementHandler = (
   glueChildren: GlueChildren
 ) => { skip?: boolean; md?: string; };
 
-// export type  BrMode = typeof BR_MODE[number];
-// export type  MathFenceStyle = typeof MATH_FENCE_STYLE[number];
 export type BrMode = 'escape' | 'hard' | 'soft';
 export type MathFenceStyle = 'dollar' | 'bracket';
 
@@ -85,11 +85,6 @@ export const DefaultToMdContext: ToMdContext = {
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
   const ctx: ToHtmlContext = { ...DefaultToHtmlContext, ...opts };
-  // const ctx: ToHtmlContext = {
-  //   ...opts,
-  //   skipCustomHandler: opts.skipCustomHandler ?? false,
-  //   allowStyles: opts.allowStyles ?? new Set(),
-  // };
 
   if (!node) return null;
 
@@ -108,8 +103,13 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
   if (result?.skip) return null;
   if (result?.node) return result.node;
 
+  // --- handle possible mathjax or katex elements ---
+  const mathResult = mathVendorToHtml(node, ctx);
+  if (mathResult?.skip) return null;
+  if (mathResult?.node) return mathResult.node;
+
   // --- default handling for HTML elements ---
-  const clone = document.createElementNS(node.namespaceURI || 'http://www.w3.org/1999/xhtml', node.tagName);
+  const clone = document.createElementNS(node.namespaceURI || 'http://www.w3.org/1999/xhtml', node.tagName.toLowerCase());
 
   for (const attr of node.attributes) {
     const name = attr.name.toLowerCase();
@@ -170,7 +170,7 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
   }
 
   for (const child of node.childNodes) {
-    const childNode = toHtml(child, { ...opts, skipCustomHandler: false });
+    const childNode = toHtml(child, { ...ctx, skipCustomHandler: false });
     if (childNode) clone.appendChild(childNode);
   }
 
@@ -233,23 +233,6 @@ function copyStyleAttr(dest: HTMLElement, src: HTMLElement, allowStyles: boolean
 
 export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): string {
   const ctx: ToMdContext = { ...DefaultToMdContext, ...opts };
-  // const ctx: ToMdContext = {
-  //   ...opts,
-  //   isRoot: opts.isRoot ?? true,
-  //   skipCustomHandler: opts.skipCustomHandler ?? false,
-  //   mathFence: opts.mathFence ?? 'bracket',
-  //   olStart: opts.olStart ?? 1,
-  //   lastChar: opts.lastChar ?? '',
-  //   filterRedundantLabel: opts.filterRedundantLabel ?? true,
-  //   filterGenericLabels: opts.filterGenericLabels ?? false,
-  //   deCaption: opts.deCaption ?? '',
-  //   inListItem: opts.inListItem ?? false,
-  //   compact: opts.compact ?? false,
-  //   anchorRefs: opts.anchorRefs ?? null,
-  //   imageRefs: opts.imageRefs ?? null,
-  //   wsMode: opts.wsMode ?? 'normal',
-  //   brMode: opts.brMode ?? 'soft',
-  // };
 
   const glueChildren: GlueChildren = (node, glueMode, opts = {}) => {
     // TODO: generalize for nodes other than Element?
@@ -268,13 +251,12 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       // --- text nodes ---
       if (isText(child)) {
-        // norm \r\n to \n
         md = child.textContent?.replace(/\r\n?/g, '\n') ?? '';
         // console.log('text node md:', `"${md.replace(/\n/g, '\\n')}"`);
 
         // handle pure-whitespace text nodes
         if (/^\s+$/.test(md)) { // all whitespace
-          if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1) /*&& !nextIsBlocky*/) {
+          if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1)) {
             md = wsMode === 'normal' ? ' ' : md;
             ch = md;
             parts.push(md);
@@ -298,7 +280,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
         // ---- handle empty elements (rare case) ----
         if (md === '' && raw === '') continue;
-        if ((/^\s+$/.test(md) || (md === '' && /^\s+$/.test(raw))) && !isBreak(child)) { // all whitespace
+        if (/^\s*$/.test(md) && !isBreak(child)) { // all whitespace
           if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1)) {
             md = wsMode === 'normal' ? ' ' : md;
             ch = md;
@@ -348,26 +330,6 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     return glued;
   };
 
-  const frameMd = (md: string, glueMode: GlueMode, fcx: ToMdContext ): string => {
-    const glueRules = {
-      block: fcx.inListItem
-        ? { prefix: '\n', suffix: '\n', trimStart: true, trimEnd: true }
-        : { prefix: '\n\n', suffix: '\n\n', trimStart: true, trimEnd: true },
-      list: fcx.inListItem
-        ? { prefix: '\n', suffix: '', trimStart: true, trimEnd: true }
-        : { prefix: '\n', suffix: '\n\n', trimStart: true, trimEnd: true },
-      listItem: { prefix: '', suffix: '', trimStart: false, trimEnd: false },
-      inline: { prefix: '', suffix: '', trimStart: false, trimEnd: false },
-    };
-
-    const { prefix, suffix, trimStart, trimEnd } = glueRules[glueMode];
-
-    let out = md;
-    if (trimStart) out = out.trimStart();
-    if (trimEnd) out = out.trimEnd();
-    return out ? `${prefix}${out}${suffix}` : '';
-  };
-
   if (!node || !isElement(node)) return '';
 
   // --- handle site-specific elements ---
@@ -375,9 +337,16 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     ? ctx.elementHandler(node, ctx, glueChildren)
     : null;
   if (siteResult?.skip) return '';
+
+  // --- handle possible mathjax or katex elements ---
+  const mathResult = mathVendorToMd(node, ctx);
+  if (mathResult?.skip) return '';
+
   let result = '';
   if (siteResult?.md) {
     result = siteResult.md;
+  } else if (mathResult?.md) {
+    result = mathResult.md;
   } else { // --- default handling for HTML elements ---
     const tagName = node.tagName.toUpperCase();
     switch (tagName) {
@@ -394,7 +363,6 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       case 'SPAN': {
         result = glueChildren(node, 'inline');
-        // result = ctx.lastChar === ' ' ? result.trimStart() : result;
         break;
       }
 
@@ -417,7 +385,8 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
 
       case 'SCRIPT': {
-        result = node.textContent || '';
+        result = '';
+        // result = node.textContent || '';
         break;
       }
 
@@ -546,19 +515,21 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
 
       case 'PRE': {
-        // const lang = [...node.classList].find(cls => cls.startsWith('lang-'))?.slice(5) || '';
+        const lang = getLang(node) ?? '';
         result = glueChildren(node, 'inline', { wsMode: 'pre' });
         if (ctx.compact) {
           result = result.replace(/^\n+/, '').replace(/\n+$/, '');
           result = result.replace(/\r?\n/g, '\\n').replace(/\t/g, '\\t');
           const fence = '`'.repeat(1 + Math.max(0, ...(result.match(/`+/g) || []).map((s) => s.length)));
+          const open = lang ? `${fence} ${lang}` : fence;
           result = fence.length > 1
-            ? `\n${fence} ${result} ${fence}\n`
-            : `\n${fence}${result}${fence}\n`;
+            ? `\n${open} ${result} ${fence}\n`
+            : `\n${open}${result}${fence}\n`;
         } else {
           result = result.replace(/\r\n/g, '\n').replace(/\n+$/, '');
           const fence = '`'.repeat(1 + Math.max(2, ...(result.match(/`+/g) || []).map((s) => s.length)));
-          result = frameMd(`${fence}\n${result}\n${fence}`, 'block', ctx);
+          const open = lang ? `${fence} ${lang}` : fence;
+          result = frameMd(`${open}\n${result}\n${fence}`, 'block', ctx);
         }
 
         break;
@@ -680,7 +651,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           while (r.length < nCols) r.push(new GridCol('', 0));
         }
 
-        // spoof header row if first isn’t header
+        // spoof header row if first isn't header
         if (grid.length && !firstRowIsHeader) {
           grid.unshift(Array.from({ length: nCols }, () => new GridCol('', 0)));
         }
@@ -819,38 +790,8 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         break;
       }
 
-      case 'MATH': {
-        // handle only TeX source for now
-        if (node.hasAttribute('data-xlet')) {
-          const tex = node.textContent ?? '';
-
-          let display = node.getAttribute('display');
-          if (display !== 'block' && display !== 'inline') {
-            console.warn('Unsupported MATH display type:', display);
-            result = `<math>${tex}</math>`;
-            break;
-          }
-          display = ctx.compact ? 'inline' : display;
-
-          const lFence = ctx.mathFence === 'dollar'
-            ? (display === 'block' ? '$$' : '$')
-            : (display === 'block' ? '\\[' : '\\(');
-          const rFence = ctx.mathFence === 'dollar'
-            ? (display === 'block' ? '$$' : '$')
-            : (display === 'block' ? '\\]' : '\\)');
-
-          result = display === 'block'
-            ? `\n\n${lFence}\n${tex}\n${rFence}\n\n`
-            : `${lFence}${tex}${rFence}`;
-
-          break;
-        }
-
-        result = glueChildren(node, 'inline');
-        result = `<${node.tagName.toLowerCase()}>${result}</${node.tagName.toLowerCase()}>`;
-        console.warn('Unsupported MATH element:', node);
-        break; // prefer default handling
-      }
+      // case 'MATH': {
+      // }
 
       default: {
         result = glueChildren(node, 'inline');
@@ -866,3 +807,23 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     ? result.trim()
     : result;
 }
+
+export function frameMd(md: string, glueMode: GlueMode, fcx: ToMdContext ): string {
+  const glueRules = {
+    block: fcx.inListItem
+      ? { prefix: '\n', suffix: '\n', trimStart: true, trimEnd: true }
+      : { prefix: '\n\n', suffix: '\n\n', trimStart: true, trimEnd: true },
+    list: fcx.inListItem
+      ? { prefix: '\n', suffix: '', trimStart: true, trimEnd: true }
+      : { prefix: '\n', suffix: '\n\n', trimStart: true, trimEnd: true },
+    listItem: { prefix: '', suffix: '', trimStart: false, trimEnd: false },
+    inline: { prefix: '', suffix: '', trimStart: false, trimEnd: false },
+  };
+
+  const { prefix, suffix, trimStart, trimEnd } = glueRules[glueMode];
+
+  let out = md;
+  if (trimStart) out = out.trimStart();
+  if (trimEnd) out = out.trimEnd();
+  return out ? `${prefix}${out}${suffix}` : '';
+};

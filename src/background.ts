@@ -1,9 +1,8 @@
 import browser from 'webextension-polyfill';
-import { toKebabCase } from './utils';
-import type { ExtractedDataMessage } from './types/extracted-data-message.js';
-import { isExtractedDataMessage } from './types/extracted-data-message.js';
+import { repr, toKebabCase } from './utils';
+import { type XletMsg, isXletMsg } from './extractlet';
 import { EXTRACTED_DATA_STORAGE_PREFIX } from './constants';
-import { hasOfType, isString } from './typing';
+import { isError } from './typing';
 
 browser.action.onClicked.addListener((tab) => {
   void (async () => {
@@ -11,23 +10,23 @@ browser.action.onClicked.addListener((tab) => {
     try {
       await browser.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['browser-polyfill.js', 'extractlet.js'],
+        files: ['browser-polyfill.js', 'run-extractlet.js'],
       });
-    } catch (error) {
-      console.error('Error executing script:', error);
+    } catch (err) {
+      console.error(`[xlet:action] Error executing content script for tab ${tab.id}: ${repr(err)}`);
     }
   })();
 });
 
 browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runtime.MessageSender) => {
-  if (!isExtractedDataMessage(msg)) {
-    console.error('Received unknown message:', msg);
+  if (!isXletMsg(msg)) {
+    console.error(`[xlet:msg] Received unknown message from runtime: ${repr(msg)}`);
     return;
   }
-  switch (msg.type) {
-    case 'hubResult':
-    case 'wikiResult':
-    case 'seResult': {
+  switch (msg.site) {
+    case 'hub':
+    case 'wiki':
+    case 'se': {
       const uuid = crypto.randomUUID();
       const key = `${EXTRACTED_DATA_STORAGE_PREFIX}${uuid}`;
       await pruneStaleStorage();
@@ -35,7 +34,7 @@ browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runti
       try {
         await browser.storage.local.set({ [key]: msg });
       } catch (err) {
-        if (hasOfType(err, 'message', isString) && /quota/i.test(err.message)) {
+        if (isError(err) && /quota/i.test(err.message)) {
           await browser.storage.local.clear();
           await browser.notifications.create({
             type: 'basic',
@@ -44,10 +43,10 @@ browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runti
             message: 'Cache was full and has been cleared. Try again.',
           });
         }
-        return console.error('Failed to set storage for key:', key, err);
+        return console.error(`[xlet:storage] Failed to set storage for key "${key}": ${repr(err)}`);
       }
 
-      const url = `${toKebabCase(msg.type)}-page.html?uuid=${uuid}`;
+      const url = `${toKebabCase(msg.site)}-page.html?uuid=${uuid}`;
       await browser.tabs.create({
         url: browser.runtime.getURL(url),
         active: true,
@@ -65,14 +64,15 @@ async function pruneStaleStorage() {
 
   const all = await browser.storage.local.get(null);
 
-  const storedItems: Array<[string, ExtractedDataMessage]> = [];
+  const storedItems: Array<[string, XletMsg]> = [];
   for (const [k, v] of Object.entries(all)) {
     if (!k.startsWith(EXTRACTED_DATA_STORAGE_PREFIX)) {
-      console.warn(`Unexpected key in storage: ${k}`);
+      console.warn(`[xlet:storage] ignoring non-xlet storage key "${k}"`);
       continue;
     }
-    if (!isExtractedDataMessage(v)) {
-      console.warn(`Unexpected storage value for key ${k}:`, v);
+    if (!isXletMsg(v)) {
+      console.warn(`[xlet:storage] bad storage value for key "${k}": ${repr(v)}`);
+      await browser.storage.local.remove(k); // clear corrupted/legacy entry
       continue;
     }
     storedItems.push([k, v]);

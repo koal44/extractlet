@@ -1,0 +1,41 @@
+{
+  "mathjax-2.1.0": {
+    "type": "git",
+    "repo": "https://github.com/mathjax/MathJax.git",
+    "rev": "2.1.0",
+    "dir": "vendor/mathjax",
+    "patch": "vendor/_patches/mathjax-2.1.0.patch",
+    "active": false
+  },
+  "mathjax-2.7.9": {
+    "type": "git",
+    "repo": "https://github.com/mathjax/MathJax.git",
+    "rev": "2.7.9",
+    "dir": "vendor/mathjax",
+    "patch": "vendor/_patches/mathjax-2.7.9.patch",
+    "active": false
+  },
+  "mathjax-3.2.2": {
+    "type": "git",
+    "repo": "https://github.com/mathjax/MathJax/MathJax.git",
+    "rev": "3.2.2",
+    "dir": "vendor/mathjax",
+    "patch": "vendor/_patches/mathjax-3.2.2.patch",
+    "active": false
+  },
+  "mathjax-4.0.0": {
+    "type": "git",
+    "repo": "https://github.com/mathjax/MathJax.git",
+    "rev": "4.0.0",
+    "dir": "vendor/mathjax",
+    "patch": "vendor/_patches/mathjax-4.0.0.patch",
+    "active": true
+  },
+  "katex-0.16.25": {
+    "type": "zip",
+    "url": "https://github.com/KaTeX/KaTeX/releases/download/v0.16.25/katex.zip",
+    "dir": "vendor/katex",
+    "overlayDir": "vendor/_patches/katex-0.16.25",
+    "active": true
+  }
+}

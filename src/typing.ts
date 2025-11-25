@@ -72,6 +72,8 @@ export function hasOfType<V>(
   }
 }
 
+function tagOf(v: unknown): string { return Object.prototype.toString.call(v); }
+
 // ---------- Basic type guards ----------
 export const isObjectLike = (x: unknown): x is Record<Key, unknown> =>
   typeof x === 'object' && x !== null;
@@ -84,6 +86,8 @@ export const isNonEmptyString = (v: unknown): v is string =>
   typeof v === 'string' && v.trim() !== '';
 export const isNumber = (v: unknown): v is number =>
   typeof v === 'number' && Number.isFinite(v);
+export const isBigInt = (v: unknown): v is bigint => typeof v === 'bigint';
+export const isSymbol = (v: unknown): v is symbol => typeof v === 'symbol';
 export const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean';
 export const isFunction = (v: unknown): v is (...args: unknown[]) => unknown =>
   typeof v === 'function';
@@ -95,7 +99,20 @@ export const isStringArray = isArrayOf(isString);
 export const isNumberArray = isArrayOf(isNumber);
 export const isBooleanArray = isArrayOf(isBoolean);
 export const isRecord = (v: unknown): v is Record<Key, unknown> => isObjectLike(v);
+export const isError = (v: unknown): v is Error => {
+  const tag = tagOf(v);
+  return tag === '[object Error]' || tag === '[object DOMException]';
+};
+export const isDate = (v: unknown): v is Date => tagOf(v) === '[object Date]';
+export const isSet = (v: unknown): v is Set<unknown> => tagOf(v) === '[object Set]';
+export const isMap = (v: unknown): v is Map<unknown, unknown> => tagOf(v) === '[object Map]';
+export const isEvent = (v: unknown): v is Event => tagOf(v).endsWith('Event]');
+export const isErrorEvent = (v: unknown): v is ErrorEvent => tagOf(v) === '[object ErrorEvent]';
+export const isPromise = (v: unknown): v is Promise<unknown> => tagOf(v) === '[object Promise]';
+export const isRegExp = (v: unknown): v is RegExp => tagOf(v) === '[object RegExp]';
+export const isURL = (v: unknown): v is URL => tagOf(v) === '[object URL]';
 
+// ---------- Composite type guards ----------
 export const isNumericString = (v: unknown): v is `${number}` =>
   typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v));
 export const isBooleanString = (v: unknown): v is 'true' | 'false' =>

@@ -1,57 +1,46 @@
+// /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
+// /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+// /* eslint-disable @typescript-eslint/no-unsafe-call */
+
 /* eslint-disable no-restricted-properties */
 import fs from 'node:fs/promises';
-import type { ModuleFormat } from 'rollup';
-import { rollup } from 'rollup';
+import path from 'node:path';
+import { rollup, type ModuleFormat, type RollupLog } from 'rollup';
 import typescript from '@rollup/plugin-typescript';
 import {
-  hasOfType, hasProp, isArray, isNonEmptyString, isNumber, isFunction,
+  hasProp,
+  // hasOfType, isArray, isNonEmptyString, isNumber, isFunction,
 } from './src/typing';
 
-type TSFile = {
+type WarningCode = RollupLog['code'];
+
+type BundleEntry = {
   input: string;
   output: string;
   format: ModuleFormat;
   patchPolyfill?: boolean;
+  muteWarnings?: WarningCode[];
 };
 
-if (process.env.DUMP_HANDLES) {
-  setTimeout(() => {
-    // report: {activeHandles: [...], activeRequests: [...], otherProps...}
-    // activeHandles: {fd?: number, hasRef?: () => boolean, constructor: {name: string}, ...}
-    const rep = process.report.getReport();
-    const handles = hasOfType(rep, 'activeHandles', isArray) ? rep.activeHandles : [];
-    const requests = hasOfType(rep, 'activeRequests', isArray) ? rep.activeRequests : [];
+// clear dist/ folders
+await fs.rm('dist', { recursive: true, force: true });
+await fs.rm('dist-ff', { recursive: true, force: true });
 
-    const summarize = (xs: unknown[]) =>
-      xs.map((x) => {
-        // const t = hasProp(x, 'constructor') && hasOfType(x.constructor, 'name', isNonEmptyString)
-        const t = hasOfType(x, ['constructor', 'name'], isNonEmptyString)
-          ? x.constructor.name
-          : typeof x;
-        // file descriptors / timers often expose helpful props:
-        const fd = hasOfType(x, 'fd', isNumber) ? x.fd : undefined;
-        const refed = hasOfType(x, 'hasRef', isFunction) ? Boolean(x.hasRef()) : undefined;
-        return { type: t, fd, refed };
-      });
-
-    console.log('\n=== Active (diagnostic report) ===');
-    console.log('handles:', handles.length, summarize(handles));
-    console.log('requests:', requests.length, summarize(requests));
-    console.log('==================================\n');
-  }, 10_000).unref();
-}
-
-
-const tsFiles: TSFile[] = [
+// --- bundle top-level extension scripts ---
+// These are the JS files the browser actually executes—via manifest (background,
+// options, site pages) or via programmatic injection (run-extractlet, run-normalize).
+const tsFiles: BundleEntry[] = [
   { input: 'src/background.ts', output: 'dist/background.js', format: 'esm', patchPolyfill: true },
-  { input: 'src/extractlet.ts', output: 'dist/extractlet.js', format: 'iife' },
-  { input: 'src/options.ts', output: 'dist/options.js', format: 'iife' },
+  { input: 'src/content/run-extractlet.ts', output: 'dist/run-extractlet.js', format: 'iife' },
+  { input: 'src/content/run-normalize.ts', output: 'dist/run-normalize.js', format: 'iife' },
+  { input: 'src/settings-page.ts', output: 'dist/settings-page.js', format: 'iife' },
   { input: 'src/sites/wiki-page.ts', output: 'dist/sites/wiki-page.js', format: 'iife' },
   { input: 'src/sites/se-page.ts', output: 'dist/sites/se-page.js', format: 'iife' },
   { input: 'src/sites/hub-page.ts', output: 'dist/sites/hub-page.js', format: 'iife' },
 ];
 
-// -- bundle and patch polyfill imports
+// --- bundle and patch polyfill imports where needed ---
 for (const tsFile of tsFiles) {
   await bundleSource(tsFile);
   if (tsFile.patchPolyfill) {
@@ -85,7 +74,69 @@ if (hasProp(manifest, ['background', 'scripts'])) {
   console.log('Patched manifest.json for Chrome/other in dist');
 }
 
+type ActiveHandle = {
+  constructor?: { name?: string; };
+  hasRef?: () => boolean;
+  fd?: number;
+  [key: string]: any;
+};
+
+type ActiveRequest = {
+  constructor?: { name?: string; };
+  [key: string]: unknown;
+};
+
+type Process = {
+  pid: number;
+  argv: string[];
+  cwd: () => string;
+  report?: {
+    getReport?: () => unknown;
+  };
+  _getActiveHandles?: () => ActiveHandle[];
+  _getActiveRequests?: () => ActiveRequest[];
+  // [key: string]: any;
+};
+
+async function dumpNodeState(label: string) {
+  const process: Process = globalThis.process;
+  const outPath = path.join(process.cwd(), 'scratch', 'node-dump.json');
+
+  const report = process.report?.getReport?.();
+
+  const activeHandles = process._getActiveHandles?.() ?? [];
+  const activeRequests = process._getActiveRequests?.() ?? [];
+
+  const dump = {
+    label,
+    timestamp: new Date().toISOString(),
+    pid: process.pid,
+    argv: process.argv,
+    cwd: process.cwd(),
+    report,
+    activeHandles: activeHandles.map((h) => ({
+      type: h.constructor?.name,
+      refed: typeof h.hasRef === 'function' ? h.hasRef() : undefined,
+      fd: h.fd,
+      ...h,
+    })),
+    activeRequests: activeRequests.map((r) => ({
+      type: r.constructor?.name,
+      ...r,
+    })),
+  };
+
+  await fs.mkdir(path.join(process.cwd(), 'scratch'), { recursive: true });
+  await fs.writeFile(outPath, JSON.stringify(dump, null, 2), 'utf8');
+  console.log(`Wrote node-dump.json → ${outPath}`);
+}
+
+
 console.log('Build completed!');
+
+if (process.env.DUMP_HANDLES) {
+  await dumpNodeState('post-build');
+}
 
 // ------------------------
 // --- HELPER FUNCTIONS ---
@@ -102,12 +153,19 @@ async function patchPolyFillImport(file: string): Promise<void> {
   console.log(`Patched polyfill in ${file}`);
 }
 
-async function bundleSource({ input, output, format }: TSFile): Promise<void> {
+async function bundleSource({ input, output, format, muteWarnings }: BundleEntry): Promise<void> {
   const globals = { 'webextension-polyfill': 'browser' };
   const bundle = await rollup({
     input,
     external: ['webextension-polyfill'],
     plugins: [typescript()],
+
+    // Some entry scripts export values but aren't libraries; mute IIFE export warnings.
+    // either name them (but pollutes window) or mute the warning.
+    onwarn(warning, defaultWarn) {
+      if (muteWarnings?.includes(warning.code)) return;
+      defaultWarn(warning);
+    },
   });
 
   try {

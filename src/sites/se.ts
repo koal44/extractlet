@@ -29,11 +29,17 @@
  */
 
 import {
-  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText, isElement, isScript, htmlToElementK, htmlToElement,
+  h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss,
+  isText, isElement, htmlToElementK, htmlToElement,
+  warn,
 } from '../utils';
 import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext, ToMdContext } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
-import { asAbsUrl, Locator, pickEl, pickEls, pickVal } from '../locator';
+import type { Locator } from '../locator';
+import { asAbsUrl, pickEl, pickEls, pickVal } from '../locator';
+import { getLang, hasSkip, markSkip, setLang } from '../normalize';
+import type { XletContexts } from '../settings';
+import type { CreatePage } from '../results-loader';
 
 type Contributor = {
   contributorType: 'author' | 'editor' | 'commenter';
@@ -65,64 +71,60 @@ export type SEResult = {
   posts: Post[];
 }
 
-function shouldSkip(node: Node | null): boolean {
-  if (!node) throw new Error('shouldSkip called with null or undefined node');
-  if (isText(node)) return false; // Text nodes are never skipped
-
-  if (isElement(node)) {
-    const id = node.id || '';
-    const className = node.className || '';
-    const aType = node.getAttribute('type') || '';
-
-    if (isScript(node)) {
-      const isLateX = /MathJax/.test(id) || aType.startsWith('math/tex');
-      if (isLateX) return false;
-      return true;
+function normalizeElement(el: Element): void {
+  // pre-code blocks
+  if (el.matches('pre') && el.querySelector(':scope > code')) { // .s-code-block
+    // assume that only <code> children are significant
+    for (const c of el.children) {
+      if (!c.matches('code')) markSkip(c);
     }
 
-    if (/MathJax/.test(id) || /MJX|MathJax/.test(className)) {
-      return true;
+    // set language from class if present
+    const langClass = [...el.classList].find((cls) => cls.startsWith('lang-'));
+    if (langClass) {
+      const lang = langClass.slice(5); // "lang-ts" -> "ts"
+      if (lang) setLang(el, lang);
     }
-
-    if (node.classList.contains('snippet-result')) return true; // ignore snippet results
-
-    return false;
   }
-
-  return true;
 }
 
-const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
-  if (shouldSkip(node)) return { skip: true };
-  const tagName = node.tagName.toUpperCase();
+function shouldSkip(node: Node): boolean {
+  if (isText(node)) return false; // Text nodes are never skipped
+  if (hasSkip(node)) return true;
+  if (!isElement(node)) return true;
+
+  if (node.matches('.snippet-result')) return true; // ignore snippet results
+
+  return false;
+}
+
+const toMdElemHandler: ToMdElementHandler = (el, ctx, gc) => {
+  normalizeElement(el);
+  if (shouldSkip(el)) return { skip: true };
+  const tagName = el.tagName.toUpperCase();
   switch (tagName) {
     case 'DIV': {
-      let md = gc(node, 'inline');
-      if (node.classList.contains('snippet')) {
+      let md = gc(el, 'inline');
+      if (el.classList.contains('snippet')) {
         md = md.replace(/\n*$/, '\n\n');
         md = `<!-- begin snippet: -->\n\n${md}<!-- end snippet -->\n\n`;
       }
       return { md };
     }
     case 'PRE': {
-      let md = gc(node, 'inline', { wsMode: 'pre' });
-      md = md.replace(/\n*$/, '\n');
+      const lang = getLang(el);
+      const isSnippet = lang && el.matches(`.snippet-code-${lang}`);
+      if (!isSnippet) { return {}; }  // let core handle normal <pre>
 
-      const lang = [...node.classList].find((cls) => cls.startsWith('lang-'))?.slice(5) || '';
-      if (
-        lang
-        && ['js', 'css', 'html'].includes(lang)
-        && node.classList.contains(`snippet-code-${lang}`)
-      ) {
-        md = `<!-- language: lang-${lang} -->\n\n${md}\n`;
-      } else {
-        md = `\`\`\`\n${md}\`\`\`\n\n`;
-      }
+      let body = gc(el, 'inline', { wsMode: 'pre' });
+      body = body.replace(/\n*$/, '\n');
+
+      const md = `<!-- language: lang-${lang} -->\n\n${body}\n`;
       return { md };
     }
     case 'BLOCKQUOTE': {
-      let md = gc(node, 'block');
-      const isSpoiler = node.classList.contains('spoiler');
+      let md = gc(el, 'block');
+      const isSpoiler = el.classList.contains('spoiler');
       const marker = isSpoiler ? '>!' : '>';
       const bqPrefix = md.match(new RegExp('^\\n*'))?.[0] ?? '';
       const bqSuffix = md.match(/\n*$/)?.[0] ?? '';
@@ -134,63 +136,25 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
     }
   }
 
-  // handle MathJax scripts
-  if (isScript(node)) {
-    if (!node.matches('script[type^="math/tex"], [id^="MathJax" i]')) { // never: shouldSkip() should've filtered
-      console.warn('Unexpected script node in toHtmlElemHandler:', node);
-      return {};
-    }
-
-    const isDisplayByType = node.matches('script[type*="mode=display" i]');
-    const isDisplayByWrapper = !!node.parentElement?.matches('div[class~=MathJax i]');
-
-    const math = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
-    math.toggleAttribute('data-xlet', true);
-    math.setAttribute('display', isDisplayByType || isDisplayByWrapper ? 'block' : 'inline');
-    math.textContent = node.textContent?.trim() ?? '';
-
-    const md = toMd(math, ctx);
-
-    return { md };
-  }
-
   return {};
 };
 
-export function toMd(node: Node | null, opts: Partial<ToMdContext> = {}) {
-  return _toMd(node, { ...opts, elementHandler: toMdElemHandler });
+export function toMd(node?: Node | null, opts: Partial<ToMdContext> = {}) {
+  if (!node) return '';
+  return _toMd(node, { elementHandler: toMdElemHandler, ...opts });
 }
 
-const toHtmlElemHandler: ToHtmlElementHandler = (node, _ctx) => {
-  if (shouldSkip(node)) return { skip: true };
-  if (!isElement(node)) throw new Error('toHtmlElemHandler called with non-element node');
-
-  // display the original MathJax LaTeX content
-  if (isScript(node)) {
-    if (!node.matches('script[type^="math/tex"], [id^="MathJax" i]')) { // never: shouldSkip() should've filtered
-      console.warn('Unexpected script node in toHtmlElemHandler:', node);
-      return {};
-    }
-
-    const isDisplayByType = node.matches('script[type*="mode=display" i]');
-    const isDisplayByWrapper = !!node.parentElement?.matches('div[class~=MathJax i]');
-
-    const math = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
-    math.toggleAttribute('data-xlet', true);
-    math.setAttribute('display', isDisplayByType || isDisplayByWrapper ? 'block' : 'inline');
-    math.textContent = node.textContent?.trim() ?? '';
-
-    return { node: math };
-  }
+const toHtmlElemHandler: ToHtmlElementHandler = (el, _ctx) => {
+  normalizeElement(el);
+  if (shouldSkip(el)) return { skip: true };
 
   return {};
 };
 
 export function toHtml(node: Element | null | undefined, opts?: Partial<ToHtmlContext>): Element | null
-export function toHtml(node: Node | null | undefined, opts?: Partial<ToHtmlContext>): Element | null
 export function toHtml(node: Node | null | undefined, opts: Partial<ToHtmlContext> = {}) {
   if (!node) return null;
-  return _toHtml(node, { ...opts, elementHandler: toHtmlElemHandler });
+  return _toHtml(node, { elementHandler: toHtmlElemHandler, ...opts });
 }
 
 type seVarKey =
@@ -203,10 +167,15 @@ type seVarKey =
 
 const seTable: Record<seVarKey, Locator[]> = {
   permalink: [
-    { sel: '#question-header a.question-hyperlink', attr: 'href', valMap: asAbsUrl },
     { sel: 'link[rel="canonical"]', attr: 'href', valMap: asAbsUrl },
+    { sel: '#question-header a.question-hyperlink', attr: 'href', valMap: asAbsUrl },
   ],
-  title: [{ sel: '#question-header a.question-hyperlink', attr: 'textContent' }],
+  title: [
+    { sel: 'head > meta[property="og:title"]', attr: 'content' },
+    { sel: 'body > meta[itemprop="name"]', attr: 'content' },
+    { sel: '#question-header a.question-hyperlink', attr: 'innerHTML' },
+    { sel: 'head > title', attr: 'textContent' },
+  ],
 
   // posts
   posts_items: [{ sel: '.post-layout' }],
@@ -245,20 +214,18 @@ function scrapePermalink(root: Document): string | undefined {
 }
 
 function scrapeTitle(root: Document): string | undefined {
-  return pickVal(seTable.title, root);
+  const val = pickVal(seTable.title, root);
+  return toMd(htmlToElement(`<div>${val}</div>`, root), { mathFence: 'dollar' });
 }
 
-function scrapePosts(doc: Document): Post[] {
+function scrapePosts(doc: Document, ctxs?: XletContexts): Post[] {
   const posts: Post[] = [];
 
   for (const post of pickEls(seTable['posts_items'], doc)) {
     // post body
-    // const bodyEl = toHtml(pickEl(seTable['post_body'], doc, post));
-    // const bodyHtml = bodyEl?.outerHTML;
-    // const bodyMd = toMd(bodyEl);
     const bodyEl = pickEl(seTable['post_body'], doc, post);
-    const bodyHtml = bodyEl ? toHtml(bodyEl)?.outerHTML : undefined;
-    const bodyMd = bodyEl ? toMd(bodyEl) : '';
+    const bodyHtml = toHtml(bodyEl, ctxs?.html)?.outerHTML;
+    const bodyMd = toMd(bodyEl, ctxs?.md);
 
     // contributors
     const sigNodes = pickEls(seTable['sig_items'], doc, post);
@@ -268,12 +235,9 @@ function scrapePosts(doc: Document): Post[] {
 
     // comments
     const comments = pickEls(seTable['comment_items'], doc, post).map((comment) => {
-      // const cBodyEl = toHtml(pickEl(seTable['comment_body'], doc, comment));
-      // const bodyHtml = cBodyEl?.outerHTML;
-      // const bodyMd = toMd(cBodyEl);
       const cBodyEl = pickEl(seTable['comment_body'], doc, comment);
-      const bodyHtml = cBodyEl ? toHtml(cBodyEl)?.outerHTML : undefined;
-      const bodyMd = cBodyEl ? toMd(cBodyEl) : '';
+      const bodyHtml = toHtml(cBodyEl, ctxs?.html)?.outerHTML;
+      const bodyMd = toMd(cBodyEl, ctxs?.md);
 
       const contributors = [scrapeCommentContributor(comment, doc)];
       const vote = scrapeCommentVote(comment, doc);
@@ -500,15 +464,15 @@ function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTML
   return h('div', { class: mode.class }, bodyDiv, postContribsDiv, commentsDiv);
 }
 
-export function extractFromDoc(root: Document = document): SEResult | undefined {
-  const posts = scrapePosts(root);
+export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): SEResult | undefined {
+  const posts = scrapePosts(sourceDoc, ctxs);
   if (posts.length === 0) {
     alert('No posts found on this page.');
     return;
   }
 
-  const permalink = scrapePermalink(root) || '';
-  const title = scrapeTitle(root);
+  const permalink = scrapePermalink(sourceDoc) || '';
+  const title = scrapeTitle(sourceDoc);
   const result: SEResult = {
     permalink,
     title,
@@ -518,33 +482,38 @@ export function extractFromDoc(root: Document = document): SEResult | undefined 
   return result;
 }
 
-export function createPage(pageData: SEResult, doc: Document): void {
-  injectCss(multiToggleCss, { id: 'multi-toggle-css', doc });
-  injectCss(copyButtonCss, { id: 'copy-button-css', doc });
+export const createPage: CreatePage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
+  const pageData = extractFromDoc(sourceDoc, ctxs);
+  if (!pageData) return warn(undefined, `[xlet:se] extractFromDoc returned no data`);
+
+  injectCss(multiToggleCss, { id: 'multi-toggle-css', doc: targetDoc });
+  injectCss(copyButtonCss, { id: 'copy-button-css', doc: targetDoc });
   const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · Stack Exchange');
-  const copyAllButton = buildCopyButton(doc, pageData);
+  const copyAllButton = buildCopyButton(targetDoc, pageData);
   const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
-  doc.body.appendChild(topBar);
+  root.appendChild(topBar);
 
   if (pageData.permalink) {
-    const permalinkNode = htmlToElementK(`<a href="${pageData.permalink}">${pageData.title}</a>`, 'a', doc);
+    const permalinkNode = htmlToElementK(`<a href="${pageData.permalink}">${pageData.title}</a>`, 'a', targetDoc);
     const permalinkDiv = h('div', { class: 'perma-link' }, permalinkNode);
-    doc.body.appendChild(permalinkDiv);
+    root.appendChild(permalinkDiv);
   }
 
+  const viewClasses = ['show-html', 'show-md', 'show-raw'];
   const viewToggle = createMultiToggle({
-    initState: 0,
-    onToggle: (state) => {
-      doc.body.classList.remove('show-html', 'show-md', 'show-raw');
-      doc.body.classList.add(['show-html', 'show-md', 'show-raw'][state]);
+    initState: state.viewIdx,
+    onToggle: (newIdx) => {
+      state.viewIdx = newIdx;
+      root.classList.remove(...viewClasses);
+      root.classList.add(viewClasses[newIdx]);
     },
-    labels: ['html', 'md'], // , 'raw'
+    labels: ['html', 'md'],
     labelSide: 'right',
   });
   const viewToggleContainer = h('div', { class: 'view-toggle' }, viewToggle);
-  doc.body.appendChild(viewToggleContainer);
+  root.appendChild(viewToggleContainer);
 
-  const output = buildPosts(pageData, doc);
-  doc.body.appendChild(output);
+  const output = buildPosts(pageData, targetDoc);
+  root.appendChild(output);
   viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present
-}
+};

@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>v2.1.0-htmlcss [svg]</title>
+  <style>
+.xlet-math-svg.xlet-math-inline {
+  display: inline-block;
+}
+.xlet-math-tex.xlet-math-block,
+.xlet-math-svg.xlet-math-block {
+  display: block;
+  text-align: center;
+}
+.xlet-math-mathml {
+  padding-top: 0.2em;
+  padding-bottom: 0.2em;
+}
+  </style>
+</head>
+<body>
+
+<div data-xlet-case="inline">
+  Inline TeX: <math xmlns="http://www.w3.org/1998/Math/MathML" class="xlet-math-mathml xlet-math-inline">
+  <mi>E</mi>
+  <mo>=</mo>
+  <mi>m</mi>
+  <msup>
+    <mi>c</mi>
+    <mn>2</mn>
+  </msup>
+</math>.
+</div>
+
+<div data-xlet-case="block">
+  Display TeX:
+  <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" class="xlet-math-mathml xlet-math-block">
+  <msubsup>
+    <mo>∫<!-- ∫ --></mo>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mo>−<!-- − --></mo>
+      <mi mathvariant="normal">∞<!-- ∞ --></mi>
+    </mrow>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mi mathvariant="normal">∞<!-- ∞ --></mi>
+    </mrow>
+  </msubsup>
+  <msup>
+    <mi>e</mi>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mo>−<!-- − --></mo>
+      <msup>
+        <mi>x</mi>
+        <mn>2</mn>
+      </msup>
+    </mrow>
+  </msup>
+  <mspace width="thinmathspace"></mspace>
+  <mi>d</mi>
+  <mi>x</mi>
+  <mo>=</mo>
+  <msqrt>
+    <mi>π<!-- π --></mi>
+  </msqrt>
+  <mo>.</mo>
+</math>
+</div>
+
+<div data-xlet-case="chem">
+  Chemistry:
+  <math xmlns="http://www.w3.org/1998/Math/MathML" class="xlet-math-mathml xlet-math-inline">
+  <mn>2</mn>
+  <mspace width="thinmathspace"></mspace>
+  <msubsup>
+    <mtext>H</mtext>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mn>2</mn>
+    </mrow>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mspace width="0pt" height="0pt" depth=".2em"></mspace>
+    </mrow>
+  </msubsup>
+  <mo>+</mo>
+  <msubsup>
+    <mtext>O</mtext>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mn>2</mn>
+    </mrow>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mspace width="0pt" height="0pt" depth=".2em"></mspace>
+    </mrow>
+  </msubsup>
+  <mo stretchy="false">⟶<!-- ⟶ --></mo>
+  <mn>2</mn>
+  <mspace width="thinmathspace"></mspace>
+  <msubsup>
+    <mtext>H</mtext>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mn>2</mn>
+    </mrow>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mspace width="0pt" height="0pt" depth=".2em"></mspace>
+    </mrow>
+  </msubsup>
+  <mtext>O</mtext>
+</math>.
+</div>
+
+<div data-xlet-case="mathml">
+  MathML input:
+
+<math xmlns="http://www.w3.org/1998/Math/MathML" class="xlet-math-mathml xlet-math-inline">
+  <mrow>
+    <msup>
+      <mi>e</mi>
+      <mi>x</mi>
+    </msup>
+    <mo>=</mo>
+    <munder>
+      <mo>∑</mo>
+      <mrow>
+        <mi>n</mi>
+        <mo>=</mo>
+        <mn>0</mn>
+      </mrow>
+    </munder>
+    <mfrac>
+      <msup>
+        <mi>x</mi>
+        <mi>n</mi>
+      </msup>
+      <mrow>
+        <mi>n</mi>
+        <mo>!</mo>
+      </mrow>
+    </mfrac>
+  </mrow>
+</math>
+</div>
+
+
+
+
+
+</body>
+</html>

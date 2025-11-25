@@ -30,12 +30,12 @@ test('toHtml test1', () => {
         <script type="math/tex" id="MathJax-Element-3">(1,1)</script> tensor.
       </p>
     </div>`.trim();
-  const result = toHtml(el(html));
+  const result = toHtml(el(html), { mathView: 'tex' });
   const expected = `
     <div>
       <p>
         <a href="http://en.wikipedia.org/wiki/Tensor">Wikipedia</a> says that a linear transformation is a \n        \n        
-        <math data-xlet="" display="inline">(1,1)</math> tensor.
+        <code class="xlet-math-inline xlet-math-tex">(1,1)</code> tensor.
       </p>
     </div>`.trim();
   assertNodeEqual(result, expected);
@@ -50,12 +50,12 @@ test('toHtml mathjax script', () => {
         is the formula.
       </p>
     </div>`.trim();
-  const result = toHtml(el(html));
+  const result = toHtml(el(html), { mathView: 'tex' });
   const expected = `
     <div>
       <p>
         Result:
-        <math data-xlet="" display="inline">(x+y)^2</math>
+        <code class="xlet-math-inline xlet-math-tex">(x+y)^2</code>
         is the formula.
       </p>
     </div>`.trim();
@@ -120,19 +120,19 @@ test('toHtml snippets', () => {
   <p>
     </p><div>
       <div>
-        <pre><code>document.getElementById('btn').addEventListener('click', () =&gt; {
+        <pre data-xlet-lang="js"><code>document.getElementById('btn').addEventListener('click', () =&gt; {
   const box = document.getElementById('greeting');
   box.textContent = 'You clicked the button!';
   box.style.backgroundColor = '#c0ffc0';
 });</code></pre>
-        <pre><code>.box {
+        <pre data-xlet-lang="css"><code>.box {
   padding: 10px;
   background-color: lightblue;
   border: 1px solid #888;
   font-family: sans-serif;
   margin-bottom: 10px;
 }</code></pre>
-        <pre><code>&lt;div id="greeting" class="box"&gt;Hello, world!&lt;/div&gt;
+        <pre data-xlet-lang="html"><code>&lt;div id="greeting" class="box"&gt;Hello, world!&lt;/div&gt;
 &lt;button id="btn"&gt;Change Greeting&lt;/button&gt;</code></pre>
         
       </div>
@@ -256,7 +256,7 @@ console.log(y);
   <p>
     </p><div>
       <div>
-        <pre><code>
+        <pre data-xlet-lang="js"><code>
 const x = 2;
 const y = 3**2;
 console.log(y);
@@ -383,9 +383,7 @@ test('', () => {
         <span class="MathJax" id="MathJax-Element-38-Frame" tabindex="0" style="text-align: center; position: relative;" data-mathml="" role="presentation">
         </span>
       </div>
-      <script type="math/tex; mode=display" id="MathJax-Element-38">
-(x,y,z) = (8866128975287528, -8778405442862239, -2736111468807040).
-</script>
+      <script type="math/tex; mode=display" id="MathJax-Element-38">(x,y,z) = (8866128975287528, -8778405442862239, -2736111468807040).</script>
     </span>
 This was found in 2019 by Andrew Booker. See 
     <a href="https://people.maths.bris.ac.uk/~maarb/papers/cubesv1.pdf" rel="noreferrer">https://people.maths.bris.ac.uk/~maarb/papers/cubesv1.pdf</a> and 
@@ -393,7 +391,7 @@ This was found in 2019 by Andrew Booker. See
   </p>
 </div>
 `.trim();
-  const actual = toMd(toHtml(el(html)));
+  const actual = toMd(el(html));
   // console.log(actual);
   const expected = `
 For an integer \\(n\\), let's seek integral solutions of \\(x^3 + y^3 + z^3 = n\\).

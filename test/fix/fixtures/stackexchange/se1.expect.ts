@@ -1,13 +1,14 @@
 import type { SESidecar } from '../../se.test';
 
 export default {
-  baseUrl: 'https://stackoverflow.com/questions/1108842/why-is-a-linear-transformation-a-1-1-tensor',
+  baseUrl: 'https://math.stackexchange.com/questions/1108842/why-is-a-linear-transformation-a-1-1-tensor',
   expect: {
-    permalink: 'https://stackoverflow.com/questions/1108842/why-is-a-linear-transformation-a-1-1-tensor',
+    permalink: 'https://math.stackexchange.com/questions/1108842/why-is-a-linear-transformation-a-1-1-tensor',
+    title: 'Why is a linear transformation a (1,1)(1,1)(1,1) tensor?',
     posts: [
       {
-        bodyHtml: '<DIV>\n                \n<P><A href="http://en.wikipedia.org/wiki/Tensor',
-        bodyMd: '[](http://en.wikipedia.org/wiki/Tensor) says that a linear tr',
+        bodyHtml: '<div>\n                \n<p><a href="http://en.wikipedia.org/wiki/Tensor',
+        bodyMd: '[](http://en.wikipedia.org/wiki/Tensor) says that a linear transformat',
         contributors: [
           {
             contributorType: 'editor',
@@ -28,7 +29,7 @@ export default {
         ],
         comments: [
           {
-            bodyHtml: '<SPAN>It would be helpful if you told us what definition exactly you h',
+            bodyHtml: '<span>It would be helpful if you told us what definition exactly you h',
             bodyMd: 'It would be helpful if you told us what definition exactly you have of',
             contributors: [
               {
@@ -43,7 +44,7 @@ export default {
             vote: 1,
           },
           {
-            bodyHtml: '<SPAN>@MarianoSuárez-Alvarez I would define it as a element of the vec',
+            bodyHtml: '<span>@MarianoSuárez-Alvarez I would define it as a element of the vec',
             bodyMd: '@MarianoSuárez-Alvarez I would define it as a element of the vector sp',
             contributors: [
               {
@@ -58,7 +59,7 @@ export default {
             vote: 3,
           },
           {
-            bodyHtml: "<SPAN>Note that I've added a note to that Wikipedia statement now...</",
+            bodyHtml: "<span>Note that I've added a note to that Wikipedia statement now...</",
             bodyMd: "Note that I've added a note to that Wikipedia statement now...",
             contributors: [
               {
@@ -73,7 +74,7 @@ export default {
             vote: 1,
           },
           {
-            bodyHtml: "<SPAN>After tangling a bit on the Wikipedia's article talk page I've d",
+            bodyHtml: "<span>After tangling a bit on the Wikipedia's article talk page I've d",
             bodyMd: "After tangling a bit on the Wikipedia's article talk page I've discove",
             contributors: [
               {
@@ -91,7 +92,7 @@ export default {
         vote: 30,
       },
       {
-        bodyHtml: "<DIV>\n<P>It's very common in tensor analysis to associate endomorphism",
+        bodyHtml: "<div>\n<p>It's very common in tensor analysis to associate endomorphism",
         bodyMd: "It's very common in tensor analysis to associate endomorphisms on a ve",
         contributors: [
           {
@@ -113,7 +114,7 @@ export default {
         ],
         comments: [
           {
-            bodyHtml: "<SPAN>N.B.: This proof is addressing the 2nd part of the OP's question",
+            bodyHtml: "<span>N.B.: This proof is addressing the 2nd part of the OP's question",
             bodyMd: "N.B.: This proof is addressing the 2nd part of the OP's question. I'm ",
             contributors: [
               {
@@ -128,7 +129,7 @@ export default {
             vote: 0,
           },
           {
-            bodyHtml: '<SPAN>Also, this result can be stated more generally for a tensor prod',
+            bodyHtml: '<span>Also, this result can be stated more generally for a tensor prod',
             bodyMd: 'Also, this result can be stated more generally for a tensor product of',
             contributors: [
               {
@@ -143,7 +144,7 @@ export default {
             vote: 0,
           },
           {
-            bodyHtml: '<SPAN>Also your proof (of surjectivity) does not hold for an infinite-',
+            bodyHtml: '<span>Also your proof (of surjectivity) does not hold for an infinite-',
             bodyMd: 'Also your proof (of surjectivity) does not hold for an infinite-dimens',
             contributors: [
               {
@@ -158,7 +159,7 @@ export default {
             vote: 2,
           },
           {
-            bodyHtml: '<SPAN>Is there a way to prove this without involving the basis?</SPAN>',
+            bodyHtml: '<span>Is there a way to prove this without involving the basis?</span>',
             bodyMd: 'Is there a way to prove this without involving the basis?',
             contributors: [
               {
@@ -176,8 +177,8 @@ export default {
         vote: 20,
       },
       {
-        bodyHtml: '<DIV>\n<P>Let <math data-xlet="" display="inline">T : V \\mapsto W</math>.  Then define <math data-xlet="" display="inline">\\tau: V ',
-        bodyMd: 'Let \\(T : V \\mapsto W\\). Then define \\(\\tau: V \\times W^*',
+        bodyHtml: '<div>\n<p>Let <code class="xlet-math-tex xlet-math-inline">T : V \\mapsto W</code>.  Then',
+        bodyMd: 'Let \\(T : V \\mapsto W\\). Then define \\(\\tau: V \\times W^* \\mapsto K\\) ',
         contributors: [
           {
             contributorType: 'author',
@@ -190,7 +191,7 @@ export default {
         ],
         comments: [
           {
-            bodyHtml: '<SPAN>Bilinear (and multilinear) maps can be linearized. This is in fa',
+            bodyHtml: '<span>Bilinear (and multilinear) maps can be linearized. This is in fa',
             bodyMd: 'Bilinear (and multilinear) maps can be linearized. This is in fact how',
             contributors: [
               {
@@ -205,7 +206,7 @@ export default {
             vote: 0,
           },
           {
-            bodyHtml: '<SPAN>And one more terminology issues worth mentioning here is that a ',
+            bodyHtml: '<span>And one more terminology issues worth mentioning here is that a ',
             bodyMd: 'And one more terminology issues worth mentioning here is that a the te',
             contributors: [
               {
@@ -220,7 +221,7 @@ export default {
             vote: 1,
           },
           {
-            bodyHtml: "<SPAN>Just to prove that there's an exception to every rule, the Handb",
+            bodyHtml: "<span>Just to prove that there's an exception to every rule, the Handb",
             bodyMd: "Just to prove that there's an exception to every rule, the Handbook of",
             contributors: [
               {
@@ -235,7 +236,7 @@ export default {
             vote: 0,
           },
           {
-            bodyHtml: '<SPAN>And there are physics books that adopt this terminology too. E.g',
+            bodyHtml: '<span>And there are physics books that adopt this terminology too. E.g',
             bodyMd: 'And there are physics books that adopt this terminology too. E.g. *Geo',
             contributors: [
               {
@@ -250,8 +251,8 @@ export default {
             vote: 0,
           },
           {
-            bodyHtml: '<SPAN>Can the argument go both ways without assuming that <math data-xlet="" display="inline">W</mat',
-            bodyMd: 'Can the argument go both ways without assuming that \\(W\\) is ',
+            bodyHtml: '<span>Can the argument go both ways without assuming that <code class=',
+            bodyMd: 'Can the argument go both ways without assuming that \\(W\\) is reflexive',
             contributors: [
               {
                 contributorType: 'commenter',
@@ -268,7 +269,7 @@ export default {
         vote: 13,
       },
       {
-        bodyHtml: '<DIV>\n<P>To summarize as an answer what I wrote in various comments ab',
+        bodyHtml: '<div>\n<p>To summarize as an answer what I wrote in various comments ab',
         bodyMd: 'To summarize as an answer what I wrote in various comments above: firs',
         contributors: [
           {
@@ -290,7 +291,7 @@ export default {
         ],
         comments: [
           {
-            bodyHtml: '<SPAN>Why does Wikipedia say that a tensor T is a multi-linear map fro',
+            bodyHtml: '<span>Why does Wikipedia say that a tensor T is a multi-linear map fro',
             bodyMd: 'Why does Wikipedia say that a tensor T is a multi-linear map from V ⊗ ',
             contributors: [
               {

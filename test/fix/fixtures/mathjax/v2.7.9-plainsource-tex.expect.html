@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>v2.7.9-plainsource [tex]</title>
+  <style>
+.xlet-math-svg.xlet-math-inline {
+  display: inline-block;
+}
+.xlet-math-tex.xlet-math-block,
+.xlet-math-svg.xlet-math-block {
+  display: block;
+  text-align: center;
+}
+.xlet-math-mathml {
+  padding-top: 0.2em;
+  padding-bottom: 0.2em;
+}
+  </style>
+</head>
+<body>
+
+<div data-xlet-case="inline">
+  Inline TeX: <code class="xlet-math-tex xlet-math-inline">E = mc^2</code>.
+</div>
+
+<div data-xlet-case="block">
+  Display TeX:
+  <pre class="xlet-math-tex xlet-math-block"><code>\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}.</code></pre>
+</div>
+
+<div data-xlet-case="chem">
+  Chemistry:
+  <code class="xlet-math-tex xlet-math-inline">\ce{2H2 + O2 -&gt; 2H2O}</code>.
+</div>
+
+<div data-xlet-case="mathml">
+  MathML input:
+
+<math xmlns="http://www.w3.org/1998/Math/MathML" class="xlet-math-mathml xlet-math-inline">
+  <mrow>
+    <msup>
+      <mi>e</mi>
+      <mi>x</mi>
+    </msup>
+    <mo>=</mo>
+    <munder>
+      <mo>∑</mo>
+      <mrow>
+        <mi>n</mi>
+        <mo>=</mo>
+        <mn>0</mn>
+      </mrow>
+    </munder>
+    <mfrac>
+      <msup>
+        <mi>x</mi>
+        <mi>n</mi>
+      </msup>
+      <mrow>
+        <mi>n</mi>
+        <mo>!</mo>
+      </mrow>
+    </mfrac>
+  </mrow>
+</math>
+</div>
+
+
+
+
+
+</body>
+</html>

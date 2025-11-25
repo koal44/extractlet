@@ -39,7 +39,13 @@
   },
   "incognito": "split",
   "options_ui": {
-    "page": "options.html",
+    "page": "settings-page.html",
     "open_in_tab": true
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["run-normalize.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

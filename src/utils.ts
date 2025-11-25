@@ -1,5 +1,8 @@
-import type { HLevel } from './types/primitives';
-import { hasOfType, isNonEmptyString, isNumber } from './typing';
+import {
+  hasOfType, isArray, isBigInt, isBoolean, isDate, isError, isErrorEvent, isEvent,
+  isFunction, isMap, isNonEmptyString, isNumber, isObjectRecord, isPromise, isRegExp,
+  isSet, isString, isSymbol, isURL,
+} from './typing';
 
 type LogOptions = {
   isDebug?: boolean;
@@ -81,11 +84,59 @@ export function log(...args: unknown[]): void {
   }
 }
 
+// summarize unknown values for logging
+export function repr(obj: unknown, max = 80): string {
+  let out: string;
+  try {
+    if (obj === undefined) { out = 'undefined'; }
+    else if (obj === null) { out = 'null'; }
+    else if (isError(obj)) { out = `Error: ${obj.message}`; }
+    else if (isErrorEvent(obj)) { out = `ErrorEvent: ${obj.message}`; }
+    else if (isDate(obj)) { out = obj.toISOString(); }
+    else if (isBigInt(obj)) { out = `${obj}n`; }
+    else if (isSymbol(obj)) { out = String(obj); }
+    else if (isFunction(obj)) { out = `function ${obj.name || '<anonymous>'}()`; }
+    else if (isString(obj)) { out = obj; }
+    else if (isNumber(obj)) { out = String(obj); }
+    else if (isBoolean(obj)) { out = String(obj); }
+    else if (isArray(obj)) { out = `Array(len=${obj.length})`; }
+    else if (isMap(obj)) { out = `Map(size=${obj.size})`; }
+    else if (isSet(obj)) { out = `Set(size=${obj.size})`; }
+    else if (isPromise(obj)) { out = 'Promise'; }
+    else if (isURL(obj)) { out = `URL(${obj.href})`; }
+    else if (isRegExp(obj)) { out = obj.toString(); }
+    else if (isEvent(obj)) { out = `Event(type=${obj.type})`; }
+    else if (isDoc(obj)) { out = `Document(title="${obj.title}")`; }
+    else if (isNodeList(obj)) { out = `NodeList(len=${obj.length})`; }
+    else if (isElement(obj)) {
+      const tag = obj.tagName.toLowerCase();
+      const id = obj.id ? `#${obj.id}` : '';
+      out = `<${tag}${id}>`;
+    }
+    else if (isNode(obj)) {
+      out = obj.nodeType === Node.COMMENT_NODE
+        ? 'CommentNode'
+        : `[${obj.nodeName} type=${obj.nodeType}]`;
+    }
+    else if (isObjectRecord(obj)) {
+      const ctor = obj.constructor.name;
+      const name = ctor && ctor !== 'Object' ? ctor : 'Object';
+      const content = `${name}(${Object.keys(obj).join(',')}`;
+      out = `${content.length + 1 > max ? `${content.slice(0, max - 2)  }…` : content})`;
+    }
+    else { out = typeof obj; }
+  } catch {
+    return '<uninspectable>';
+  }
+
+  return out.length > max ? `${out.slice(0, max - 1)}…` : out;
+}
+
 type AttrValue = string | number | boolean | null | undefined;
 type HAttrs = Record<string, AttrValue | Document> & { __doc?: Document; };
 
-export function h<K extends keyof SVGElementTagNameMap>(tag: `svg:${K}`, attrs?: HAttrs, ...children: (string | Node | null)[]): SVGElementTagNameMap[K];
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs?: HAttrs, ...children: (string | Node | null)[]): HTMLElementTagNameMap[K];
+export function h<K extends keyof SVGElementTagNameMap>(tag: `svg:${K}`, attrs?: HAttrs, ...children: (string | Node | null)[]): SVGElementTagNameMap[K];
 export function h<K extends keyof MathMLElementTagNameMap>(tag: `math:${K}`, attrs?: HAttrs, ...children: (string | Node | null)[]): MathMLElementTagNameMap[K];
 export function h(
   tag: string, // e.g. 'div', 'svg:circle', 'math:mi'
@@ -103,8 +154,8 @@ export function h(
   for (const [key, value] of Object.entries(attrs)) {
     if (key === '__doc') continue;
     // assert value is AttrValue
-    if (typeof value === 'object' && isDoc(value)) {
-      console.warn('Ignoring document attribute in h():', value);
+    if (isDoc(value)) {
+      console.warn(`[xlet] h(): ignoring document value for attr "${key}" on <${tag}>`);
       continue;
     }
 
@@ -146,20 +197,29 @@ export function escapeHtml(html: string): string {
   ));
 }
 
-export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(
-  html: string, tag: K, doc: Document = document
-): HTMLElementTagNameMap[K] | null {
+export function htmlToElementK<K extends keyof MathMLElementTagNameMap>(html: string, tag: `math:${K}`, doc?: Document): MathMLElementTagNameMap[K] | null;
+export function htmlToElementK<K extends keyof SVGElementTagNameMap>(html: string, tag: `svg:${K}`, doc?: Document): SVGElementTagNameMap[K] | null;
+export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(html: string, tag: K, doc?: Document): HTMLElementTagNameMap[K] | null;
+export function htmlToElementK(
+  html: string, tag: string, doc: Document = document
+): Element | null {
   const template = doc.createElement('template');
   template.innerHTML = html.trim();
   if (template.content.children.length !== 1) {
     // throw new Error(`html must contain exactly one element: ${html}`);
-    console.warn(`html must contain exactly one element: ${html.slice(0, 1000)}`);
+    // return warn(null, `[xlet] html must contain exactly one element: ${html.slice(0, 1000)}`);
     return null;
   }
-  const el = template.content.firstElementChild as HTMLElementTagNameMap[K];
-  if (el.tagName.toLowerCase() !== tag.toLowerCase()) {
+  const el = template.content.firstElementChild;
+
+  const expectedTag =
+    tag.startsWith('math:') ? tag.slice(5) :
+    tag.startsWith('svg:') ? tag.slice(4) :
+    tag;
+
+  if (el?.tagName.toLowerCase() !== expectedTag.toLowerCase()) {
     // throw new Error(`No element found for tag ${tag} in HTML: ${html}`);
-    console.warn(`No element found for tag ${tag} in HTML: ${html.slice(0, 1000)}`);
+    // warn(null, `[xlet] No element found for tag ${tag} in HTML: ${html.slice(0, 1000)}`);
     return null;
   }
   return el;
@@ -171,7 +231,7 @@ export function htmlToElement(str?: string, doc: Document = document): Element |
   template.innerHTML = str.trim();
   if (template.content.children.length !== 1) {
     // throw new Error(`html must contain exactly one element: ${html}`);
-    console.warn(`html must contain exactly one element: ${str.slice(0, 1000)}`);
+    // return warn(null, `[xlet] html must contain exactly one element: ${str.slice(0, 1000)}`);
     return null;
   }
   return template.content.firstElementChild;
@@ -223,26 +283,7 @@ export function toPascalCaseI18n(str: string, keepAcronyms = false) {
     .join('') ?? '';
 }
 
-export function warn(...args: Parameters<typeof console.warn>): void {
-  console.warn(...args);
-}
-
-export function warnNull(...args: Parameters<typeof console.warn>): null {
-  console.warn(...args);
-  return null;
-}
-
-export function warnTrue(...args: Parameters<typeof console.warn>): true {
-  console.warn(...args);
-  return true;
-}
-
-export function warnFalse(...args: Parameters<typeof console.warn>): false {
-  console.warn(...args);
-  return false;
-}
-
-export function warnReturn<T>(val: T, ...args: Parameters<typeof console.warn>): T {
+export function warn<T>(val: T, ...args: Parameters<typeof console.warn>): T {
   console.warn(...args);
   return val;
 }
@@ -259,8 +300,21 @@ export function injectCss(
   doc.head.appendChild(style);
 }
 
-type MultiToggleDiv = HTMLDivElement & {
+export type MultiToggleDiv = HTMLDivElement & {
   init: () => void;
+  setState: (newState: number, opts?: { silent?: boolean; }) => void;
+  getLabels: () => readonly string[];
+  getState: () => number;
+}
+
+export function isMultToggleDiv(x: unknown): x is MultiToggleDiv {
+  return (
+    isDiv(x) &&
+    hasOfType(x, 'init', isFunction) &&
+    hasOfType(x, 'setState', isFunction) &&
+    hasOfType(x, 'getLabels', isFunction) &&
+    hasOfType(x, 'getState', isFunction)
+  );
 }
 
 export function createMultiToggle(
@@ -287,17 +341,23 @@ export function createMultiToggle(
     ? h('div', { class: 'multi-toggle' }, stateLabel, switchBody) as MultiToggleDiv
     : h('div', { class: 'multi-toggle' }, switchBody, stateLabel) as MultiToggleDiv;
 
-  const setState = (newState: number): void => {
+  const setState = (newState: number, opts: { silent?: boolean; } = {}): void => {
+    if (newState < 0 || newState >= labels.length) {
+      return warn(undefined, `[xlet:toggle] Invalid multi-toggle state: ${newState}`);
+    }
+    if (newState === state) return; // nothing to do
     state = newState;
     const knobProgress = labels.length === 1 ? 0 : newState / (labels.length - 1);
     wrapper.style.setProperty('--knob-progress', `${knobProgress}`);
     stateLabel.textContent = labels[newState];
-    onToggle?.(newState);
+    if (!opts.silent) onToggle?.(newState);
   };
 
-  let state = initState;
-  wrapper.init = () => { setState(initState); };
-  //setState(state);
+  let state = -1;
+  wrapper.init = () => { setState(initState, { silent: false }); };
+  wrapper.setState = setState;
+  wrapper.getLabels = () => labels;
+  wrapper.getState = () => state;
 
   checkbox.addEventListener('change', () => {
     setState((state + 1) % labels.length);
@@ -307,6 +367,8 @@ export function createMultiToggle(
   checkbox.addEventListener('click', (ev: MouseEvent | PointerEvent) => {
     if (ev.target === checkbox && ev.detail === 0) ev.stopPropagation();
   });
+
+  // wrapper.init(); // auto initialize state
 
   return wrapper;
 }
@@ -454,7 +516,7 @@ export function createCopyButton(
         }, 1000);
       } catch (err) {
         alert('Failed to copy content.');
-        console.error('Copy error:', err);
+        console.error(`[xlet:button] Copy error: ${repr(err)}`);
       }
     })();
   });
@@ -486,192 +548,224 @@ export function createCopyButton(
 //   return obj;
 // }
 
-export function isNode(x: any): x is Node {
+
+/*
+  Avoid if possible and use elem.style.setProperty(key, value) directly.
+
+  This helper exists mainly for environments where some elements
+  (e.g. MathML elements in jsdom) claim to implement ElementCSSInlineStyle
+  type-wise but do not actually provide a working CSSStyleDeclaration at runtime.
+
+  See: https://github.com/jsdom/jsdom/issues/3515
+*/
+export function addStyle(elem: HTMLElement | SVGElement | MathMLElement, key: string, value: string) {
+  const style = elem.style as CSSStyleDeclaration | undefined; // don't let jsdom fool us!
+  if (style && typeof style.setProperty === 'function') {
+    style.setProperty(key, value);
+    return;
+  }
+
+  // Fallback for elements that don't implement CSSStyleDeclaration properly
+  // piggybacking is easier than parsing!
+  const proxy = h('div', { style: elem.getAttribute('style') ?? '' });
+  proxy.style.setProperty(key, value);
+  elem.setAttribute('style', proxy.getAttribute('style') ?? '');
+}
+
+export function isNode(x: unknown): x is Node {
   return !!x && typeof x === 'object'
     && hasOfType(x, 'nodeType', isNumber) && hasOfType(x, 'nodeName', isNonEmptyString);
 }
-export function isElement(node?: Node | null): node is Element {
-  return !!node && node.nodeType === Node.ELEMENT_NODE;
+export function isElement(x: unknown): x is Element {
+  return isNode(x) && x.nodeType === Node.ELEMENT_NODE;
 }
-export function isText(node?: Node | null): node is Text {
-  return !!node && node.nodeType === Node.TEXT_NODE;
+export function isText(x: unknown): x is Text {
+  return isNode(x) && x.nodeType === Node.TEXT_NODE;
 }
-export function isComment(node?: Node | null): node is Comment {
-  return !!node && node.nodeType === Node.COMMENT_NODE;
+export function isComment(x: unknown): x is Comment {
+  return isNode(x) && x.nodeType === Node.COMMENT_NODE;
 }
-export function isDoc(node?: Node | null): node is Document {
-  return !!node && node.nodeType === Node.DOCUMENT_NODE;
+export function isDoc(x: unknown): x is Document {
+  return isNode(x) && x.nodeType === Node.DOCUMENT_NODE;
 }
-export function isDocFrag(node?: Node | null): node is DocumentFragment {
-  return !!node && node.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
+export function isDocFrag(x: unknown): x is DocumentFragment {
+  return isNode(x) && x.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
 }
-export function isHTML(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.namespaceURI === 'http://www.w3.org/1999/xhtml';
+export function isNodeList(x: unknown): x is NodeList {
+  return !!x && typeof x === 'object'
+    && Object.prototype.toString.call(x) === '[object NodeList]';
 }
-export function isSVG(node?: Node | null): node is SVGElement {
-  return !!node && isElement(node) && node.namespaceURI === 'http://www.w3.org/2000/svg';
+export function isHtmlCollection(x: unknown): x is HTMLCollection {
+  return !!x && typeof x === 'object'
+    && Object.prototype.toString.call(x) === '[object HTMLCollection]';
 }
-export function isMathML(node?: Node | null): node is MathMLElement {
-  return !!node && isElement(node) && node.namespaceURI === 'http://www.w3.org/1998/Math/MathML';
+export function isHTML(x: unknown): x is HTMLElement {
+  return isElement(x) && x.namespaceURI === 'http://www.w3.org/1999/xhtml';
 }
-export function isDiv(node?: Node | null): node is HTMLDivElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'DIV';
+export function isSVG(x: unknown): x is SVGElement {
+  return isElement(x) && x.namespaceURI === 'http://www.w3.org/2000/svg';
 }
-export function isStyle(node?: Node | null): node is HTMLStyleElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'STYLE';
+export function isMathML(x: unknown): x is MathMLElement {
+  return isElement(x) && x.namespaceURI === 'http://www.w3.org/1998/Math/MathML';
 }
-export function isScript(node?: Node | null): node is HTMLScriptElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'SCRIPT';
+export function isDiv(x: unknown): x is HTMLDivElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'DIV';
 }
-export function isSpan(node?: Node | null): node is HTMLSpanElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'SPAN';
+export function isStyle(x: unknown): x is HTMLStyleElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'STYLE';
 }
-export function isOList(node?: Node | null): node is HTMLOListElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'OL';
+export function isScript(x: unknown): x is HTMLScriptElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'SCRIPT';
 }
-export function isUList(node?: Node | null): node is HTMLUListElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'UL';
+export function isSpan(x: unknown): x is HTMLSpanElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'SPAN';
 }
-export function isListItem(node?: Node | null): node is HTMLLIElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'LI';
+export function isOList(x: unknown): x is HTMLOListElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'OL';
 }
-export function isHeading(node?: Node | null): node is HTMLHeadingElement {
-  return !!node && isElement(node) && /^H[1-6]$/.test(node.tagName.toUpperCase());
+export function isUList(x: unknown): x is HTMLUListElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'UL';
 }
-export function isParagraph(node?: Node | null): node is HTMLParagraphElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'P';
+export function isListItem(x: unknown): x is HTMLLIElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'LI';
 }
-export function isAnchor(node?: Node | null): node is HTMLAnchorElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'A';
+export function isHeading(x: unknown): x is HTMLHeadingElement {
+  return isElement(x) && /^H[1-6]$/.test(x.tagName.toUpperCase());
 }
-export function isImage(node?: Node | null): node is HTMLImageElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'IMG';
+export function isParagraph(x: unknown): x is HTMLParagraphElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'P';
 }
-export function isBreak(node?: Node | null): node is HTMLBRElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'BR';
+export function isAnchor(x: unknown): x is HTMLAnchorElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'A';
 }
-export function isFigure(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'FIGURE';
+export function isImage(x: unknown): x is HTMLImageElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'IMG';
 }
-export function isInput(node?: Node | null): node is HTMLInputElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'INPUT';
+export function isBreak(x: unknown): x is HTMLBRElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'BR';
 }
-export function isButton(node?: Node | null): node is HTMLButtonElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'BUTTON';
+export function isFigure(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'FIGURE';
 }
-export function isSelect(node?: Node | null): node is HTMLSelectElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'SELECT';
+export function isInput(x: unknown): x is HTMLInputElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'INPUT';
 }
-export function isTextArea(node?: Node | null): node is HTMLTextAreaElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'TEXTAREA';
+export function isButton(x: unknown): x is HTMLButtonElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'BUTTON';
 }
-export function isTable(node?: Node | null): node is HTMLTableElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'TABLE';
+export function isSelect(x: unknown): x is HTMLSelectElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'SELECT';
 }
-export function isTableRow(node?: Node | null): node is HTMLTableRowElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'TR';
+export function isTextArea(x: unknown): x is HTMLTextAreaElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'TEXTAREA';
 }
-export function isTableCell(node?: Node | null): node is HTMLTableCellElement {
-  return !!node && isElement(node) && (node.tagName.toUpperCase() === 'TD');
+export function isTable(x: unknown): x is HTMLTableElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'TABLE';
 }
-export function isTableHeader(node?: Node | null): node is HTMLTableCellElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'TH';
+export function isTableRow(x: unknown): x is HTMLTableRowElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'TR';
 }
-export function isTableBody(node?: Node | null): node is HTMLTableSectionElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'TBODY';
+export function isTableCell(x: unknown): x is HTMLTableCellElement {
+  return isElement(x) && (x.tagName.toUpperCase() === 'TD');
 }
-export function isTableHead(node?: Node | null): node is HTMLTableSectionElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'THEAD';
+export function isTableHeader(x: unknown): x is HTMLTableCellElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'TH';
 }
-export function isTableFoot(node?: Node | null): node is HTMLTableSectionElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'TFOOT';
+export function isTableBody(x: unknown): x is HTMLTableSectionElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'TBODY';
 }
-export function isFieldset(node?: Node | null): node is HTMLFieldSetElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'FIELDSET';
+export function isTableHead(x: unknown): x is HTMLTableSectionElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'THEAD';
 }
-export function isLegend(node?: Node | null): node is HTMLLegendElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'LEGEND';
+export function isTableFoot(x: unknown): x is HTMLTableSectionElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'TFOOT';
 }
-export function isLabel(node?: Node | null): node is HTMLLabelElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'LABEL';
+export function isFieldset(x: unknown): x is HTMLFieldSetElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'FIELDSET';
 }
-export function isNav(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'NAV';
+export function isLegend(x: unknown): x is HTMLLegendElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'LEGEND';
 }
-export function isHeader(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'HEADER';
+export function isLabel(x: unknown): x is HTMLLabelElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'LABEL';
 }
-export function isFooter(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'FOOTER';
+export function isNav(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'NAV';
 }
-export function isSection(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'SECTION';
+export function isHeader(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'HEADER';
 }
-export function isArticle(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'ARTICLE';
+export function isFooter(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'FOOTER';
 }
-export function isAside(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'ASIDE';
+export function isSection(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'SECTION';
 }
-export function isMain(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'MAIN';
+export function isArticle(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'ARTICLE';
 }
-export function isDetails(node?: Node | null): node is HTMLDetailsElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'DETAILS';
+export function isAside(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'ASIDE';
 }
-export function isDialog(node?: Node | null): node is HTMLDialogElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'DIALOG';
+export function isMain(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'MAIN';
 }
-export function isCanvas(node?: Node | null): node is HTMLCanvasElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'CANVAS';
+export function isDetails(x: unknown): x is HTMLDetailsElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'DETAILS';
 }
-export function isVideo(node?: Node | null): node is HTMLVideoElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'VIDEO';
+export function isDialog(x: unknown): x is HTMLDialogElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'DIALOG';
 }
-export function isAudio(node?: Node | null): node is HTMLAudioElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'AUDIO';
+export function isCanvas(x: unknown): x is HTMLCanvasElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'CANVAS';
 }
-export function isIFrame(node?: Node | null): node is HTMLIFrameElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'IFRAME';
+export function isVideo(x: unknown): x is HTMLVideoElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'VIDEO';
 }
-export function isEmbed(node?: Node | null): node is HTMLEmbedElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'EMBED';
+export function isAudio(x: unknown): x is HTMLAudioElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'AUDIO';
 }
-export function isObject(node?: Node | null): node is HTMLObjectElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'OBJECT';
+export function isIFrame(x: unknown): x is HTMLIFrameElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'IFRAME';
 }
-export function isMap(node?: Node | null): node is HTMLMapElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'MAP';
+export function isEmbed(x: unknown): x is HTMLEmbedElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'EMBED';
 }
-export function isArea(node?: Node | null): node is HTMLAreaElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'AREA';
+export function isObject(x: unknown): x is HTMLObjectElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'OBJECT';
 }
-export function isForm(node?: Node | null): node is HTMLFormElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'FORM';
+export function isHtmlMap(x: unknown): x is HTMLMapElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'MAP';
 }
-export function isFieldSet(node?: Node | null): node is HTMLFieldSetElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'FIELDSET';
+export function isArea(x: unknown): x is HTMLAreaElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'AREA';
 }
-export function isList(node?: Node | null): node is HTMLUListElement | HTMLOListElement {
-  return !!node && isUList(node) || isOList(node);
+export function isForm(x: unknown): x is HTMLFormElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'FORM';
 }
-export function isPre(node?: Node | null): node is HTMLPreElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'PRE';
+export function isFieldSet(x: unknown): x is HTMLFieldSetElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'FIELDSET';
 }
-export function isCode(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'CODE';
+export function isList(x: unknown): x is HTMLUListElement | HTMLOListElement {
+  return !!x && isUList(x) || isOList(x);
 }
-export function isBlockquote(node?: Node | null): node is HTMLQuoteElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'BLOCKQUOTE';
+export function isPre(x: unknown): x is HTMLPreElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'PRE';
 }
-export function isCustom(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.includes('-');
+export function isCode(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'CODE';
 }
-export function isSup(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'SUP';
+export function isBlockquote(x: unknown): x is HTMLQuoteElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'BLOCKQUOTE';
 }
-export function isSub(node?: Node | null): node is HTMLElement {
-  return !!node && isElement(node) && node.tagName.toUpperCase() === 'SUB';
+export function isCustom(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.includes('-');
+}
+export function isSup(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'SUP';
+}
+export function isSub(x: unknown): x is HTMLElement {
+  return isElement(x) && x.tagName.toUpperCase() === 'SUB';
 }
 
 export function levenshteinSimilarity(a: string, b: string): number {
@@ -804,10 +898,11 @@ export function alphaLabel(idx1: number): string {
   return s;
 }
 
+export type HLevel = 1 | 2 | 3 | 4 | 5 | 6;
 export function parseHeadingLevel(el: HTMLHeadingElement): HLevel {
   const n = parseInt(el.tagName.slice(1), 10);
   if (n < 1 || n > 6 || !Number.isInteger(n)) {
-    console.warn(`[WikiNode] invalid heading level: ${el.tagName}`);
+    console.warn(`[xlet:wiki-node] invalid heading level: ${el.tagName}`);
     return Math.min(6, Math.max(1, Math.trunc(n))) as HLevel;
   }
   return n as HLevel;

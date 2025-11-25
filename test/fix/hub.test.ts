@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { extractFromDoc, HubResult } from '../../src/sites/hub';
+import type { HubResult } from '../../src/sites/hub';
+import { extractFromDoc } from '../../src/sites/hub';
 import { setupDom } from '../utils/test-utils';
 import { join } from 'node:path';
-import { BaseSidecar, loadFixtures } from './fix';
+import type { BaseSidecar } from './fix';
+import { loadFixtures } from './fix';
 
 // defines global.document, global.window, etc
 setupDom();

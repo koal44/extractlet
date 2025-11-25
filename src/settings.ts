@@ -1,10 +1,11 @@
 import browser from 'webextension-polyfill';
-import {
-  DefaultToHtmlContext, DefaultToMdContext,
+import type {
   BrMode, MathFenceStyle, MathView,
   ToMdContext, ToHtmlContext,
 } from './core';
-import { isBoolean, isString, Permutations } from './typing';
+import { DefaultToHtmlContext, DefaultToMdContext } from './core';
+import type { Permutations } from './typing';
+import { isBoolean, isString } from './typing';
 import { warn } from './utils';
 
 type SpecValueType = string | boolean | number;
@@ -14,7 +15,7 @@ type BoolSettingSpec = {
   kind: 'boolean';
   settingLabel: string;
   ctx: ContextKind;
-  preview: string;
+  preview: (() => Promise<string>) | (() => string);
   values: readonly boolean[];
   valueLabels: readonly string[];
   coerce(val: unknown): boolean;
@@ -23,13 +24,13 @@ type StringSettingSpec = {
   kind: 'string';
   settingLabel: string;
   ctx: ContextKind;
-  preview: string;
+  preview: (() => Promise<string>) | (() => string);
   values: readonly string[];
   valueLabels: readonly string[];
   coerce(val: unknown): string;
 };
 
-export type SettingSpec = BoolSettingSpec | StringSettingSpec;
+type SettingSpec = BoolSettingSpec | StringSettingSpec;
 
 type AllowedSettingKey = keyof typeof DefaultToMdContext | keyof typeof DefaultToHtmlContext;
 
@@ -39,7 +40,7 @@ export const XLET_SETTINGS = {
     valueLabels: ['Keep', 'Remove'] as const,
     settingLabel: 'Redundant text in links/images',
     ctx: 'markdown',
-    preview: '<a href="https://example.com/all_about_cats" title="All About Cats">Cats!</a>',
+    preview: () => '<a href="https://example.com/all_about_cats" title="All About Cats">Cats!</a>',
     fallback: DefaultToMdContext.filterRedundantLabels,
   }),
   filterGenericLabels: boolSpec({
@@ -47,7 +48,7 @@ export const XLET_SETTINGS = {
     valueLabels: ['Keep', 'Remove'] as const,
     settingLabel: 'Generic text in links/images',
     ctx: 'markdown',
-    preview: '<a href="https://example.com/">Click here</a>',
+    preview: () => '<a href="https://example.com/">Click here</a>',
     fallback: DefaultToMdContext.filterGenericLabels,
   }),
   mathFence: stringSpec({
@@ -56,7 +57,7 @@ export const XLET_SETTINGS = {
     fallback: DefaultToMdContext.mathFence,
     settingLabel: 'Math delimiters',
     ctx: 'markdown',
-    preview: '<math data-xlet display="block">ax^2 + bx + c = 0</math>',
+    preview: () => '<mjx-container class="MathJax" data-xlet-tex="ax^2 + bx + c = 0" display="true" data-xlet-mathml="boo!"></mjx-container>',
   }),
   brMode: stringSpec({
     values: ['escape', 'hard', 'soft'] as const satisfies Permutations<BrMode>,
@@ -64,25 +65,40 @@ export const XLET_SETTINGS = {
     fallback: DefaultToMdContext.brMode,
     settingLabel: 'Line breaks',
     ctx: 'markdown',
-    preview: '<span>Line abc<br />Line abc<br />Line abc</span>',
+    preview: () => '<span>Line abc<br />Line abc<br />Line abc</span>',
   }),
   mathView: stringSpec({
-    values: ['script', 'image', 'mathml'] as const satisfies Permutations<MathView>,
+    values: ['tex', 'svg', 'mathml'] as const satisfies Permutations<MathView>,
     valueLabels: ['TeX', 'SVG', 'MathML'] as const,
     fallback: DefaultToHtmlContext.mathView,
     settingLabel: 'Math source',
     ctx: 'html',
-    preview: getMathViewPreview(),
+    preview: () => loadSnippet('mathview-preview.html'),
   }),
 } as const satisfies Partial<Record<AllowedSettingKey, SettingSpec>>;
+
+async function loadSnippet(name: string): Promise<string> {
+  const url = browser.runtime.getURL(`snippets/${name}`);
+  const res = await fetch(url);
+  if (!res.ok) {
+    return warn('<div>error</div>', `[xlet:settings] Failed to load snippet "${name}" (${res.status})`);
+  }
+  return res.text();
+}
 
 export type XletSettingKey = keyof typeof XLET_SETTINGS;
 
 function boolSpec(
-  { values, valueLabels, fallback, settingLabel, ctx, preview }: { values: readonly boolean[]; valueLabels: readonly string[]; fallback: boolean; settingLabel: string; ctx: ContextKind; preview: string; }
+  { values, valueLabels, fallback, settingLabel, ctx, preview }:
+  { values: readonly boolean[];
+    valueLabels: readonly string[];
+    fallback: boolean;
+    settingLabel: string;
+    ctx: ContextKind;
+    preview: (() => Promise<string>) | (() => string); }
 ): BoolSettingSpec {
-  if (values.length !== valueLabels.length) console.warn(`val/labels mismatch for "${settingLabel}"`);
-  if (!values.includes(fallback)) console.warn(`"${fallback}" is not in values [${values.join(', ')}]`);
+  if (values.length !== valueLabels.length) console.warn(`[xlet:settings] val/labels mismatch for "${settingLabel}"`);
+  if (!values.includes(fallback)) console.warn(`[xlet:settings] "${fallback}" is not in values [${values.join(', ')}]`);
   return {
     kind: 'boolean',
     values, valueLabels, settingLabel, ctx, preview,
@@ -91,10 +107,16 @@ function boolSpec(
 }
 
 function stringSpec(
-  { values, valueLabels, fallback, settingLabel, ctx, preview }: { values: readonly string[]; valueLabels: readonly string[]; fallback: string; settingLabel: string; ctx: ContextKind; preview: string; }
+  { values, valueLabels, fallback, settingLabel, ctx, preview }:
+  { values: readonly string[];
+    valueLabels: readonly string[];
+    fallback: string;
+    settingLabel: string;
+    ctx: ContextKind;
+    preview: (() => Promise<string>) | (() => string); }
 ): StringSettingSpec {
-  if (!values.includes(fallback)) console.warn(`"${fallback}" is not in values [${values.join(', ')}]`);
-  if (values.length !== valueLabels.length) console.warn(`val/labels mismatch for "${settingLabel}"`);
+  if (!values.includes(fallback)) console.warn(`[xlet:settings] "${fallback}" is not in values [${values.join(', ')}]`);
+  if (values.length !== valueLabels.length) console.warn(`[xlet:settings] val/labels mismatch for "${settingLabel}"`);
   return {
     kind: 'string',
     values, valueLabels, settingLabel, ctx, preview,
@@ -103,18 +125,12 @@ function stringSpec(
 }
 
 export type XletSettings = Record<XletSettingKey, SpecValueType>;
-export function coerceSetting(key: XletSettingKey, val: unknown) {
+function coerceSetting(key: XletSettingKey, val: unknown) {
   return XLET_SETTINGS[key].coerce(val);
 }
-export function coerceSettings(raw: Record<string, unknown>): Partial<XletSettings> {
-  const out: Partial<XletSettings> = {};
-  for (const key of Object.keys(XLET_SETTINGS) as XletSettingKey[]) {
-    out[key] = coerceSetting(key, raw[key]);
-  }
-  return out;
-}
 
-export function settingsToContexts(settings: Partial<XletSettings>) {
+export type XletContexts = { md: Partial<ToMdContext>; html: Partial<ToHtmlContext>; };
+export function settingsToContexts(settings: Partial<XletSettings>): XletContexts {
   const mdCtx: Partial<ToMdContext> = {};
   const htmlCtx: Partial<ToHtmlContext> = {};
   for (const [key, optVal] of Object.entries(settings) as [XletSettingKey, SpecValueType][]) {
@@ -127,21 +143,21 @@ export function settingsToContexts(settings: Partial<XletSettings>) {
           case 'brMode': mdCtx.brMode = val as BrMode; break;
           case 'filterRedundantLabels': mdCtx.filterRedundantLabels = val as boolean; break;
           case 'filterGenericLabels': mdCtx.filterGenericLabels = val as boolean; break;
-          default: console.warn(`Unhandled markdown setting key "${String(key as never)}"`);
+          default: console.warn(`[xlet:settings] Unhandled markdown setting key "${String(key as never)}"`);
         }
         break;
       }
       case 'html': {
         switch (key) {
           case 'mathView': htmlCtx.mathView = val as MathView; break;
-          default: console.warn(`Unhandled HTML setting key "${String(key as never)}"`);
+          default: console.warn(`[xlet:settings] Unhandled HTML setting key "${String(key as never)}"`);
         }
         break;
       }
-      default: console.warn(`Unknown setting ctx for key "${String(key as never)}"`);
+      default: console.warn(`[xlet:settings] Unknown setting ctx for key "${String(key as never)}"`);
     }
   }
-  return { mdCtx, htmlCtx };
+  return { md: mdCtx, html: htmlCtx };
 }
 
 const areas: Partial<Record<'local' | 'sync' | 'managed', browser.Storage.StorageArea>> = {
@@ -149,6 +165,15 @@ const areas: Partial<Record<'local' | 'sync' | 'managed', browser.Storage.Storag
   sync:    browser.storage.sync,
   managed: browser.storage.managed,
 };
+
+export function coerceSettings(raw: Record<string, unknown>): Partial<XletSettings> {
+  const out: Partial<XletSettings> = {};
+  for (const key of Object.keys(XLET_SETTINGS) as XletSettingKey[]) {
+    if (!(key in raw)) continue;
+    out[key] = coerceSetting(key, raw[key]);
+  }
+  return out;
+}
 
 export async function loadSettings(): Promise<XletSettings> {
   const keys = Object.keys(XLET_SETTINGS) as XletSettingKey[];
@@ -163,7 +188,7 @@ export async function loadSettings(): Promise<XletSettings> {
   const sync    = coerceSettings(syncRaw);
   const managed = coerceSettings(managedRaw);
 
-  const defaults: XletSettings = Object.fromEntries(
+  const defaults = Object.fromEntries(
     Object.entries(XLET_SETTINGS).map(([k, spec]) => [k, spec.coerce(undefined)])
   ) as XletSettings;
 
@@ -172,7 +197,7 @@ export async function loadSettings(): Promise<XletSettings> {
 
 export async function saveSettings(patch: Partial<Record<XletSettingKey, unknown>>): Promise<void> {
   const area = areas.sync ?? areas.local;
-  if (!area) return warn('No storage area available');
+  if (!area) return console.warn('[xlet:settings] No storage area available');
 
   const coercedPatch = coerceSettings(patch);
   if (Object.keys(coercedPatch).length === 0) return;
@@ -181,8 +206,9 @@ export async function saveSettings(patch: Partial<Record<XletSettingKey, unknown
 }
 
 export function observeSettings(
-  onChange: (settings: XletSettings, patch: Partial<XletSettings>) => void
+  onChange: (settings: XletSettings, patch: Partial<XletSettings>) => Promise<void>
 ): () => void {
+  let last: XletSettings | null = null;
   const listener = (changes: Record<string, browser.Storage.StorageChange>, areaName: string) => {
     void (async () => {
       if (!['local', 'sync', 'managed'].includes(areaName)) return;
@@ -195,24 +221,24 @@ export function observeSettings(
       );
       if (Object.keys(newChanges).length === 0) return;
 
-      const patch = coerceSettings(newChanges);
-      const settings = await loadSettings();
-      onChange(settings, patch);
+      const next = await loadSettings();
+      const diff: Partial<XletSettings> = {};
+      for (const key of Object.keys(newChanges) as XletSettingKey[]) {
+        if (last?.[key] !== next[key]) {
+          diff[key] = next[key];
+        }
+      }
+      last = next;
+
+      if (Object.keys(diff).length === 0) return;
+      await onChange({ ...next }, { ...diff });
     })();
   };
 
   browser.storage.onChanged.addListener(listener);
 
-  // emit initial state
-  // const settings = await loadSettings();
-  // onChange(settings, {});
-
   return () => browser.storage.onChanged.removeListener(listener);
 }
-
-function getMathViewPreview() {
-  return `<p><mjx-container class="MathJax CtxtMenu_Attached_0" jax="CHTML" style="font-size: 117.4%; position: relative;" tabindex="0" ctxtmenu_counter="0"><mjx-math class="mwe-math-element mwe-math-element-inline MJX-TEX" aria-hidden="true"><mjx-texatom texclass="ORD"><mjx-mstyle><mjx-mi class="mjx-i"><mjx-c class="mjx-c1D438 TEX-I"></mjx-c></mjx-mi><mjx-mo class="mjx-n" space="4"><mjx-c class="mjx-c3D"></mjx-c></mjx-mo><mjx-mi class="mjx-i" space="4"><mjx-c class="mjx-c1D45A TEX-I"></mjx-c></mjx-mi><mjx-msup><mjx-mi class="mjx-i"><mjx-c class="mjx-c1D450 TEX-I"></mjx-c></mjx-mi><mjx-script style="vertical-align: 0.413em;"><mjx-texatom size="s" texclass="ORD"><mjx-mn class="mjx-n"><mjx-c class="mjx-c32"></mjx-c></mjx-mn></mjx-texatom></mjx-script></mjx-msup></mjx-mstyle></mjx-texatom></mjx-math><mjx-assistive-mml unselectable="on" display="inline"><mjx-container class="MathJax CtxtMenu_Attached_0" jax="CHTML" style="font-size: 117.2%; position: relative;" tabindex="0" ctxtmenu_counter="1"><mjx-math class="mwe-math-element mwe-math-element-inline MJX-TEX" aria-hidden="true"><mjx-texatom texclass="ORD"><mjx-mstyle><mjx-mi class="mjx-i"><mjx-c class="mjx-c1D438 TEX-I"></mjx-c></mjx-mi><mjx-mo class="mjx-n" space="4"><mjx-c class="mjx-c3D"></mjx-c></mjx-mo><mjx-mi class="mjx-i" space="4"><mjx-c class="mjx-c1D45A TEX-I"></mjx-c></mjx-mi><mjx-msup><mjx-mi class="mjx-i"><mjx-c class="mjx-c1D450 TEX-I"></mjx-c></mjx-mi><mjx-script style="vertical-align: 0.413em;"><mjx-texatom size="s" texclass="ORD"><mjx-mn class="mjx-n"><mjx-c class="mjx-c32"></mjx-c></mjx-mn></mjx-texatom></mjx-script></mjx-msup></mjx-mstyle></mjx-texatom></mjx-math><mjx-assistive-mml unselectable="on" display="inline"><math xmlns="http://www.w3.org/1998/Math/MathML" class="mwe-math-element mwe-math-element-inline"><mrow data-mjx-texclass="ORD"><mstyle displaystyle="true" scriptlevel="0"><mi>E</mi><mo stretchy="false">=</mo><mi>m</mi><msup><mi>c</mi><mrow data-mjx-texclass="ORD"><mn>2</mn></mrow></msup></mstyle></mrow></math></mjx-assistive-mml></mjx-container></mjx-assistive-mml></mjx-container></p>`;
-};
 
 // harder-to-maintain version that gives better typing for XletSettings
 //

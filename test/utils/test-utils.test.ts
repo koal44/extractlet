@@ -60,6 +60,14 @@ describe('htmlify()', () => {
     const expected = '<div style="--foo: bar; --size: 100px, width: var(--size); color: red;"></div>';
     strictEqual(actual, expected);
   });
+
+  test('drops indentation whitespace between block children', () => {
+    const node = el('<div>\n  <p>a</p>\n  <p>b</p>\n</div>');
+    strictEqual(
+      htmlify(node, { dropWsNodes: true }),
+      '<div><p>a</p><p>b</p></div>',
+    );
+  });
 });
 
 describe('htmlify() negative cases', () => {
@@ -85,6 +93,32 @@ describe('htmlify() negative cases', () => {
     const a = el('<input type="checkbox" checked="checked" />');
     const b = el('<input type="checkbox" />');
     notStrictEqual(htmlify(a), htmlify(b));
+  });
+});
+
+describe('htmlify() dropWsNodes', () => {
+  test('keeps pretty-print whitespace by default', () => {
+    const node = el('<div><span>a</span>\n  <span>b</span></div>');
+    strictEqual(
+      htmlify(node),
+      '<div><span>a</span>\n  <span>b</span></div>',
+    );
+  });
+
+  test('drops whitespace-only text nodes between elements when dropWsNodes is true', () => {
+    const node = el('<div><span>a</span>\n  <span>b</span></div>');
+    strictEqual(
+      htmlify(node, { dropWsNodes: true }),
+      '<div><span>a</span><span>b</span></div>',
+    );
+  });
+
+  test('does not touch mixed text content when dropWsNodes is true', () => {
+    const node = el('<p>a b</p>');
+    strictEqual(
+      htmlify(node, { dropWsNodes: true }),
+      '<p>a b</p>',
+    );
   });
 });
 
@@ -154,5 +188,28 @@ describe('assertNodeEqual — element vs string normalization', () => {
     const a = el('<div class="alpha beta">ok</div>');
     const b = '<div class="beta alpha">ok</div>';
     assertNodeEqual(a, b);
+  });
+
+  it('drops whitespace-only text nodes between elements when dropWsNodes=true', () => {
+    const a = el('<div><span>a</span>\n  <span>b</span></div>');
+    const b = '<div><span>a</span><span>b</span></div>';
+
+    // Should pass only when dropWsNodes is enabled
+    assertNodeEqual(a, b, { dropWsNodes: true });
+  });
+
+  it('preserves meaningful inline whitespace even when dropWsNodes=true', () => {
+    const a = el('<p>a b</p>');
+    const b = '<p>a b</p>';
+
+    // Must not collapse or trim the " " between a and b
+    assertNodeEqual(a, b, { dropWsNodes: true });
+  });
+
+  it('drops indentation whitespace between block-level children', () => {
+    const a = el('<div>\n  <p>a</p>\n  <p>b</p>\n</div>');
+    const b = '<div><p>a</p><p>b</p></div>';
+
+    assertNodeEqual(a, b, { dropWsNodes: true });
   });
 });

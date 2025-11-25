@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-properties */
+/* use: npm run printfix -- <hub|se|wiki> <fixture.html> [<STR>] [<ARR>] */
 import util from 'util';
 import { extractFromDoc as seExtraction } from '../src/sites/se.js';
 import { extractFromDoc as wikiExtraction } from '../src/sites/wiki.js';
@@ -35,7 +36,7 @@ void (function main() {
         throw new Error(`Unknown domain "${String(domain)}" (expected: hub | se | wiki)`);
     }
   } catch (err) {
-    console.error(err instanceof Error ? err.message : err);
+    console.error(err);
     process.exit(1);
   }
 })();
@@ -151,13 +152,14 @@ function runSe(fix: string, strLim = 70, arrLim = 5) {
   if (fix === '') return;
   const htmlPath = path.join(FIXTURES_DIR, 'stackexchange', fix);
 
-  const BASE = 'https://stackoverflow.com/questions/123456/example';
+  const BASE = 'https://example.com/questions/123456/example';
   const dom = readHtmlFile(htmlPath, { baseUrl: BASE });
   const res = seExtraction(dom); // SEResult
 
   if (!res) { console.log('No result extracted (se)'); return; }
 
   res.permalink = res.permalink || '???';
+  res.permalink = res.permalink.includes('example.com') ? '???' : res.permalink;
   const exp = {
     ...trimObj(res, { strLim, arrLim }),
   };

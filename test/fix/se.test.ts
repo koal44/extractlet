@@ -3,13 +3,13 @@ import { describe, it, expect } from 'vitest';
 import { extractFromDoc, type SEResult } from '../../src/sites/se';
 import { setupDom } from '../utils/test-utils';
 import { join } from 'node:path';
-import { BaseSidecar, loadFixtures } from './fix';
+import type { BaseSidecar } from './fix';
+import { loadFixtures } from './fix';
 
 // Boot JSDOM globals
 setupDom();
 
 type SEExpect = Partial<SEResult> & {
-  // optional convenience fields if your printfix ever adds them later
   totalPosts?: number;
 };
 export type SESidecar = BaseSidecar<SEExpect>;

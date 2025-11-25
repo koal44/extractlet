@@ -4,5 +4,7 @@ dist-ff/
 test/scratchpad.*
 **/gen/
 .env
-vendor/
 scratch/
+vendor/**
+!/vendor/_patches/
+!vendor/_patches/**

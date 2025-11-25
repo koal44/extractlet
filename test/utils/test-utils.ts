@@ -4,6 +4,7 @@ import {
   escapeHtml, isElement, isHTML, isNode, isText, log,
 } from '../../src/utils';
 import { execSync } from 'node:child_process';
+import { isString } from '../../src/typing';
 
 export function setupDom() {
   const dom = new JSDOM();
@@ -48,12 +49,17 @@ export function docEl(html: string, base?: string): Document {
   return doc;
 }
 
-export function assertNodeEqual(actual: Node | string | null, expected: Node | string | null) {
-  const asElement = (x: Node | string | null) => typeof x === 'string' ? el(x) : x;
-  const actualHtml = htmlify(asElement(actual));
-  const expectedHtml = htmlify(asElement(expected));
-
-  // strictEqual(actualHtml, expectedHtml);
+export function assertNodeEqual(
+  actual: Node | string | null,
+  expected: Node | string | null,
+  opts: {
+    dropWsNodes?: boolean;
+    trimBodyEnd?: boolean; // jsdom/parse5 may add extra whitespace at the end of <body>; trim it
+  } = { dropWsNodes: false, trimBodyEnd: false },
+): void {
+  const asElement = (x: Node | string | null) => isString(x) ? el(x) : x;
+  const actualHtml = htmlify(asElement(actual), opts);
+  const expectedHtml = htmlify(asElement(expected), opts);
 
   // throw custom AssertionError so that error points to caller rather than this function
   if (actualHtml !== expectedHtml) {
@@ -68,7 +74,13 @@ export function assertNodeEqual(actual: Node | string | null, expected: Node | s
   }
 }
 
-export function htmlify(el: Node | string | null | undefined): string {
+export function htmlify(
+  el: Node | string | null | undefined,
+  opts: {
+    dropWsNodes?: boolean;
+    trimBodyEnd?: boolean;
+  } = { dropWsNodes: false, trimBodyEnd: false },
+): string {
   if (el === null || el === undefined) return '';
   if (typeof el === 'string') return el;
   if (isElement(el)) {
@@ -99,11 +111,15 @@ export function htmlify(el: Node | string | null | undefined): string {
       attrs.push(`${name}="${val}"`);
     }
     const attrString = attrs.length ? ` ${attrs.join(' ')}` : '';
-    const children = [...el.childNodes].map((child) => htmlify(child)).join('');
+    let children = [...el.childNodes].map((child) => htmlify(child, opts)).join('');
+    if (opts.trimBodyEnd && tag === 'body') {
+      children = children.trimEnd();
+    }
     return `<${tag}${attrString}>${children}</${tag}>`;
   }
   if (isText(el)) {
-    return escapeHtml(el.textContent || '');
+    const raw = el.textContent ?? '';
+    return opts.dropWsNodes && /^\s*$/.test(raw) ? '' : escapeHtml(raw);
   }
   if (isNode(el)) {
     return escapeHtml(el.textContent || '');

@@ -55,13 +55,16 @@
 import {
   h, injectCss, createMultiToggle, multiToggleCss, createCopyButton, copyButtonCss, isText,
   isElement, htmlToElementK, htmlToElement, formatDateWithRelative,
-} from '../utils.js';
+  warn,
+} from '../utils';
 import type { ToHtmlContext, ToMdElementHandler, ToMdContext, ToHtmlElementHandler } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
-import type { Locator } from '../locator.js';
 import {
   pickVal, pickEl, pickEls, asLastPathSeg, asIdFrag, asAbsUrl,
-} from '../locator.js';
+  type Locator,
+} from '../locator';
+import type { XletContexts } from '../settings';
+import type { CreatePage } from '../results-loader';
 
 export type HubResult = {
   permalink: string;
@@ -281,7 +284,7 @@ function scrapeTitle(doc: Document, domain: GhDomain): string | undefined {
   return title;
 }
 
-function scrapeFirstPost(doc: Document, domain: GhDomain): Post | undefined {
+function scrapeFirstPost(doc: Document, domain: GhDomain, ctxs?: XletContexts): Post | undefined {
   const author    = pickVal(getLocators('firstPost_author',    domain), doc);
   const postId    = pickVal(getLocators('firstPost_postId',    domain), doc);
   const createdAt = pickVal(getLocators('firstPost_createdAt', domain), doc);
@@ -296,13 +299,13 @@ function scrapeFirstPost(doc: Document, domain: GhDomain): Post | undefined {
   };
 
   const bodyViewer = pickEl(getLocators('firstPost_bodyViewer', domain), doc);
-  const bodyHtml   = bodyViewer ? toHtml(bodyViewer)?.outerHTML : undefined;
-  const bodyMd     = bodyViewer ? toMd(bodyViewer) : undefined;
+  const bodyHtml   = bodyViewer ? toHtml(bodyViewer, ctxs?.html)?.outerHTML : undefined;
+  const bodyMd     = bodyViewer ? toMd(bodyViewer, ctxs?.md) : undefined;
 
   return { contributor, bodyHtml, bodyMd, postId: postId };
 }
 
-function scrapePosts(doc: Document, domain: GhDomain): Post[] {
+function scrapePosts(doc: Document, domain: GhDomain, ctxs?: XletContexts): Post[] {
   const items = pickEls(getLocators('posts_items', domain), doc);
 
   const posts: Post[] = [];
@@ -316,8 +319,8 @@ function scrapePosts(doc: Document, domain: GhDomain): Post[] {
     if (!isComment) continue;
 
     const contributor: Contributor = { author, timestamp: createdAt, editor: undefined };
-    const bodyHtml = bodyEl ? toHtml(bodyEl)?.outerHTML : undefined;
-    const bodyMd   = bodyEl ? toMd(bodyEl) : undefined;
+    const bodyHtml = bodyEl ? toHtml(bodyEl, ctxs?.html)?.outerHTML : undefined;
+    const bodyMd   = bodyEl ? toMd(bodyEl, ctxs?.md) : undefined;
 
     posts.push({ contributor, bodyHtml, bodyMd, postId: postId });
   }
@@ -379,7 +382,7 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
 };
 
 export function toMd(node: Node | null, ctx: Partial<ToMdContext> = {}): string {
-  return _toMd(node, { ...ctx, elementHandler: toMdElemHandler });
+  return _toMd(node, { elementHandler: toMdElemHandler, ...ctx });
 }
 
 const toHtmlElemHandler: ToHtmlElementHandler = (node, _ctx) => {
@@ -388,7 +391,7 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, _ctx) => {
 
   // td.comment-body => convert to div to avoid table context issues
   if (node.matches('td.comment-body')) {
-    const tmp = toHtml(node, { ..._ctx, skipCustomHandler: true }) as Element;
+    const tmp = toHtml(node, { ..._ctx, skipCustomHandler: true })!;
     const div = document.createElement('div');
     while (tmp.firstChild) div.appendChild(tmp.firstChild);
     return { node: div };
@@ -399,7 +402,7 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, _ctx) => {
 
 export function toHtml(node: Element, opts?: Partial<ToHtmlContext>): Element | null;
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
-  return _toHtml(node, { ...opts, elementHandler: toHtmlElemHandler });
+  return _toHtml(node, { elementHandler: toHtmlElemHandler, ...opts });
 }
 
 function buildPosts(data: HubResult, doc: Document): HTMLElement {
@@ -507,8 +510,8 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
   return createCopyButton(copyTxt, responseTxt, hintTxt);
 }
 
-export function extractFromDoc(root: Document = document): HubResult | undefined {
-  const permalink = scrapePermaUrl(root);
+export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): HubResult | undefined {
+  const permalink = scrapePermaUrl(sourceDoc);
   if (!permalink) {
     console.debug('[extractFromDoc] No base URL found in the document');
     return;
@@ -520,9 +523,9 @@ export function extractFromDoc(root: Document = document): HubResult | undefined
     return;
   }
 
-  const title  = scrapeTitle(root, domain) ?? '???';
-  const first  = scrapeFirstPost(root, domain);
-  const others = scrapePosts(root, domain);
+  const title  = scrapeTitle(sourceDoc, domain) ?? '???';
+  const first  = scrapeFirstPost(sourceDoc, domain, ctxs);
+  const others = scrapePosts(sourceDoc, domain, ctxs);
 
   const posts = [
     ...(first ? [first] : []),
@@ -532,34 +535,39 @@ export function extractFromDoc(root: Document = document): HubResult | undefined
   return { permalink, title, posts };
 }
 
-export function createPage(pageData: HubResult, doc: Document): void {
-  injectCss(multiToggleCss, { id: 'multi-toggle-css', doc });
-  injectCss(copyButtonCss, { id: 'copy-button-css', doc });
+export const createPage: CreatePage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
+  const pageData = extractFromDoc(sourceDoc, ctxs);
+  if (!pageData) return warn(undefined, `[xlet:hub] extractFromDoc returned no data`);
+
+  injectCss(multiToggleCss, { id: 'multi-toggle-css', doc: targetDoc });
+  injectCss(copyButtonCss, { id: 'copy-button-css', doc: targetDoc });
   const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · GitHub Page');
-  const copyAllButton = buildCopyButton(doc, pageData);
+  const copyAllButton = buildCopyButton(targetDoc, pageData);
   const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
-  doc.body.appendChild(topBar);
+  root.appendChild(topBar);
 
   if (pageData.permalink) {
     const permalink = `<a href="${pageData.permalink}">${pageData.permalink}</a>`;
-    const permalinkNode = htmlToElementK(permalink, 'a', doc);
+    const permalinkNode = htmlToElementK(permalink, 'a', targetDoc);
     const permalinkDiv = h('div', { class: 'perma-link' }, permalinkNode);
-    doc.body.appendChild(permalinkDiv);
+    root.appendChild(permalinkDiv);
   }
 
+  const viewClasses = ['show-html', 'show-md'];
   const viewToggle = createMultiToggle({
-    initState: 0,
-    onToggle: (state) => {
-      doc.body.classList.remove('show-html', 'show-md', 'show-raw');
-      doc.body.classList.add(['show-html', 'show-md', 'show-raw'][state]);
+    initState: state.viewIdx,
+    onToggle: (newIdx) => {
+      state.viewIdx = newIdx;
+      root.classList.remove(...viewClasses);
+      root.classList.add(viewClasses[newIdx]);
     },
     labels: ['html', 'md'],
     labelSide: 'right',
   });
   const viewToggleContainer = h('div', { class: 'view-toggle' }, viewToggle);
-  doc.body.appendChild(viewToggleContainer);
+  root.appendChild(viewToggleContainer);
 
-  const output = buildPosts(pageData, doc);
-  doc.body.appendChild(output);
+  const output = buildPosts(pageData, targetDoc);
+  root.appendChild(output);
   viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present
-}
+};

@@ -11,7 +11,9 @@
     "test:fix": "vitest run --dir ./test/fix",
     "coverage": "vitest run --coverage",
     "watch:b": "npm-watch build",
-    "printfix": "vite-node scripts/print-fix.ts"
+    "printfix": "vite-node scripts/printfix.ts",
+    "printfix-mjx": "vite-node scripts/printfix-mjx.ts",
+    "vendor": "tsx --env-file=.env scripts/vendor.ts"
   },
   "watch": {
     "build": {

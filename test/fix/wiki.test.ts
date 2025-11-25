@@ -1,9 +1,11 @@
 // test/fix/wiki.test.ts
 import { describe, it, expect } from 'vitest';
-import { extractFromDoc, type WikiResult, WikiNode } from '../../src/sites/wiki';
+import type { WikiNode } from '../../src/sites/wiki';
+import { extractFromDoc, type WikiResult } from '../../src/sites/wiki';
 import { setupDom } from '../utils/test-utils';
 import { join } from 'node:path';
-import { BaseSidecar, loadFixtures } from './fix';
+import type { BaseSidecar } from './fix';
+import { loadFixtures } from './fix';
 
 // Boot JSDOM globals
 setupDom();

@@ -105,7 +105,7 @@ test('toMd mathjax script', () => {
       </p>
     </div>`;
   const result = toMd(el(html));
-  const expected = 'Result: (x+y)^2 is the formula.';
+  const expected = 'Result: \\((x+y)^2\\) is the formula.';
   strictEqual(result, expected);
 });
 
@@ -2364,7 +2364,7 @@ describe('toMd – <pre> handling (no <br>)', () => {
   });
 });
 
-describe.skip('toMd – <pre> torture pack (no <br>)', () => {
+describe('toMd – <pre> torture pack (no <br>)', () => {
   it('preserves mixed ASCII spaces, tabs, NBSP, and trailing spaces', () => {
     const html = `<pre>␠foo␠\tbar␠\u00A0baz␠␠</pre>`
       .replace(/␠/g, ' ');
@@ -2384,7 +2384,7 @@ describe.skip('toMd – <pre> torture pack (no <br>)', () => {
     ].join('\n'));
   });
 
-  it('concatenates child nodes verbatim (spans, emphasis, code)', () => {
+  it.todo('concatenates child nodes verbatim (spans, emphasis, code)', () => {
     const html = `<pre>foo<span>  </span><em>*</em><code>bar</code>_baz_</pre>`;
     expect(toMd(el(html))).toBe([
       '```',
@@ -2402,7 +2402,7 @@ describe.skip('toMd – <pre> torture pack (no <br>)', () => {
     ].join('\n'));
   });
 
-  it('preserves leading and trailing blank lines inside <pre>', () => {
+  it.todo('preserves leading and trailing blank lines inside <pre>', () => {
     const html = `<pre>\n\nalpha\n\nbeta\n\n</pre>`;
     expect(toMd(el(html))).toBe([
       '```',
@@ -2983,3 +2983,10 @@ describe('toMd – list item formatting', () => {
 
 });
 
+test('skipped elements between inline and block content do not introduce phantom spaces', () => {
+  const html = `<div>foo <script>d</script><p>bar</p></div>`;
+  const md = toMd(el(html));
+  const expected = `foo\n\nbar`;
+
+  expect(md).toBe(expected);
+});

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'">
+  <meta charset="UTF-8">
+  <title>MathJax v2.1.0 harness</title>
+
+  <!-- v2 config -->
+  <script type="text/x-mathjax-config;executed=true">
+    MathJax.Hub.Config({
+      jax: ["input/TeX", "input/MathML", "output/HTML-CSS"],
+      extensions: ["tex2jax.js", "mml2jax.js"],
+      tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        displayMath: [['$$','$$'], ['\\[','\\]']]
+      },
+      TeX: {
+        extensions: [
+          "AMSmath.js",
+          "AMSsymbols.js",
+          "mhchem.js"
+          // physics.js not available in 2.7.9
+        ]
+      }
+    });
+  </script>
+
+  <script type="text/javascript" src="../MathJax.js?config=TeX-AMS_HTML-full"></script>
+<style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuTitle {background-color: #CCCCCC; margin: -1px -1px 1px -1px; text-align: center; font-style: italic; font-size: 80%; color: #444444; padding: 2px 0; overflow: hidden}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style><style type="text/css">.MathJax_Display {text-align: center; margin: 1em 0em; position: relative; display: block; width: 100%}
+.MathJax .merror {background-color: #FFFF88; color: #CC0000; border: 1px solid #CC0000; padding: 1px 3px; font-style: normal; font-size: 90%}
+#MathJax_Tooltip {background-color: InfoBackground; color: InfoText; border: 1px solid black; box-shadow: 2px 2px 5px #AAAAAA; -webkit-box-shadow: 2px 2px 5px #AAAAAA; -moz-box-shadow: 2px 2px 5px #AAAAAA; -khtml-box-shadow: 2px 2px 5px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true'); padding: 3px 4px; position: absolute; left: 0; top: 0; width: auto; height: auto; display: none}
+.MathJax {display: inline; font-style: normal; font-weight: normal; line-height: normal; font-size: 100%; font-size-adjust: none; text-indent: 0; text-align: left; text-transform: none; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; direction: ltr; border: 0; padding: 0; margin: 0}
+.MathJax img, .MathJax nobr, .MathJax a {border: 0; padding: 0; margin: 0; max-width: none; max-height: none; vertical-align: 0; line-height: normal; text-decoration: none}
+img.MathJax_strut {border: 0 !important; padding: 0 !important; margin: 0 !important; vertical-align: 0 !important}
+.MathJax span {display: inline; position: static; border: 0; padding: 0; margin: 0; vertical-align: 0; line-height: normal; text-decoration: none}
+.MathJax nobr {white-space: nowrap ! important}
+.MathJax img {display: inline ! important; float: none ! important}
+.MathJax_Processing {visibility: hidden; position: fixed; width: 0; height: 0; overflow: hidden}
+.MathJax_Processed {display: none!important}
+.MathJax_ExBox {display: block; overflow: hidden; width: 1px; height: 60ex}
+.MathJax .MathJax_EmBox {display: block; overflow: hidden; width: 1px; height: 60em}
+.MathJax .MathJax_HitBox {cursor: text; background: white; opacity: 0; filter: alpha(opacity=0)}
+.MathJax .MathJax_HitBox * {filter: none; opacity: 1; background: transparent}
+#MathJax_Tooltip * {filter: none; opacity: 1; background: transparent}
+@font-face {font-family: MathJax_Main; src: url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Main-Regular.woff') format('woff'), url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf') format('opentype')}
+@font-face {font-family: MathJax_Main; src: url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Main-Bold.woff') format('woff'), url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Main-Bold.otf') format('opentype'); font-weight: bold}
+@font-face {font-family: MathJax_Main; src: url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Main-Italic.woff') format('woff'), url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Main-Italic.otf') format('opentype'); font-style: italic}
+@font-face {font-family: MathJax_Math; src: url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Math-Italic.woff') format('woff'), url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf') format('opentype'); font-style: italic}
+@font-face {font-family: MathJax_Caligraphic; src: url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Caligraphic-Regular.woff') format('woff'), url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Caligraphic-Regular.otf') format('opentype')}
+@font-face {font-family: MathJax_Size1; src: url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Size1-Regular.woff') format('woff'), url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Size1-Regular.otf') format('opentype')}
+@font-face {font-family: MathJax_Size2; src: url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Size2-Regular.woff') format('woff'), url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Size2-Regular.otf') format('opentype')}
+@font-face {font-family: MathJax_Size3; src: url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Size3-Regular.woff') format('woff'), url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Size3-Regular.otf') format('opentype')}
+@font-face {font-family: MathJax_Size4; src: url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Size4-Regular.woff') format('woff'), url('file:///C:/Users/rando/source/repos/_JS/extractlet/vendor/mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Size4-Regular.otf') format('opentype')}
+.MathJax .noError {vertical-align: ; font-size: 90%; text-align: left; color: black; padding: 1px 3px; border: 1px solid}
+</style><style type="text/css">DIV.MathJax_MathML {text-align: center; margin: .75em 0px}
+.MathJax_MathML {font-style: normal; font-weight: normal; line-height: normal; font-size: 100%; font-size-adjust: none; text-indent: 0; text-align: left; text-transform: none; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; direction: ltr; border: 0; padding: 0; margin: 0}
+span.MathJax_MathML {display: inline}
+div.MathJax_MathML {display: block}
+.MathJax_mmlExBox {display: block; overflow: hidden; height: 1px; width: 60ex; padding: 0; border: 0; margin: 0}
+</style></head>
+
+<body><div style="visibility: hidden; overflow: hidden; position: absolute; top: 0px; height: 1px; width: auto; padding: 0px; border: 0px; margin: 0px; text-align: left; text-indent: 0px; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal;"><div id="MathJax_Hidden"></div></div><div id="MathJax_Message" style="display: none;"></div>
+
+<div data-xlet-case="inline">
+  Inline TeX: <span class="MathJax_Preview"></span><span class="MathJax_MathML" id="MathJax-Element-1-Frame" style="font-size: 95%;"><span class="MathJax_MathContainer" style="position: relative; display: inline-block; white-space: nowrap;"><span style="display: inline-block;"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>E</mi><mo stretchy="false">=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></math></span></span></span><script type="math/tex" id="MathJax-Element-1" data-xlet-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;
+  &lt;mi&gt;E&lt;/mi&gt;
+  &lt;mo&gt;=&lt;/mo&gt;
+  &lt;mi&gt;m&lt;/mi&gt;
+  &lt;msup&gt;
+    &lt;mi&gt;c&lt;/mi&gt;
+    &lt;mn&gt;2&lt;/mn&gt;
+  &lt;/msup&gt;
+&lt;/math&gt;">E = mc^2</script>.
+</div>
+
+<div data-xlet-case="block">
+  Display TeX:
+  <span class="MathJax_Preview"></span><div class="MathJax_MathML" id="MathJax-Element-2-Frame" style="font-size: 95%;"><span class="MathJax_MathContainer" style="position: relative; display: inline-block; white-space: nowrap;"><span style="display: inline-block;"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><msubsup><mo stretchy="false">∫</mo><mrow class="MJX-TeXAtom-ORD"><mo stretchy="false">−</mo><mi mathvariant="normal">∞</mi></mrow><mrow class="MJX-TeXAtom-ORD"><mi mathvariant="normal">∞</mi></mrow></msubsup><msup><mi>e</mi><mrow class="MJX-TeXAtom-ORD"><mo stretchy="false">−</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></msup><mspace width="thinmathspace"></mspace><mi>d</mi><mi>x</mi><mo stretchy="false">=</mo><msqrt><mi mathvariant="italic">π</mi></msqrt><mo>.</mo></math></span></span></div><script type="math/tex; mode=display" id="MathJax-Element-2" data-xlet-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;
+  &lt;msubsup&gt;
+    &lt;mo&gt;&amp;#x222B;&lt;!-- ∫ --&gt;&lt;/mo&gt;
+    &lt;mrow class=&quot;MJX-TeXAtom-ORD&quot;&gt;
+      &lt;mo&gt;&amp;#x2212;&lt;!-- − --&gt;&lt;/mo&gt;
+      &lt;mi mathvariant=&quot;normal&quot;&gt;&amp;#x221E;&lt;!-- ∞ --&gt;&lt;/mi&gt;
+    &lt;/mrow&gt;
+    &lt;mrow class=&quot;MJX-TeXAtom-ORD&quot;&gt;
+      &lt;mi mathvariant=&quot;normal&quot;&gt;&amp;#x221E;&lt;!-- ∞ --&gt;&lt;/mi&gt;
+    &lt;/mrow&gt;
+  &lt;/msubsup&gt;
+  &lt;msup&gt;
+    &lt;mi&gt;e&lt;/mi&gt;
+    &lt;mrow class=&quot;MJX-TeXAtom-ORD&quot;&gt;
+      &lt;mo&gt;&amp;#x2212;&lt;!-- − --&gt;&lt;/mo&gt;
+      &lt;msup&gt;
+        &lt;mi&gt;x&lt;/mi&gt;
+        &lt;mn&gt;2&lt;/mn&gt;
+      &lt;/msup&gt;
+    &lt;/mrow&gt;
+  &lt;/msup&gt;
+  &lt;mspace width=&quot;thinmathspace&quot; /&gt;
+  &lt;mi&gt;d&lt;/mi&gt;
+  &lt;mi&gt;x&lt;/mi&gt;
+  &lt;mo&gt;=&lt;/mo&gt;
+  &lt;msqrt&gt;
+    &lt;mi&gt;&amp;#x03C0;&lt;!-- π --&gt;&lt;/mi&gt;
+  &lt;/msqrt&gt;
+  &lt;mo&gt;.&lt;/mo&gt;
+&lt;/math&gt;">\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}.</script>
+</div>
+
+<div data-xlet-case="chem">
+  Chemistry:
+  <span class="MathJax_Preview"></span><span class="MathJax_MathML" id="MathJax-Element-3-Frame" style="font-size: 95%;"><span class="MathJax_MathContainer" style="position: relative; display: inline-block; white-space: nowrap;"><span style="display: inline-block;"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mspace width="thinmathspace"></mspace><msubsup><mtext>H</mtext><mrow class="MJX-TeXAtom-ORD"><mn>2</mn></mrow><mrow class="MJX-TeXAtom-ORD"><mspace width="0pt" height="0pt" depth=".2em"></mspace></mrow></msubsup><mo stretchy="false">+</mo><msubsup><mtext>O</mtext><mrow class="MJX-TeXAtom-ORD"><mn>2</mn></mrow><mrow class="MJX-TeXAtom-ORD"><mspace width="0pt" height="0pt" depth=".2em"></mspace></mrow></msubsup><mo stretchy="false">⟶</mo><mn>2</mn><mspace width="thinmathspace"></mspace><msubsup><mtext>H</mtext><mrow class="MJX-TeXAtom-ORD"><mn>2</mn></mrow><mrow class="MJX-TeXAtom-ORD"><mspace width="0pt" height="0pt" depth=".2em"></mspace></mrow></msubsup><mtext>O</mtext></math></span></span></span><script type="math/tex" id="MathJax-Element-3" data-xlet-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;
+  &lt;mn&gt;2&lt;/mn&gt;
+  &lt;mspace width=&quot;thinmathspace&quot; /&gt;
+  &lt;msubsup&gt;
+    &lt;mtext&gt;H&lt;/mtext&gt;
+    &lt;mrow class=&quot;MJX-TeXAtom-ORD&quot;&gt;
+      &lt;mn&gt;2&lt;/mn&gt;
+    &lt;/mrow&gt;
+    &lt;mrow class=&quot;MJX-TeXAtom-ORD&quot;&gt;
+      &lt;mspace width=&quot;0pt&quot; height=&quot;0pt&quot; depth=&quot;.2em&quot; /&gt;
+    &lt;/mrow&gt;
+  &lt;/msubsup&gt;
+  &lt;mo&gt;+&lt;/mo&gt;
+  &lt;msubsup&gt;
+    &lt;mtext&gt;O&lt;/mtext&gt;
+    &lt;mrow class=&quot;MJX-TeXAtom-ORD&quot;&gt;
+      &lt;mn&gt;2&lt;/mn&gt;
+    &lt;/mrow&gt;
+    &lt;mrow class=&quot;MJX-TeXAtom-ORD&quot;&gt;
+      &lt;mspace width=&quot;0pt&quot; height=&quot;0pt&quot; depth=&quot;.2em&quot; /&gt;
+    &lt;/mrow&gt;
+  &lt;/msubsup&gt;
+  &lt;mo stretchy=&quot;false&quot;&gt;&amp;#x27F6;&lt;!-- ⟶ --&gt;&lt;/mo&gt;
+  &lt;mn&gt;2&lt;/mn&gt;
+  &lt;mspace width=&quot;thinmathspace&quot; /&gt;
+  &lt;msubsup&gt;
+    &lt;mtext&gt;H&lt;/mtext&gt;
+    &lt;mrow class=&quot;MJX-TeXAtom-ORD&quot;&gt;
+      &lt;mn&gt;2&lt;/mn&gt;
+    &lt;/mrow&gt;
+    &lt;mrow class=&quot;MJX-TeXAtom-ORD&quot;&gt;
+      &lt;mspace width=&quot;0pt&quot; height=&quot;0pt&quot; depth=&quot;.2em&quot; /&gt;
+    &lt;/mrow&gt;
+  &lt;/msubsup&gt;
+  &lt;mtext&gt;O&lt;/mtext&gt;
+&lt;/math&gt;">\ce{2H2 + O2 -> 2H2O}</script>.
+</div>
+
+<div data-xlet-case="mathml">
+  MathML input:
+
+<span class="MathJax_MathML" id="MathJax-Element-4-Frame" style="font-size: 95%;"><span class="MathJax_MathContainer" style="position: relative; display: inline-block; white-space: nowrap;"><span style="display: inline-block;"><math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><msup><mi>e</mi><mi>x</mi></msup><mo>=</mo><munder><mo data-mjx-texclass="OP">∑</mo><mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow></munder><mfrac><msup><mi>x</mi><mi>n</mi></msup><mrow><mi>n</mi><mo>!</mo></mrow></mfrac></mrow></math></span></span></span><script type="math/mml" id="MathJax-Element-4" data-xlet-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;
+  &lt;mrow&gt;
+    &lt;msup&gt;
+      &lt;mi&gt;e&lt;/mi&gt;
+      &lt;mi&gt;x&lt;/mi&gt;
+    &lt;/msup&gt;
+    &lt;mo&gt;=&lt;/mo&gt;
+    &lt;munder&gt;
+      &lt;mo data-mjx-texclass=&quot;OP&quot;&gt;&amp;#x2211;&lt;/mo&gt;
+      &lt;mrow&gt;
+        &lt;mi&gt;n&lt;/mi&gt;
+        &lt;mo&gt;=&lt;/mo&gt;
+        &lt;mn&gt;0&lt;/mn&gt;
+      &lt;/mrow&gt;
+    &lt;/munder&gt;
+    &lt;mfrac&gt;
+      &lt;msup&gt;
+        &lt;mi&gt;x&lt;/mi&gt;
+        &lt;mi&gt;n&lt;/mi&gt;
+      &lt;/msup&gt;
+      &lt;mrow&gt;
+        &lt;mi&gt;n&lt;/mi&gt;
+        &lt;mo&gt;!&lt;/mo&gt;
+      &lt;/mrow&gt;
+    &lt;/mfrac&gt;
+  &lt;/mrow&gt;
+&lt;/math&gt;"><math xmlns="http://www.w3.org/1998/Math/MathML">
+  <mrow>
+    <msup>
+      <mi>e</mi>
+      <mi>x</mi>
+    </msup>
+    <mo>=</mo>
+    <munder>
+      <mo data-mjx-texclass="OP">∑</mo>
+      <mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow>
+    </munder>
+    <mfrac>
+      <msup><mi>x</mi><mi>n</mi></msup>
+      <mrow><mi>n</mi><mo>!</mo></mrow>
+    </mfrac>
+  </mrow>
+</math></script>
+</div>
+
+<!-- This page is a manual harness for Extractlet:
+     open in a browser, let MathJax render, and copy
+     outerHTML snapshots for actual test fixtures. -->
+
+
+
+<div id="MathJax_Font_Test" style="position: absolute; visibility: hidden; top: 0px; left: 0px; width: auto; padding: 0px; border: 0px; margin: 0px; white-space: nowrap; text-align: left; text-indent: 0px; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; font-size: 40px; font-weight: normal; font-style: normal; font-size-adjust: none; font-family: MathJax_Size1, sans-serif;"></div></body></html>
