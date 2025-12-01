@@ -140,7 +140,7 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
         .forEach((s) => allowed.add(s));
     }
 
-    const clone = toHtml(node, { ...ctx, skipCustomHandler: true, allowStyles: (ctx.allowStyles === true ? true : allowed) });
+    const clone = toHtml(node, { ...ctx, allowStyles: (ctx.allowStyles === true ? true : allowed) });
     if (!clone) return { skip: true };
     // if (node.classList.contains('mvar')) clone.classList.add('mvar');
     // if (node.classList.contains('texhtml')) clone.classList.add('texhtml');
@@ -148,7 +148,7 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
   }
 
   if (node.matches('li[id^="cite_note-"], sup.reference[id^="cite_ref-"]')) {
-    const clone = toHtml(node, { ...ctx, skipCustomHandler: true }) as HTMLLIElement | null;
+    const clone = toHtml(node, ctx) as HTMLLIElement | null;
     if (!clone) return { skip: true };
     clone.id = node.id; // preserve the ID for references
     return { node: clone };

@@ -1,7 +1,8 @@
-import { test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { strictEqual } from 'node:assert';
 import { toMd } from '../../src/sites/hub';
-import { el, setupDom } from '../utils/test-utils';
+import { assertNodeEqual, el, setupDom } from '../utils/test-utils';
+import { toHtml } from '../../src/sites/hub';
 
 setupDom();
 
@@ -245,4 +246,112 @@ test('toMd handles...', () => {
 `.trim();
   const result = toMd(el(html));
   strictEqual(result, expected);
+});
+
+describe('Code Tables', () => {
+  const html = `
+<div class="Box Box--condensed my-2">
+  <div class="Box-header f6">
+    <p class="mb-0 text-bold">
+      <a href="https://github.com/rollup/plugins/blob/92daef00b0da30de172868d4e0792c8686da0045/packages/typescript/src/options/validate.ts#L60-L75">plugins/packages/typescript/src/options/validate.ts</a>
+    </p>
+    <p class="mb-0 color-fg-muted">
+        Lines 60 to 75
+      in
+      <a data-pjax="true" class="commit-tease-sha Link--inTextBlock" href="/rollup/plugins/commit/92daef00b0da30de172868d4e0792c8686da0045">92daef0</a>
+    </p>
+  </div>
+  <div itemprop="text" class="Box-body p-0 blob-wrapper blob-wrapper-embedded data">
+    <table class="highlight tab-size mb-0 js-file-line-container" data-tab-size="8" data-paste-markdown-skip="">
+
+        <tbody><tr class="border-0">
+          <td id="L60" class="blob-num border-0 px-3 py-0 color-bg-default" data-line-number="60"></td>
+          <td id="LC60" class="blob-code border-0 px-3 py-0 color-bg-default blob-code-inner js-file-line"> <span class="pl-c">// Checks if the given path lies within Rollup output dir</span> </td>
+        </tr>
+
+        <tr class="border-0">
+          <td id="L61" class="blob-num border-0 px-3 py-0 color-bg-default" data-line-number="61"></td>
+          <td id="LC61" class="blob-code border-0 px-3 py-0 color-bg-default blob-code-inner js-file-line"> <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">outputOptions</span><span class="pl-kos">.</span><span class="pl-c1">dir</span><span class="pl-kos">)</span> <span class="pl-kos">{</span> </td>
+        </tr>
+
+        <tr class="border-0">
+          <td id="L62" class="blob-num border-0 px-3 py-0 color-bg-default" data-line-number="62"></td>
+          <td id="LC62" class="blob-code border-0 px-3 py-0 color-bg-default blob-code-inner js-file-line">   <span class="pl-k">const</span> <span class="pl-s1">fromRollupDirToTs</span> <span class="pl-c1">=</span> <span class="pl-en">relative</span><span class="pl-kos">(</span><span class="pl-s1">outputDir</span><span class="pl-kos">,</span> <span class="pl-s1">compilerOptions</span><span class="pl-kos">[</span><span class="pl-s1">dirProperty</span><span class="pl-kos">]</span><span class="pl-c1">!</span><span class="pl-kos">)</span><span class="pl-kos">;</span> </td>
+        </tr>
+    </tbody></table>
+  </div>
+</div>
+`.trim();
+  test('toHtml converts GitHub code table into expected HTML', () => {
+    const result = toHtml(el(html)) as HTMLElement | null;
+    const expected = `
+<div>
+  <div>
+    <p>
+      <a href="https://github.com/rollup/plugins/blob/92daef00b0da30de172868d4e0792c8686da0045/packages/typescript/src/options/validate.ts#L60-L75">plugins/packages/typescript/src/options/validate.ts</a>
+    </p>
+    <p>
+        Lines 60 to 75
+      in
+      <a href="/rollup/plugins/commit/92daef00b0da30de172868d4e0792c8686da0045">92daef0</a>
+    </p>
+  </div>
+  <div>
+    <div class="code-table-wrapper"><table class="code-table">
+
+        <tbody><tr>
+          <td>60</td>
+          <td> <span>// Checks if the given path lies within Rollup output dir</span> </td>
+        </tr>
+
+        <tr>
+          <td>61</td>
+          <td> <span>if</span> <span>(</span><span>outputOptions</span><span>.</span><span>dir</span><span>)</span> <span>{</span> </td>
+        </tr>
+
+        <tr>
+          <td>62</td>
+          <td>   <span>const</span> <span>fromRollupDirToTs</span> <span>=</span> <span>relative</span><span>(</span><span>outputDir</span><span>,</span> <span>compilerOptions</span><span>[</span><span>dirProperty</span><span>]</span><span>!</span><span>)</span><span>;</span> </td>
+        </tr>
+    </tbody></table></div>
+  </div>
+</div>`;
+    assertNodeEqual(result, expected);
+  });
+
+  test('toMd converts GitHub code table box into a fenced code block with line numbers', () => {
+    const md = toMd(el(html));
+    expect(md).toBe([
+      '[plugins/packages/typescript/src/options/validate.ts](https://github.com/rollup/plugins/blob/92daef00b0da30de172868d4e0792c8686da0045/packages/typescript/src/options/validate.ts#L60-L75)',
+      '',
+      'Lines 60 to 75 in [](/rollup/plugins/commit/92daef00b0da30de172868d4e0792c8686da0045)',
+      '',
+      '```js',
+      '  60  // Checks if the given path lies within Rollup output dir ',
+      '  61  if (outputOptions.dir) { ',
+      '  62    const fromRollupDirToTs = relative(outputDir, compilerOptions[dirProperty]!); ',
+      '```',
+    ].join('\n'));
+  });
+});
+
+
+
+describe('Regression: toMd must run on pristine DOM before toHtml mutations', () => {
+  test('toMd sees data-line-number even when toHtml strips/mutates attributes', () => {
+    const html = `
+      <table class="js-file-line-container">
+        <tbody>
+          <tr>
+            <td class="blob-num" data-line-number="42"></td>
+            <td class="blob-code">const x = 1;</td>
+          </tr>
+        </tbody>
+      </table>`.trim();
+    const node = el(html);
+    const mdBefore = toMd(node);
+    toHtml(node);
+    const mdAfter = toMd(node);
+    expect(mdBefore).toBe(mdAfter); // should be identical
+  });
 });

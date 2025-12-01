@@ -341,7 +341,10 @@ function shouldSkip(node: Node | null): boolean {
       'tool-bar', 'tool-tip',
       '[role="toolbar"]', '[role="tooltip"]',
       '.task-list-item .handle', // task-list drag handle
+      '.zeroclipboard-container',
+      'clipboard-copy',
       'clipboard',
+      'svg.octicon',
       // '.sr-only', '.visually-hidden', '[hidden]',
     ].join(','));
 
@@ -381,6 +384,43 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
     return { md: node.textContent ?? '' };
   }
 
+  // GitHub code table (line-numbered snippet)
+  if (node.matches('table.js-file-line-container')) {
+    const table = node as HTMLTableElement;
+    const entries: { num: string; code: string; }[] = [];
+    let lang = '';
+
+    for (const tr of table.rows) {
+      const lineTd = tr.querySelector('td[data-line-number]');
+      const codeTd = tr.querySelector('td.blob-code');
+      if (!lineTd || !codeTd) continue;
+
+      const num = lineTd.getAttribute('data-line-number');
+      if (!num) continue;
+
+      const code = codeTd.textContent ?? ''; // toMd(codeTd, { ...ctx, wsMode: 'pre' });
+      entries.push({ num, code });
+      if (!lang) {
+        lang = [...codeTd.classList].find((c) => c.endsWith('-file-line'))?.replace(/-file-line$/, '') ?? '';
+      }
+    }
+
+    if (!entries.length) return {};
+
+    const maxDigits = entries.reduce(
+      (m, e) => (e.num.length > m ? e.num.length : m)
+      , 0
+    );
+
+    const lines = entries.map(({ num, code }) => {
+      const padded = num.padStart(maxDigits, ' ');
+      return `  ${padded} ${code}`;
+    });
+
+    const md = [`\`\`\`${lang}`, ...lines, '```'].join('\n');
+    return { md };
+  }
+
   return {};
 };
 
@@ -388,19 +428,42 @@ export function toMd(node: Node | null, ctx: Partial<ToMdContext> = {}): string 
   return _toMd(node, { elementHandler: toMdElemHandler, ...ctx });
 }
 
-const toHtmlElemHandler: ToHtmlElementHandler = (node, _ctx) => {
+const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
   if (shouldSkip(node)) return { skip: true };
   if (!isElement(node)) throw new Error('toHtmlElemHandler called with non-element node');
 
   // td.comment-body => convert to div to avoid table context issues
   if (node.matches('td.comment-body')) {
-    const tmp = toHtml(node, { ..._ctx, skipCustomHandler: true })!;
+    const tmp = toHtml(node, { ...ctx })!;
     const div = document.createElement('div');
     while (tmp.firstChild) div.appendChild(tmp.firstChild);
     return { node: div };
   }
 
-  return {};
+  if (node.matches('td[data-line-number]') && !node.textContent?.trim()) {
+    const line = node.getAttribute('data-line-number');
+    if (line) node.textContent = line;
+    node.removeAttribute('data-line-number');
+    return {};
+  }
+
+  if (node.matches('table.js-file-line-container')) {
+    const table = toHtml(node, ctx);
+    if (!table) return { skip: true };
+    table.classList.add('code-table');
+    table.removeAttribute('data-tab-size');
+    table.removeAttribute('data-paste-markdown-skip');
+
+    const div = h('div', { class: 'code-table-wrapper' }, table);
+    return { node: div };
+  }
+
+  const cleanAttrs = ['data-pjax'];
+  for (const attr of cleanAttrs) {
+    if (node.hasAttribute(attr)) node.removeAttribute(attr);
+  }
+
+  return {}; // default processing
 };
 
 export function toHtml(node: Element, opts?: Partial<ToHtmlContext>): Element | null;

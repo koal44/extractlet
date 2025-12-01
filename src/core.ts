@@ -5,7 +5,7 @@ import { mathVendorToHtml, mathVendorToMd } from './math-vendor';
 import { log } from './utils/logging.js';
 import {
   isBlockquote, isBreak, isElement, isHTML, isImage, isInput, isListItem,
-  isOList, isParagraph, isPre, isTableCell, isTableHeader, isText, isTextArea,
+  isOList, isParagraph, isPre, isSVG, isTableCell, isTableHeader, isText, isTextArea,
   isUList, nodeName, parseHeadingLevel, safeDecode,
 } from './utils/dom.js';
 import { alphaLabel, filterGenericLabel, isLabelGeneric, isLabelRedundant, toPascalCase } from './utils/strings.js';
@@ -25,12 +25,14 @@ export type ToHtmlContext = {
   skipCustomHandler: boolean;                  // skip custom handling for this subtree
   allowStyles: ReadonlySet<string> | boolean;  // style allowlist or true/false for all/none
   mathView: MathView;                          // how to render math
+  isRoot: boolean;                             // true only for top-level call (clone root; prevent side-effects))
 };
 
 export const DefaultToHtmlContext: ToHtmlContext = {
   skipCustomHandler: false,
   allowStyles: false,
   mathView: 'tex',
+  isRoot: true,
 };
 
 type GlueMode = 'block' | 'list' | 'listItem' | 'inline';
@@ -97,9 +99,15 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
     return null;
   }
 
+  // --- handle root node cloning to avoid side-effects ---
+  if (ctx.isRoot) {
+    const clonedRoot = node.cloneNode(true) as Element;
+    return toHtml(clonedRoot, { ...ctx, isRoot: false });
+  }
+
   // --- handle site-specific elements ---
   const result = !ctx.skipCustomHandler && ctx.elementHandler
-    ? ctx.elementHandler(node, ctx)
+    ? ctx.elementHandler(node, { ...ctx, skipCustomHandler: true })
     : null;
   if (result?.skip) return null;
   if (result?.node) return result.node;
@@ -108,6 +116,11 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
   const mathResult = mathVendorToHtml(node, ctx);
   if (mathResult?.skip) return null;
   if (mathResult?.node) return mathResult.node;
+
+  // --- svg handling ---
+  if (isSVG(node)) {
+    return svgToHtml(node, ctx);
+  }
 
   // --- default handling for HTML elements ---
   const clone = document.createElementNS(node.namespaceURI || 'http://www.w3.org/1999/xhtml', node.tagName.toLowerCase());
@@ -230,6 +243,27 @@ function copyStyleAttr(dest: HTMLElement, src: HTMLElement, allowStyles: boolean
   styleString = styleString.trim();
 
   if (styleString) dest.setAttribute('style', styleString);
+}
+
+function svgToHtml(node: SVGElement, ctx: ToHtmlContext): SVGElement | null {
+  // deep clone the whole SVG subtree
+  const clone = node.cloneNode(true) as SVGElement;
+  scrubSvgElement(clone, ctx);
+  return clone;
+}
+
+function scrubSvgElement(e: Element, c: ToHtmlContext): void {
+  if (e.matches('script,foreignObject')) return void e.remove();
+
+  for (const { name: n, value: v } of [...e.attributes]) {
+    if (
+      /^(on|aria-)/i.test(n) ||
+      /^(style|class|id|role|version)$/i.test(n) ||
+      (/^(xlink:)?href$/i.test(n) && !/^\s*#/.test(v))
+    ) e.removeAttribute(n);
+  }
+
+  for (let i = e.children.length; i--;) scrubSvgElement(e.children[i], c);
 }
 
 export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): string {
@@ -793,6 +827,11 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       // case 'MATH': {
       // }
+
+      case 'SVG': {
+        result = '[[SVG]]';
+        break;
+      }
 
       default: {
         result = glueChildren(node, 'inline');
