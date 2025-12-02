@@ -355,3 +355,62 @@ describe('Regression: toMd must run on pristine DOM before toHtml mutations', ()
     expect(mdBefore).toBe(mdAfter); // should be identical
   });
 });
+
+describe('code language detection in toMd', () => {
+  test('detects language from div.highlight class', () => {
+    const html = `
+  <div class="highlight highlight-source-json notranslate position-relative overflow-auto" dir="auto"><pre class="notranslate">{
+    <span class="pl-ent">"compilerOptions"</span>: {
+        <span class="pl-ent">"module"</span>: <span class="pl-s"><span class="pl-pds">"</span>ESNext<span class="pl-pds">"</span></span>,
+        <span class="pl-ent">"target"</span>: <span class="pl-s"><span class="pl-pds">"</span>ESNext<span class="pl-pds">"</span></span>,
+        <span class="pl-ent">"moduleResolution"</span>: <span class="pl-s"><span class="pl-pds">"</span>Node<span class="pl-pds">"</span></span>,
+        <span class="pl-ent">"esModuleInterop"</span>: <span class="pl-c1">true</span>,
+        <span class="pl-ent">"importHelpers"</span>: <span class="pl-c1">true</span>,
+        <span class="pl-ent">"strict"</span>: <span class="pl-c1">true</span>,
+        <span class="pl-ent">"jsx"</span>: <span class="pl-s"><span class="pl-pds">"</span>react-jsx<span class="pl-pds">"</span></span>,
+        <span class="pl-ent">"jsxImportSource"</span>: <span class="pl-s"><span class="pl-pds">"</span>preact<span class="pl-pds">"</span></span>,
+        <span class="pl-ent">"declaration"</span>: <span class="pl-c1">true</span>,
+        <span class="pl-ent">"declarationDir"</span>: <span class="pl-s"><span class="pl-pds">"</span>dist/dts/<span class="pl-pds">"</span></span>,
+        <span class="pl-ent">"paths"</span>: {
+            <span class="pl-ent">"@/*"</span>: [<span class="pl-s"><span class="pl-pds">"</span>./src/*<span class="pl-pds">"</span></span>]
+        }
+    },
+    <span class="pl-ent">"include"</span>: [
+        <span class="pl-s"><span class="pl-pds">"</span>src/**/*<span class="pl-pds">"</span></span>,
+        <span class="pl-s"><span class="pl-pds">"</span>test/**/*<span class="pl-pds">"</span></span>,
+        <span class="pl-s"><span class="pl-pds">"</span>rollup.config.ts<span class="pl-pds">"</span></span>
+    ],
+    <span class="pl-ent">"exclude"</span>: [<span class="pl-s"><span class="pl-pds">"</span>node_modules<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>dist<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>**/__snapshots__/**/*<span class="pl-pds">"</span></span>]
+}</pre></div>
+`.trim();
+    const expected = `
+\`\`\`json
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "target": "ESNext",
+        "moduleResolution": "Node",
+        "esModuleInterop": true,
+        "importHelpers": true,
+        "strict": true,
+        "jsx": "react-jsx",
+        "jsxImportSource": "preact",
+        "declaration": true,
+        "declarationDir": "dist/dts/",
+        "paths": {
+            "@/*": ["./src/*"]
+        }
+    },
+    "include": [
+        "src/**/*",
+        "test/**/*",
+        "rollup.config.ts"
+    ],
+    "exclude": ["node_modules", "dist", "**/__snapshots__/**/*"]
+}
+\`\`\``.trim();
+    const node = el(html);
+    const md = toMd(node);
+    expect(md).toBe(expected);
+  });
+});

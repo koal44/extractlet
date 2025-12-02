@@ -385,12 +385,9 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
   } else { // --- default handling for HTML elements ---
     const tagName = node.tagName.toUpperCase();
     switch (tagName) {
+      case 'DETAILS':
       case 'BODY':
-      case 'DIV': {
-        result = glueChildren(node, 'block');
-        break;
-      }
-
+      case 'DIV':
       case 'P': {
         result = glueChildren(node, 'block');
         break;
@@ -563,7 +560,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         } else {
           result = result.replace(/\r\n/g, '\n').replace(/\n+$/, '');
           const fence = '`'.repeat(1 + Math.max(2, ...(result.match(/`+/g) || []).map((s) => s.length)));
-          const open = lang ? `${fence} ${lang}` : fence;
+          const open = lang ? `${fence}${lang}` : fence;
           result = frameMd(`${open}\n${result}\n${fence}`, 'block', ctx);
         }
 
@@ -830,6 +827,12 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       case 'SVG': {
         result = '[[SVG]]';
+        break;
+      }
+
+      case 'SUMMARY': {
+        result = glueChildren(node, 'inline');
+        result = `▸ ${result}`; //▶︎
         break;
       }
 

@@ -1,6 +1,7 @@
 import browser from 'webextension-polyfill';
 import { repr } from '../utils/logging';
-import { detectSite, injectPageNorm, type XletSnapshot } from '../extractlet';
+import { detectSite, injectPageNorm } from '../extractlet';
+import type { XletSnapshot, XletSnapshotMsg, UnsupportedPageMsg } from '../extractlet';
 
 void (async () => {
   const sourceDoc = document;
@@ -8,7 +9,10 @@ void (async () => {
   // detect site
   const site = detectSite(sourceDoc);
   if (!site) {
-    alert('Extractlet doesn\'t recognize this page. Sorry!');
+    await browser.runtime.sendMessage<UnsupportedPageMsg>({
+      type: 'unsupported-page',
+      srcUrl: location.href,
+    });
     return;
   }
 
@@ -17,7 +21,7 @@ void (async () => {
   await injectPageNorm(site);
 
   // create message
-  const msg: XletSnapshot = {
+  const snapshot: XletSnapshot = {
     site,
     timestamp: Date.now(),
     srcHtml: sourceDoc.documentElement.outerHTML,
@@ -26,7 +30,10 @@ void (async () => {
 
   // send message
   try {
-    await browser.runtime.sendMessage<XletSnapshot>(msg);
+    await browser.runtime.sendMessage<XletSnapshotMsg>({
+      type: 'xlet-snapshot',
+      snapshot,
+    });
   } catch (err) {
     console.error(`[xlet:msg] Error sending ${site} message: ${repr(err)}`);
     alert(`Error sending ${site} message. Check console for details.`);

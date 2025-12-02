@@ -184,8 +184,14 @@ const seTable: Record<seVarKey, Locator[]> = {
   sig_items:   [{ sel: ':scope .post-signature' }],
 
   // comments
-  comment_items: [{ sel: ':scope ul.comments-list > li' }],
-  comment_body:  [{ sel: ':scope .comment-body > span.comment-copy' }],
+  comment_items: [
+    { sel: ':scope ul.comments-list > li' },
+    { sel: ':scope [itemprop="comment"]' },
+  ],
+  comment_body:  [
+    { sel: ':scope .comment-body > span.comment-copy' },
+    { sel: ':scope [itemprop="text"]' },
+  ],
 
   // poster info
   poster_time: [{ sel: ':scope .relativetime', attr: 'title', valMap: (v) => v.split(',')[0].trim() }],
@@ -203,11 +209,21 @@ const seTable: Record<seVarKey, Locator[]> = {
   ],
 
   // commenter info
-  commenter_name: [{ sel: ':scope a.comment-user', attr: 'textContent' }],
+  commenter_name: [
+    { sel: ':scope a.comment-user', attr: 'textContent' },
+    { sel: ':scope [itemprop="name"]', attr: 'textContent' },
+  ],
   commenter_id: [{ sel: ':scope a.comment-user', attr: 'href', valMap: (v) => { const match = v.match(/\/users\/(\d+)/); return match ? match[1] : '-1'; } }],
   commenter_slug: [{ sel: ':scope a.comment-user', attr: 'href', valMap: (v) => { const parts = v.split('/'); return parts.pop()?.split('?')[0] || ''; } }],
-  commenter_time: [{ sel: ':scope .relativetime-clean', attr: 'title', valMap: (v) => v.split(',')[0].trim() }],
-  commenter_voteCount: [{ sel: ':scope div.comment-score span', attr: 'textContent' }],
+  commenter_time: [
+    { sel: ':scope .relativetime-clean', attr: 'title', valMap: (v) => v.split(',')[0].trim() },
+    { sel: ':scope time[itemprop="datePublished"]', attr: 'textContent', valMap: (v) => v.split('+')[0].trim().slice(0, 10) },
+    { sel: ':scope .s-user-card--time[title]', attr: 'title', valMap: (v) => v.split('+')[0].trim().slice(0, 10) },
+  ],
+  commenter_voteCount: [
+    { sel: ':scope div.comment-score span', attr: 'textContent' },
+    { sel: ':scope [data-so-test^="vote-button-comment-"] span:last-child', attr: 'textContent' },
+  ],
 } as const;
 
 function scrapePermalink(root: Document): string | undefined {
@@ -309,22 +325,18 @@ function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
     copyArr.push(
       '===========================================',
       '        Extractlet · Stack Exchange',
-      '===========================================\n'
+      '==========================================='
     );
-
-    if (pageData.permalink) {
-      const permalinkNode = htmlToElementK(`<a href="${pageData.permalink}">${pageData.title}</a>`, 'a', doc);
-      copyArr.push(
-        `Title: ${permalinkNode?.textContent?.trim()}`,
-        `URL:   ${permalinkNode?.getAttribute('href')}\n`);
-    }
   }
+
+  if (pageData.title) copyArr.push(`Title: ${pageData.title}`);
+  copyArr.push(`URL: ${pageData.permalink}`, '');
 
   pageData.posts.forEach((post, idx) => {
     if (!isAll && idx !== postIdx) return;
 
     const postHeading = idx === 0 ? 'Question' : `Answer ${idx}`;
-    copyArr.push(`\n❖❖ ${postHeading} ❖❖`, '', post.bodyMd);
+    copyArr.push(`\n❖❖ ${postHeading} ❖❖`, post.bodyMd);
 
     const postContrib = buildContribsAndVotes(post.contributors, post.vote);
     if (postContrib) copyArr.push('', postContrib);
@@ -339,8 +351,8 @@ function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
     copyArr.push('');
   });
 
-  const copyTxt = `${copyArr.join('\n').trimEnd()}\n`;
-  return createCopyButton(copyTxt, responseTxt, hintTxt);
+  const copyTxt = `${copyArr.join('\n').trim()}\n`;
+  return createCopyButton(() => copyTxt, () => responseTxt, () => hintTxt, { doc });
 }
 
 function buildContribsAndVotes(contributors: Contributor[], voteCount: number): string {
@@ -440,7 +452,6 @@ function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTML
       default: throw new Error(`Unknown mode: ${String(viewMode)}`);
     }
   }
-
 
   const postBodyStr = post[mode.key] ?? '';
   const postBody = renderBody(postBodyStr);

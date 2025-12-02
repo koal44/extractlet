@@ -68,6 +68,7 @@ import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { warn } from '../utils/logging';
 import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import { formatDateWithRelative } from '../utils/strings';
+import { setLang } from '../normalize';
 
 export type HubResult = {
   permalink: string;
@@ -421,6 +422,17 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
     return { md };
   }
 
+  if (node.matches('div.highlight')) {
+    const lang = [...node.classList].find((c) => c.startsWith('highlight-source-'))?.replace('highlight-source-', '') ?? '';
+    const pre = node.querySelector('pre');
+    if (pre) setLang(pre, lang);
+  }
+
+  if (node.matches('markdown-accessiblity-table')) {
+    const md = gc(node, 'block');
+    return { md };
+  }
+
   return {};
 };
 
@@ -456,6 +468,11 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
 
     const div = h('div', { class: 'code-table-wrapper' }, table);
     return { node: div };
+  }
+
+  if (node.matches('markdown-accessiblity-table')) {
+    const table = node.querySelector('table');
+    table?.style.removeProperty('width');
   }
 
   const cleanAttrs = ['data-pjax'];
@@ -547,24 +564,24 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
     copyArr.push(
       '===========================================',
       '           Extractlet · GitHub',
-      '===========================================\n'
+      '==========================================='
     );
   }
 
   if (pageData.title) copyArr.push(`Title: ${pageData.title}`);
   const url = isAll ? pageData.permalink : allPosts[postIdx].postId ? `${pageData.permalink}#${allPosts[postIdx].postId}` : pageData.permalink;
-  if (url) copyArr.push(`URL: ${url}`);
+  if (url) copyArr.push(`URL: ${url}`, '');
 
   allPosts.forEach((post, idx) => {
     if (!isAll && idx !== postIdx) return;
-    if (isAll && idx === 0) copyArr.push(''); // pre-amble \n post0
-    if (isAll) copyArr.push(''); // postN \n postN+1
+    // if (isAll && idx === 0) copyArr.push(''); // pre-amble \n post0
+    copyArr.push(''); // postN \n postN+1
 
     const postType = idx === 0 ? 'Post' : `Comment ${idx}`;
     const heading = isAll ? `❖❖ ${postType} ❖❖` : `Post: ${postType}`;
 
-    copyArr.push(heading, '');
-    copyArr.push(post.bodyMd ?? '');
+    copyArr.push(heading);
+    copyArr.push((post.bodyMd ?? '').trim());
 
     const cl = contribLine(post);
     if (cl) copyArr.push('', cl);
@@ -572,8 +589,8 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
     copyArr.push('');
   });
 
-  const copyTxt = `${copyArr.join('\n').trimEnd()}\n`;
-  return createCopyButton(copyTxt, responseTxt, hintTxt, { doc });
+  const copyTxt = `${copyArr.join('\n').trim()}\n`;
+  return createCopyButton(() => copyTxt, () => responseTxt, () => hintTxt, { doc });
 }
 
 export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): HubResult | undefined {

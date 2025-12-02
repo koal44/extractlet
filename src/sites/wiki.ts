@@ -424,7 +424,7 @@ export function populateWikiNodeWithRaw(
 
 function renderHtml(node: WikiNode): HTMLDivElement {
   const copyText = node.html?.outerHTML || ''; // TODO: use node.md!! node.html is only for dev
-  const copyBtn = createCopyButton(copyText, 'Copied HTML!');
+  const copyBtn = createCopyButton(() => copyText, () => 'Copied HTML!');
   const titleElem = h(`h${node.level}`, { class: 'html-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
   const container = h('div', { class: 'html-wikinode-section' }, titleBar);
@@ -438,7 +438,7 @@ function renderHtml(node: WikiNode): HTMLDivElement {
 }
 
 function renderMd(node: WikiNode): HTMLDivElement {
-  const copyBtn = createCopyButton(node.getFullMd(), 'Copied Markdown!');
+  const copyBtn = createCopyButton(() => node.getFullMd(), () => 'Copied Markdown!');
   const titleElem = h(`h${node.level}`, { class: 'md-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
   const container = h('div', { class: 'md-wikinode-section' }, titleBar);
@@ -454,7 +454,7 @@ function renderMd(node: WikiNode): HTMLDivElement {
 }
 
 function renderRaw(node: WikiNode): HTMLDivElement {
-  const copyBtn = createCopyButton(node.raw, 'Copied Wikitext!');
+  const copyBtn = createCopyButton(() => node.raw, () => 'Copied Wikitext!');
   const titleElem = h(`h${node.level}`, { class: 'raw-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
   const container = h('div', { class: 'raw-wikinode-section' }, titleBar);
