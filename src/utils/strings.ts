@@ -185,3 +185,38 @@ export function formatDateWithRelative(iso?: string | null): string {
   return `${ymd} (${rel})`;
 }
 
+function resolveUrl(raw?: string, base?: string): URL | undefined {
+  if (!raw) return;
+  try {
+    return base ? new URL(raw, base) : new URL(raw);
+  } catch { return; }
+}
+
+export function chooseCanonicalUrl(primary?: string, secondary?: string, base?: string): string | undefined {
+  const u1 = resolveUrl(primary, base);
+  const u2 = resolveUrl(secondary, base);
+  if (!u1 || !u2) return (u1 ?? u2)?.toString();
+
+  if (u1.origin !== u2.origin) return primary;
+
+  // compare path segments
+  const p1 = u1.pathname.split('/').filter(Boolean);
+  const p2 = u2.pathname.split('/').filter(Boolean);
+  for (let i = 0; i < Math.min(p1.length, p2.length); i++) {
+    if (p1[i] !== p2[i]) {
+      return primary;
+    }
+  }
+  if (p1.length > p2.length) return primary;
+  if (p1.length < p2.length) return secondary;
+
+  // compare search params
+  const s1 = [...u1.searchParams].sort().map(([k, v]) => `${k}=${v}`).join('&');
+  const s2 = [...u2.searchParams].sort().map(([k, v]) => `${k}=${v}`).join('&');
+  if (s1 !== s2) return primary;
+
+  // compare hashes
+  if (u2.hash && !u1.hash) return secondary;
+
+  return primary;
+}

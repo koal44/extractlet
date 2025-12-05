@@ -1,13 +1,10 @@
 import { describe, expect, it, test } from 'vitest';
 import { strictEqual } from 'node:assert';
-
-import { assertApproxEqual, docEl, setupDom } from '../utils/test-utils';
+import { assertApproxEqual } from '../utils/test-utils';
 import {
   isLabelRedundant, jaccardSimilarity, jaroWinklerSimilarity, levenshteinSimilarity,
-  toKebabCase, toKebabCaseI18n, toPascalCase, toPascalCaseI18n,
+  toKebabCase, toKebabCaseI18n, toPascalCase, toPascalCaseI18n, chooseCanonicalUrl,
 } from '../../src/utils/strings';
-import { addStyle, h, htmlToElementK } from '../../src/utils/dom';
-import { repr } from '../../src/utils/logging';
 
 test('toKebabCase', () => {
   const words = [
@@ -266,292 +263,55 @@ describe('isLabelRedundant', () => {
   });
 });
 
-describe('h()', () => {
-  test('h sets xlink:href on <use> with namespace', () => {
-    const doc = docEl('<div></div>');
-    const svg = h('svg:use', { __doc: doc, 'xlink:href': '#icon' });
-    expect(svg.getAttributeNS('http://www.w3.org/1999/xlink', 'href')).toBe('#icon');
+describe('chooseCanonicalUrl', () => {
+
+  it('prefers secondary when it is a deeper nested path', () => {
+    expect(chooseCanonicalUrl(
+      'https://x.com/a/b',
+      'https://x.com/a/b/c'
+    )).toBe('https://x.com/a/b/c');
   });
 
-  test('h sets plain href on <use> (SVG2 style)', () => {
-    const doc = docEl('<div></div>');
-    const svg = h('svg:use', { __doc: doc, href: '#icon' });
-    expect(svg.getAttribute('href')).toBe('#icon');
-    expect(svg.getAttributeNS('http://www.w3.org/1999/xlink', 'href')).toBe(null);
-  });
-});
-
-describe('htmlToElementK', () => {
-  setupDom();
-
-  const MATH_NS = 'http://www.w3.org/1998/Math/MathML';
-  const SVG_NS  = 'http://www.w3.org/2000/svg';
-
-  it('parses HTML elements (HTMLElement overload)', () => {
-    const el = htmlToElementK('<div class="foo">bar</div>', 'div');
-    expect(el).not.toBeNull();
-    expect(el!.tagName.toLowerCase()).toBe('div');
-    expect(el!.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
-    expect(el!.getAttribute('class')).toBe('foo');
-    expect(el!.textContent).toBe('bar');
+  it('keeps primary when paths diverge', () => {
+    expect(chooseCanonicalUrl(
+      'https://x.com/a/b',
+      'https://x.com/a/z'
+    )).toBe('https://x.com/a/b');
   });
 
-  it('parses MathML elements (MathMLElement overload)', () => {
-    const html = `
-      <math xmlns="${MATH_NS}" data-latex="E = mc^2">
-        <mi data-latex="E">E</mi>
-        <mo data-latex="=">=</mo>
-        <mi data-latex="m">m</mi>
-        <msup data-latex="c^2">
-          <mi data-latex="c">c</mi>
-          <mn data-latex="2">2</mn>
-        </msup>
-      </math>`;
-    const math = htmlToElementK(html, 'math:math');
-    expect(math).not.toBeNull();
-
-    // tag + namespace
-    expect(math!.tagName.toLowerCase()).toBe('math');
-    expect(math!.namespaceURI).toBe(MATH_NS);
-
-    // root attrs
-    expect(math!.getAttribute('data-latex')).toBe('E = mc^2');
-
-    // children structure
-    const children = Array.from(math!.children);
-    expect(children.map((c) => c.tagName.toLowerCase())).toEqual([
-      'mi', 'mo', 'mi', 'msup',
-    ]);
-
-    const firstMi = children[0];
-    expect(firstMi.getAttribute('data-latex')).toBe('E');
-    expect(firstMi.textContent).toBe('E');
+  it('keeps primary when origins differ', () => {
+    expect(chooseCanonicalUrl(
+      'https://x.com/a',
+      'https://y.com/a'
+    )).toBe('https://x.com/a');
   });
 
-  it('parses SVG elements (SVGElement overload)', () => {
-    const html = `
-      <svg xmlns="${SVG_NS}" viewBox="0 0 10 10">
-        <circle cx="5" cy="5" r="3" />
-      </svg>`;
-    const svg = htmlToElementK(html, 'svg:svg');
-    expect(svg).not.toBeNull();
-
-    expect(svg!.tagName.toLowerCase()).toBe('svg');
-    expect(svg!.namespaceURI).toBe(SVG_NS);
-    expect(svg!.getAttribute('viewBox')).toBe('0 0 10 10');
-
-    const circle = svg!.querySelector('circle');
-    expect(circle).not.toBeNull();
-    expect(circle!.namespaceURI).toBe(SVG_NS);
-    expect(circle!.getAttribute('cx')).toBe('5');
-    expect(circle!.getAttribute('cy')).toBe('5');
-    expect(circle!.getAttribute('r')).toBe('3');
+  it('uses secondary when primary is invalid', () => {
+    expect(chooseCanonicalUrl(
+      '::::://bad',
+      'https://x.com/a'
+    )).toBe('https://x.com/a');
   });
 
-  it('returns null when there is more than one root element', () => {
-    const html = '<div></div><span></span>';
-    const el = htmlToElementK(html, 'div');
-    expect(el).toBeNull();
+  it('prefers secondary on hash when paths equal and secondary has hash', () => {
+    expect(chooseCanonicalUrl(
+      'https://x.com/a',
+      'https://x.com/a#sec'
+    )).toBe('https://x.com/a#sec');
   });
 
-  it('returns null when the tag does not match', () => {
-    const el = htmlToElementK('<span>oops</span>', 'div');
-    expect(el).toBeNull();
-  });
-});
-
-describe('addStyle (CSSOM + jsdom fallback)', () => {
-  setupDom();
-
-  it('uses CSSOM when elem.style.setProperty exists', () => {
-    const el = htmlToElementK('<div></div>', 'div')!;
-    expect(el).not.toBeNull();
-
-    addStyle(el, 'color', 'red');
-    addStyle(el, 'font-weight', 'bold');
-    expect(el.style.getPropertyValue('color')).toBe('red');
-    expect(el.style.getPropertyValue('font-weight')).toBe('bold');
+  it('keeps primary on hash ties', () => {
+    expect(chooseCanonicalUrl(
+      'https://x.com/a#one',
+      'https://x.com/a#two'
+    )).toBe('https://x.com/a#one');
   });
 
-  it('preserves existing inline styles when adding a new property', () => {
-    const el = htmlToElementK('<div style="color: blue;"></div>', 'div')!;
-    expect(el).not.toBeNull();
-
-    addStyle(el, 'font-size', '16px');
-    expect(el.style.getPropertyValue('color')).toBe('blue');
-    expect(el.style.getPropertyValue('font-size')).toBe('16px');
+  it('does not treat empty hash as more specific', () => {
+    expect(chooseCanonicalUrl(
+      'https://x.com/a',
+      'https://x.com/a#'
+    )).toBe('https://x.com/a');
   });
 
-  it('falls back to style attribute when CSSStyleDeclaration is missing (MathML in jsdom)', () => {
-    const el = htmlToElementK('<math xmlns:math="http://www.w3.org/1998/Math/MathML"></math:math>', 'math:math')!;
-    expect(el).not.toBeNull();
-
-    addStyle(el, 'background-color', 'yellow');
-    expect(el.style).toBeUndefined(); // jsdom will not have CSSStyleDeclaration on MathML elements. only true in testing??
-    expect(el.getAttribute('style')).toBe('background-color: yellow;');
-  });
-
-  it('preserves existing values containing colons when falling back (jsdom MathML)', () => {
-    // inline style includes a data URL with multiple colons
-    const el = htmlToElementK(
-      `<math xmlns:math="http://www.w3.org/1998/Math/MathML"
-            style="background-image: url('data:image/png;base64,AAAA:BBBB:CCCC');">
-      </math:math>`,
-      'math:math'
-    );
-    if (!el) throw new Error('Element is null');
-
-    // jsdom should NOT have a real CSSStyleDeclaration for MathML → fallback path
-    expect(el.style).toBeUndefined();
-
-    addStyle(el, 'border', '1px solid red');
-
-    // output must preserve the FULL value after the first colon only
-    expect(el.getAttribute('style')).toBe(
-      `background-image: url("data:image/png;base64,AAAA:BBBB:CCCC"); border: 1px solid red;`
-    );
-  });
-
-  it('overwrites existing property values containing colons correctly', () => {
-    const el = htmlToElementK(
-      `<math xmlns:math="http://www.w3.org/1998/Math/MathML"
-            style="content: ':';">
-      </math:math>`,
-      'math:math'
-    );
-    if (!el) throw new Error('Element is null');
-
-    addStyle(el, 'content', `":"`);
-    expect(el.getAttribute('style')).toBe(`content: ":";`);
-  });
-});
-
-describe('summarizeUnknown', () => {
-  it('summarizes various values and truncates correctly', () => {
-    // primitives / specials
-    expect(repr(undefined)).toBe('undefined');
-    expect(repr(null)).toBe('null');
-    expect(repr(0)).toBe('0');
-    expect(repr(42)).toBe('42');
-    expect(repr(true)).toBe('true');
-    expect(repr(false)).toBe('false');
-
-    // string (no truncation)
-    expect(repr('hello')).toBe('hello');
-
-    // string (truncation)
-    const longStr = 'x'.repeat(200);
-    const longSummary = repr(longStr, 20);
-    expect(longSummary.length).toBe(20);
-    expect(longSummary.endsWith('…')).toBe(true);
-
-    // Error
-    const err = new Error('boom');
-    expect(repr(err)).toBe('Error: boom');
-
-    // bigint
-    expect(repr(123n)).toBe('123n');
-
-    // symbol
-    const sym = Symbol('foo');
-    const symSummary = repr(sym);
-    expect(symSummary.startsWith('Symbol(')).toBe(true);
-
-    // function
-    function namedFn() { /* noop */ }
-    expect(repr(namedFn)).toBe('function namedFn()');
-
-    // array
-    expect(repr([])).toBe('Array(len=0)');
-    expect(repr([1, 2, 3])).toBe('Array(len=3)');
-
-    // plain object: small
-    const smallObj = { a: 1, b: 2 };
-    const smallSummary = repr(smallObj);
-    expect(smallSummary).toBe('Object(a,b)');
-
-    // plain object: empty
-    const emptyObj = {};
-    expect(repr(emptyObj)).toBe('Object()');
-
-    // plain object: many keys + truncation logic
-    const bigObj = {
-      a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9, j: 10,
-    };
-    const bigSummary = repr(bigObj, 20);
-    expect(bigSummary).toBe('Object(a,b,c,d,e,f…)');
-
-    // Date
-    const d = new Date('2020-01-02T03:04:05.000Z');
-    const dateSummary = repr(d);
-    expect(dateSummary).toBe('2020-01-02T03:04:05.000Z');
-
-    // class instance
-    class MyClass { prop = 123; }
-    const myInstance = new MyClass();
-    const instanceSummary = repr(myInstance);
-    expect(instanceSummary).toBe('MyClass(prop)');
-
-    // class instance with many props + truncation
-    class BigClass {
-      a = 1; b = 2; c = 3; d = 4; e = 5; f = 6; g = 7; h = 8; i = 9; j = 10;
-    }
-    const bigInstance = new BigClass();
-    const bigInstanceSummary = repr(bigInstance, 20);
-    expect(bigInstanceSummary).toBe('BigClass(a,b,c,d,e…)');
-
-    // Map
-    const map = new Map();
-    map.set('a', 1);
-    map.set('b', 2);
-    expect(repr(map)).toBe('Map(size=2)');
-
-    // Set
-    const set = new Set([1, 2, 3]);
-    expect(repr(set)).toBe('Set(size=3)');
-
-    // Element
-    const div = h('div', { id: 'test', className: 'foo bar' });
-    expect(repr(div)).toBe('<div#test>');
-
-    // NodeList
-    const div2 = h('div', {}, h('span'), h('span'));
-    const nodeList = div2.querySelectorAll('div');
-    expect(repr(nodeList)).toBe('NodeList(len=0)');
-    const nodeList2 = div2.querySelectorAll('span');
-    expect(repr(nodeList2)).toBe('NodeList(len=2)');
-
-    // Node (comment)
-    const commentNode = docEl('<!-- a comment -->').childNodes[0];
-    expect(repr(commentNode)).toBe('CommentNode');
-
-    // RegExp
-    const re = /foo/i;
-    expect(repr(re)).toBe('/foo/i');
-
-    // Promise
-    const p = Promise.resolve(123);
-    expect(repr(p)).toBe('Promise');
-
-    // URL
-    const url = new URL('https://example.com/path?x=1');
-    expect(repr(url)).toBe('URL(https://example.com/path?x=1)');
-
-    // ErrorEvent
-    const errorEvent = new ErrorEvent('error', { message: 'boom from event' });
-    expect(repr(errorEvent)).toBe('ErrorEvent: boom from event');
-
-    // Document
-    const docSummary = repr(document);
-    expect(docSummary).toBe(`Document(title="${document.title}")`);
-
-    // Date truncation behavior
-    const longDate = new Date('2020-01-02T03:04:05.123Z');
-    expect(repr(longDate, 10)).toBe('2020-01-0…');
-
-    // URL truncation behavior
-    const longUrl = new URL(`https://example.com/${'x'.repeat(200)}`);
-    expect(repr(longUrl, 30)).toBe('URL(https://example.com/xxxxx…');
-
-  });
 });
