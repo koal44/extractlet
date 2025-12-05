@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, it, test } from 'vitest';
 import { strictEqual } from 'node:assert';
 import { toMd } from '../../src/sites/hub';
 import { assertNodeEqual, el, setupDom } from '../utils/test-utils';
@@ -412,5 +412,35 @@ describe('code language detection in toMd', () => {
     const node = el(html);
     const md = toMd(node);
     expect(md).toBe(expected);
+  });
+});
+
+describe('handling subscripts and superscripts in Markdown tables', () => {
+  function createTable(data: string): string {
+    return `
+<markdown-accessiblity-table data-catalyst="">
+  <table>
+    <tbody>
+      <tr>
+        <td>${data}</td>
+      </tr>
+    </tbody>
+  </table>
+</markdown-accessiblity-table>
+    `.trim();
+  }
+
+  it('preserves inline subscripts such as H₂O', () => {
+    const html = createTable('H<sub>2</sub>O');
+    const md = toMd(el(html));
+    const expected = `| H<sub>2</sub>O |`;
+    expect(md).toContain(expected);
+  });
+
+  it('unwraps full-cell <sub>...</sub> wrappers used by bots for font shrinking', () => {
+    const html = createTable('<sub>331,241k (± 0.01%)</sub>');
+    const md = toMd(el(html));
+    const expected = `| 331,241k (± 0.01%) |`;
+    expect(md).toContain(expected);
   });
 });

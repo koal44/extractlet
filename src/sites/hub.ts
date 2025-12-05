@@ -62,7 +62,7 @@ import {
 import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
 import {
-  h, htmlToElement, htmlToElementK, injectCss, isElement, isText,
+  h, htmlToElement, htmlToElementK, injectCss, isElement, isSub, isSup, isText,
 } from '../utils/dom';
 import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { warn } from '../utils/logging';
@@ -433,6 +433,23 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   if (node.matches('markdown-accessiblity-table')) {
     const md = gc(node, 'block');
     return { md };
+  }
+
+  if (node.matches('td, th')) {
+    // handle font-shrinking hacks that wrap full cell content in <sub> or <sup>
+    const childs = [...node.childNodes].filter((n) => isElement(n) || (isText(n) && n.textContent?.trim()));
+    if (childs.length === 1 && (isSub(childs[0]) || isSup(childs[0]))) {
+      const md = gc(childs[0], 'inline');
+      return { md };
+    }
+  }
+
+  if (node.matches('g-emoji')) {
+    const txt = node.textContent?.trim();
+    if (txt) return { md: txt };
+
+    const alias = node.getAttribute('alias');
+    return { md: alias ? `:${alias}:` : '' };
   }
 
   return {};
