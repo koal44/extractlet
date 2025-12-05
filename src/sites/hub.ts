@@ -67,7 +67,7 @@ import {
 import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { warn } from '../utils/logging';
 import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
-import { formatDateWithRelative } from '../utils/strings';
+import { chooseCanonicalUrl, formatDateWithRelative } from '../utils/strings';
 import { setLang } from '../normalize';
 
 export type HubResult = {
@@ -278,7 +278,9 @@ function detectGhDomain(str: string): GhDomain | undefined  {
 }
 
 function scrapePermaUrl(doc: Document): string | undefined {
-  const link = pickVal(getLocators('permalink'), doc) ?? doc.baseURI;
+  let link = pickVal(getLocators('permalink'), doc);
+  link = chooseCanonicalUrl(link, doc.baseURI);
+  if (!link) return warn(undefined, 'scrapePermaUrl: no link found');
   const detected = matchGhUrl(link, false);
   if (detected) return detected;
 }
