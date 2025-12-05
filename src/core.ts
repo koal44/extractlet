@@ -4,8 +4,8 @@ import { hasOfType, isNumberish, isString, parseJsonAs } from './utils/typing.js
 import { mathVendorToHtml, mathVendorToMd } from './math-vendor';
 import { log } from './utils/logging.js';
 import {
-  isBlockquote, isBreak, isElement, isHTML, isImage, isInput, isListItem,
-  isOList, isParagraph, isPre, isSVG, isTableCell, isTableHeader, isText, isTextArea,
+  isBreak, isElement, isHTML, isImage, isInput, isList, isListItem,
+  isOList, isPre, isSVG, isTableCell, isTableHeader, isText, isTextArea,
   isUList, nodeName, parseHeadingLevel, safeDecode,
 } from './utils/dom.js';
 import { alphaLabel, filterGenericLabel, isLabelGeneric, isLabelRedundant, toPascalCase } from './utils/strings.js';
@@ -521,9 +521,8 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         result = glueChildren(node, 'listItem', { inListItem: true });
 
         // Normalize leading/trailing newlines
-        if (isParagraph(node.firstElementChild) || isBlockquote(node.firstElementChild)) {
-          result = result.startsWith('\n\n') ? result.slice(2) : result;
-          result = result.startsWith('\n') ? result.slice(1) : result;
+        if (!isBreak(node.firstElementChild) && !isList(node.firstElementChild)) {
+          result = result.replace(/^\n+/, '');
         }
         // result = result.startsWith('\n\n') ? result.slice(1) : result;
         result = result.endsWith('\n') ? result : `${result}\n`;

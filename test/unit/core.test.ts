@@ -2499,12 +2499,10 @@ describe('toMd – <pre> torture pack (no <br>)', () => {
       <ol>
         <li><pre>  a\n b</pre>
         </li>
-      </ol>`.replace(/^\s+|\n\s+$/g, '');
+      </ol>`.trim();
     const result = toMd(el(html));
-    // console.log(result);
     expect(result).toBe(`
-1.
-   \`\`\`
+1. \`\`\`
      a
     b
    \`\`\`
@@ -2582,10 +2580,8 @@ describe('toMd – list first-child policy (two-item <ol>)', () => {
     `.trim();
 
     const expected = `
-1.
-   Alpha in a div
-2.
-   Bravo in a div
+1. Alpha in a div
+2. Bravo in a div
 `.trim();
 
     expect(toMd(el(html))).toBe(expected);
@@ -2648,10 +2644,8 @@ describe('toMd – list first-child policy (two-item <ol>)', () => {
     `.trim();
 
     const expected = `
-1.
-   # Alpha Heading
-2.
-   # Bravo Heading
+1. # Alpha Heading
+2. # Bravo Heading
 `.trim();
 
     expect(toMd(el(html))).toBe(expected);
@@ -2893,8 +2887,7 @@ describe('toMd – list item formatting', () => {
     // console.log(`------------\n${result}\n----------------\n`);
 
     expect(result).toBe(`
--
-  \`\`\`
+- \`\`\`
   line
   \`\`\`
 `.trim());
