@@ -2,6 +2,7 @@ import browser from 'webextension-polyfill';
 import type {
   BrMode, MathFenceStyle, MathView,
   ToMdContext, ToHtmlContext,
+  SubSupMode,
 } from './core';
 import { DefaultToHtmlContext, DefaultToMdContext } from './core';
 import type { Permutations } from './utils/typing';
@@ -79,6 +80,14 @@ export const XLET_SETTINGS = {
       '<table><thead><tr><th>Impactor</th><th>Diameter (km)</th></tr></thead><tbody><tr><td>Chicxulub</td><td>10</td></tr><tr><td>Tunguska</td><td>0.05</td></tr></tbody></table>',
     previewAttrs: { style: 'font-family: monospace;' },
     fallback: DefaultToMdContext.prettyTables,
+  }),
+  subSupMode: stringSpec({
+    values: ['html', 'tex'] as const satisfies Permutations<SubSupMode>,
+    valueLabels: ['HTML', 'TeX'] as const,
+    fallback: DefaultToMdContext.subSupMode,
+    settingLabel: 'Subscripts & superscripts',
+    ctx: 'markdown',
+    preview: () => '<p>H<sub>2</sub>O</p>',
   }),
   mathView: stringSpec({
     values: ['tex', 'svg', 'mathml'] as const satisfies Permutations<MathView>,
@@ -160,6 +169,7 @@ export function settingsToContexts(settings: Partial<XletSettings>): XletContext
       case 'filterRedundantLabels': mdCtx.filterRedundantLabels = val as boolean; break;
       case 'filterGenericLabels': mdCtx.filterGenericLabels = val as boolean; break;
       case 'prettyTables': mdCtx.prettyTables = val as boolean; break;
+      case 'subSupMode': mdCtx.subSupMode = val as SubSupMode; break;
 
       // html settings
       case 'mathView': htmlCtx.mathView = val as MathView; break;

@@ -3365,3 +3365,18 @@ describe('toMd pretty tables', () => {
   });
 
 });
+
+describe('toMd sub/sup handling', () => {
+  it('renders sub/sup according to subSupMode', () => {
+    const html = `<p>H<sub>2</sub>O x<sup>3</sup></p>`;
+    expect(toMd(el(html), { subSupMode: 'html' })).toBe('H<sub>2</sub>O x<sup>3</sup>');
+    expect(toMd(el(html), { subSupMode: 'tex' })).toBe('H_2O x^3');
+    // expect(toMd(el(html), { subSupMode: 'unicode' })).toBe('H₂O x³');
+  });
+
+  it('wraps multi-char inner in braces for tex mode', () => {
+    const html = `<p>x<sub>10-1</sub> y<sup>ab</sup></p>`;
+    expect(toMd(el(html), { subSupMode: 'tex' })).toBe('x_{10-1} y^{ab}');
+  });
+});
+

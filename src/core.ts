@@ -50,6 +50,7 @@ export type ToMdElementHandler = (
 
 export type BrMode = 'escape' | 'hard' | 'soft';
 export type MathFenceStyle = 'dollar' | 'bracket';
+export type SubSupMode = 'html' | 'tex'; // | 'unicode';
 
 export type ToMdContext = {
   elementHandler?: ToMdElementHandler;  // optional per-element override handler
@@ -67,7 +68,8 @@ export type ToMdContext = {
   lastChar: string;                     // last emitted char (spacing state, internal)
   wsMode: 'normal' | 'pre';             // whitespace handling mode  // | 'pre-line'
   brMode: BrMode;                       // how to treat <br> tags
-  prettyTables: boolean;               // pretty-print tables with padded columns (default: false)
+  prettyTables: boolean;                // pretty-print tables with padded columns (default: false)
+  subSupMode: SubSupMode;               // how to render sub/superscripts
 };
 
 export const DefaultToMdContext: ToMdContext = {
@@ -86,6 +88,7 @@ export const DefaultToMdContext: ToMdContext = {
   wsMode: 'normal',
   brMode: 'soft',
   prettyTables: false,
+  subSupMode: 'html',
 };
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
@@ -884,6 +887,33 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       case 'SUMMARY': {
         result = glueChildren(node, 'inline');
         result = `▸ ${result}`; //▶︎
+        break;
+      }
+
+      case 'SUB':
+      case 'SUP': {
+        const inner = glueChildren(node, 'inline');
+
+        switch (ctx.subSupMode) {
+          case 'html': {
+            const tag = node.tagName.toLowerCase();
+            result = `<${tag}>${inner}</${tag}>`;
+            break;
+          }
+          case 'tex': {
+            const op = node.tagName === 'SUB' ? '_' : '^';
+            const needsBraces = inner.length !== 1;
+            result = needsBraces ? `${op}{${inner}}` : `${op}${inner}`;
+            break;
+          }
+          // case 'unicode': {
+          //   const uni = mapSubSupToUnicode(inner, node.tagName === 'SUB' ? 'sub' : 'sup');
+          //   result = uni ?? toMd(node, { ...ctx, subSupMode: 'html' });
+          //   break;
+          // }
+
+          default: throw new Error(`Unsupported subSupMode: ${String(ctx.subSupMode satisfies never)}`);
+        }
         break;
       }
 
