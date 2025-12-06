@@ -7,6 +7,7 @@ import { DefaultToHtmlContext, DefaultToMdContext } from './core';
 import type { Permutations } from './utils/typing';
 import { isBoolean, isString } from './utils/typing';
 import { warn } from './utils/logging';
+import type { HAttrs } from './utils/dom';
 
 type SpecValueType = string | boolean | number;
 type ContextKind = 'markdown' | 'html';
@@ -19,6 +20,7 @@ type BoolSettingSpec = {
   values: readonly boolean[];
   valueLabels: readonly string[];
   coerce(val: unknown): boolean;
+  previewAttrs?: HAttrs;
 };
 type StringSettingSpec = {
   kind: 'string';
@@ -28,6 +30,7 @@ type StringSettingSpec = {
   values: readonly string[];
   valueLabels: readonly string[];
   coerce(val: unknown): string;
+  previewAttrs?: HAttrs;
 };
 
 type SettingSpec = BoolSettingSpec | StringSettingSpec;
@@ -67,6 +70,16 @@ export const XLET_SETTINGS = {
     ctx: 'markdown',
     preview: () => '<span>Line abc<br />Line abc<br />Line abc</span>',
   }),
+  prettyTables: boolSpec({
+    values: [false, true] as const,
+    valueLabels: ['LLM-friendly', 'Human-friendly'] as const,
+    settingLabel: 'Markdown tables',
+    ctx: 'markdown',
+    preview: () =>
+      '<table><thead><tr><th>Impactor</th><th>Diameter (km)</th></tr></thead><tbody><tr><td>Chicxulub</td><td>10</td></tr><tr><td>Tunguska</td><td>0.05</td></tr></tbody></table>',
+    previewAttrs: { style: 'font-family: monospace;' },
+    fallback: DefaultToMdContext.prettyTables,
+  }),
   mathView: stringSpec({
     values: ['tex', 'svg', 'mathml'] as const satisfies Permutations<MathView>,
     valueLabels: ['TeX', 'SVG', 'MathML'] as const,
@@ -89,13 +102,14 @@ async function loadSnippet(name: string): Promise<string> {
 export type XletSettingKey = keyof typeof XLET_SETTINGS;
 
 function boolSpec(
-  { values, valueLabels, fallback, settingLabel, ctx, preview }:
+  { values, valueLabels, fallback, settingLabel, ctx, preview, previewAttrs }:
   { values: readonly boolean[];
     valueLabels: readonly string[];
     fallback: boolean;
     settingLabel: string;
     ctx: ContextKind;
-    preview: (() => Promise<string>) | (() => string); }
+    preview: (() => Promise<string>) | (() => string);
+    previewAttrs?: HAttrs; }
 ): BoolSettingSpec {
   if (values.length !== valueLabels.length) console.warn(`[xlet:settings] val/labels mismatch for "${settingLabel}"`);
   if (!values.includes(fallback)) console.warn(`[xlet:settings] "${fallback}" is not in values [${values.join(', ')}]`);
@@ -103,17 +117,19 @@ function boolSpec(
     kind: 'boolean',
     values, valueLabels, settingLabel, ctx, preview,
     coerce(val: unknown): boolean { return isBoolean(val) ? val : fallback; },
+    previewAttrs,
   };
 }
 
 function stringSpec(
-  { values, valueLabels, fallback, settingLabel, ctx, preview }:
+  { values, valueLabels, fallback, settingLabel, ctx, preview, previewAttrs }:
   { values: readonly string[];
     valueLabels: readonly string[];
     fallback: string;
     settingLabel: string;
     ctx: ContextKind;
-    preview: (() => Promise<string>) | (() => string); }
+    preview: (() => Promise<string>) | (() => string);
+    previewAttrs?: HAttrs; }
 ): StringSettingSpec {
   if (!values.includes(fallback)) console.warn(`[xlet:settings] "${fallback}" is not in values [${values.join(', ')}]`);
   if (values.length !== valueLabels.length) console.warn(`[xlet:settings] val/labels mismatch for "${settingLabel}"`);
@@ -121,6 +137,7 @@ function stringSpec(
     kind: 'string',
     values, valueLabels, settingLabel, ctx, preview,
     coerce(val: unknown): string { return (isString(val) && values.includes(val)) ? val : fallback; },
+    previewAttrs,
   };
 }
 
@@ -136,25 +153,17 @@ export function settingsToContexts(settings: Partial<XletSettings>): XletContext
   for (const [key, optVal] of Object.entries(settings) as [XletSettingKey, SpecValueType][]) {
     const spec = XLET_SETTINGS[key];
     const val = spec.coerce(optVal);
-    switch (spec.ctx) {
-      case 'markdown': {
-        switch (key) {
-          case 'mathFence': mdCtx.mathFence = val as MathFenceStyle; break;
-          case 'brMode': mdCtx.brMode = val as BrMode; break;
-          case 'filterRedundantLabels': mdCtx.filterRedundantLabels = val as boolean; break;
-          case 'filterGenericLabels': mdCtx.filterGenericLabels = val as boolean; break;
-          default: console.warn(`[xlet:settings] Unhandled markdown setting key "${String(key as never)}"`);
-        }
-        break;
-      }
-      case 'html': {
-        switch (key) {
-          case 'mathView': htmlCtx.mathView = val as MathView; break;
-          default: console.warn(`[xlet:settings] Unhandled HTML setting key "${String(key as never)}"`);
-        }
-        break;
-      }
-      default: console.warn(`[xlet:settings] Unknown setting ctx for key "${String(key as never)}"`);
+    switch (key) {
+      // markdown settings
+      case 'mathFence': mdCtx.mathFence = val as MathFenceStyle; break;
+      case 'brMode': mdCtx.brMode = val as BrMode; break;
+      case 'filterRedundantLabels': mdCtx.filterRedundantLabels = val as boolean; break;
+      case 'filterGenericLabels': mdCtx.filterGenericLabels = val as boolean; break;
+      case 'prettyTables': mdCtx.prettyTables = val as boolean; break;
+
+      // html settings
+      case 'mathView': htmlCtx.mathView = val as MathView; break;
+      default: throw new Error(`[xlet:settings] Unhandled markdown setting key "${String(key satisfies never)}"`);
     }
   }
   return { md: mdCtx, html: htmlCtx };

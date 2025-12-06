@@ -3047,3 +3047,321 @@ describe('SVG handling', () => {
     expect(md).toBe('PR status: [[SVG]]');
   });
 });
+
+describe('toMd pretty tables', () => {
+  it('aligns columns using first header row styles', () => {
+    const html = `<div>
+      <div class="s-table-container">
+      <table class="s-table">
+      <thead>
+      <tr>
+      <th style="text-align:left">left</th>
+      <th style="text-align:center">center</th>
+      <th style="text-align:right">right</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td style="text-align:left">First</td>
+      <td style="text-align:center">Row</td>
+      <td style="text-align:right">#1</td>
+      </tr>
+      <tr>
+      <td style="text-align:left">2nd</td>
+      <td style="text-align:center">Row</td>
+      <td style="text-align:right">#2</td>
+      </tr>
+      </tbody>
+      </table></div></div>`;
+
+    const expected = `
+| left  | center | right |
+|:----- |:------:| -----:|
+| First | Row    | #1    |
+| 2nd   | Row    | #2    |
+`.trim();
+
+    const result = toMd(el(html), { prettyTables: true });
+    // console.log(result);
+    strictEqual(result, expected);
+  });
+
+  it('renders mixed inline content with correct pipe/HTML escaping', () => {
+    const html = `<div><div class="s-table-container"><table class="s-table"><thead>
+      <tr>
+      <th style="text-align:left">Name <strong>bold</strong></th>
+      <th style="text-align:center">Description</th>
+      <th style="text-align:right">Code Sample</th>
+      <th style="text-align:right">Misc</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td style="text-align:left">Alice</td>
+      <td style="text-align:center"><em>italic</em> and code</td>
+      <td style="text-align:right"><code>let x = 1 \\ 2;</code></td>
+      <td style="text-align:right">&lt; shown</td>
+      </tr>
+      <tr>
+      <td style="text-align:left">&lt;tag&gt;</td>
+      <td style="text-align:center">Plain</td>
+      <td style="text-align:right"><code>foo</code></td>
+      <td style="text-align:right">&amp; useful</td>
+      </tr>
+      <tr>
+      <td style="text-align:left"></td>
+      <td style="text-align:center">|||||</td>
+      <td style="text-align:right"><code>x &lt; y</code></td>
+      <td style="text-align:right">Hello, world!</td>
+      </tr>
+      <tr>
+      <td style="text-align:left">Bob</td>
+      <td style="text-align:center"></td>
+      <td style="text-align:right"><code>&lt;div&gt;hi&lt;/div&gt;</code></td>
+      <td style="text-align:right">link</td>
+      </tr>
+      </tbody>
+      </table></div></div>`;
+
+    // logPandocHtmlToMd(html);
+
+    const expected = `
+| Name **bold** | Description       | Code Sample      | Misc          |
+|:------------- |:-----------------:| ----------------:| -------------:|
+| Alice         | *italic* and code | \`let x = 1 \\ 2;\` | < shown       |
+| <tag>         | Plain             | \`foo\`            | & useful      |
+|               | \\|\\|\\|\\|\\|        | \`x < y\`          | Hello, world! |
+| Bob           |                   | \`<div>hi</div>\`  | link          |
+`.trim();
+
+    const result = toMd(el(html), { prettyTables: true });
+    // console.log(result);
+    strictEqual(result, expected);
+  });
+
+  it('flattens block content in cells (compact mode)', () => {
+    const html = `<div><div class="s-table-container"><table class="s-table"><thead>
+      <tr>
+      <th>left</th>
+      <th>center</th>
+      <th>right</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>First</td>
+      <td>Row</td>
+      <td>#1</td>
+      </tr>
+      <tr>
+      <td>2nd</td>
+      <td>Row</td>
+      <td>#2 <p> hello</p></td>
+      </tr>
+      </tbody>
+      </table></div></div>`;
+
+    const expected = `
+| left  | center | right    |
+| ----- | ------ | -------- |
+| First | Row    | #1       |
+| 2nd   | Row    | #2 hello |
+`.trim();
+
+    const result = toMd(el(html), { prettyTables: true });
+    // console.log(result);
+    strictEqual(result, expected);
+  });
+
+  it('honors header colspan visually (single wide cell)', () => {
+    const html = `
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th colspan="2">A</th>
+              <th>B</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>x</td><td>y</td><td>z</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>`.trim();
+
+    const expected = `
+| A         | B   |
+| --- | --- | --- |
+| x   | y   | z   |
+`.trim();
+
+    const result = toMd(el(html), { prettyTables: true });
+    // console.log(result);
+
+    strictEqual(result, expected);
+  });
+
+  it('honors data-row colspan visually (no placeholder cells)', () => {
+    const html = `
+      <div>
+        <table>
+          <thead>
+            <tr><th>H1</th><th>H2</th><th>H3</th></tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="2">wide</td><td>r</td></tr>
+            <tr><td>1</td><td>2</td><td>3</td></tr>
+          </tbody>
+        </table>
+      </div>`.trim();
+
+    const expected = `
+| H1  | H2  | H3  |
+| --- | --- | --- |
+| wide      | r   |
+| 1   | 2   | 3   |
+`.trim();
+
+    const result = toMd(el(html), { prettyTables: true });
+    // console.log(result);
+    strictEqual(result, expected);
+  });
+
+  it('lets a long spanning col resize other columns', () => {
+    const html = `
+      <div>
+        <table>
+          <thead>
+            <tr><th colspan="2">Name</th><th>Age</th></tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="3">* Note: values as of 2024/2025</td></tr>
+            <tr><td>Ada</td><td>Lovelace</td><td>36</td></tr>
+            <tr><td>Alan</td><td>Turing</td><td>41</td></tr>
+          </tbody>
+        </table>
+      </div>`.trim();
+
+    const expected = `
+| Name                | Age      |
+| -------- | -------- | -------- |
+| * Note: values as of 2024/2025 |
+| Ada      | Lovelace | 36       |
+| Alan     | Turing   | 41       |
+`.trim();
+
+    const result = toMd(el(html), { prettyTables: true });
+    // log(result, { escapeWhitespace: false, jsonifyStrings: false });
+    expect(result).toBe(expected);
+  });
+
+  it('renders mixed-width Unicode/emoji using naive length-based widths (known bad)', () => {
+    const html = `<div>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">left</th>
+            <th style="text-align:center">center</th>
+            <th style="text-align:right">right</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ASCII</td>
+            <td>漢字</td>
+            <td>e\u0301</td>        <!-- 'e' + combining acute -->
+          </tr>
+          <tr>
+            <td>سلام</td>            <!-- Arabic -->
+            <td>😊</td>              <!-- emoji (surrogate pair, length 2) -->
+            <td>mix😊e\u0301</td>    <!-- mix of ASCII + emoji + combining -->
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+
+    // Widths under current logic:
+    // col1 max len = max(len('left')=4, 'ASCII'=5, 'سلام'=4) = 5
+    // col2 max len = max(len('center')=6, '漢字'=2, '😊'=2)   = 6
+    // col3 max len = max(len('right')=5, 'é'=2, 'mix😊é'=7) = 7
+
+    // TODO: This is beyond unsatisfactory.
+    const expected = `
+| left  | center | right   |
+|:----- |:------:| -------:|
+| ASCII | 漢字     | é      |
+| سلام  | 😊     | mix😊é |
+`.trim();
+
+    const result = toMd(el(html), { prettyTables: true });
+    // log(result, { escapeWhitespace: false, jsonifyStrings: false });
+    strictEqual(result, expected);
+  });
+
+  it('handles row spans', () => {
+    const html = `
+      <div>
+        <table>
+          <tr>
+            <th rowspan="2">Name</th>
+            <th colspan="2">Scores</th>
+          </tr>
+          <tr>
+            <th>Math</th>
+            <th>Science</th>
+          </tr>
+          <tr>
+            <td>Alice</td><td>90</td><td>95</td>
+          </tr>
+        </table>
+      </div>`.trim();
+
+    const expected = `
+| Name  | Scores         |
+| ----- | ---- | ------- |
+|       | Math | Science |
+| Alice | 90   | 95      |
+`.trim();
+
+    const result = toMd(el(html), { prettyTables: true });
+    // console.log(result);
+    strictEqual(result, expected);
+  });
+
+  it('flattens rowspan+colspan that push later headers right (wonky Foo)', () => {
+    const html = `
+      <div>
+        <table>
+          <tr>
+            <th rowspan="2" colspan="3">Foo</th>
+          </tr>
+          <tr>
+            <th rowspan="2">Name</th>
+            <th colspan="2">Scores</th>
+          </tr>
+          <tr>
+            <th>Math</th>
+            <th>Science</th>
+          </tr>
+          <tr>
+            <td>Alice</td><td>90</td><td>95</td>
+          </tr>
+        </table>
+      </div>`.trim();
+
+    // Physical width becomes 6 after row 2.
+    const expected = `
+| Foo                   |      |     |     |
+| ----- | ------- | --- | ---- | --- | --- |
+|                       | Name | Scores    |
+| Math  | Science |     |      |     |     |
+| Alice | 90      | 95  |      |     |     |
+`.trim();
+    const result = toMd(el(html), { prettyTables: true });
+    // console.log(result);
+    strictEqual(result, expected);
+  });
+
+});

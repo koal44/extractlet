@@ -104,14 +104,14 @@ async function showPreview(key: XletSettingKey, row: HTMLElement) {
 
   switch (spec.ctx) {
     case 'html': {
-      previewBox.appendChild(h('div', { class: 'html-view' }, toHtml(previewNode, htmlCtx)));
+      previewBox.appendChild(h('div', { class: 'html-view', ...spec.previewAttrs }, toHtml(previewNode, htmlCtx)));
       break;
     }
     case 'markdown': {
-      previewBox.appendChild(h('div', { class: 'md-view' }, toMd(previewNode, mdCtx)));
+      previewBox.appendChild(h('div', { class: 'md-view', ...spec.previewAttrs }, toMd(previewNode, mdCtx)));
       break;
     }
-    default: throw new Error(`Unknown setting ctx for key "${String(key as never)}"`);
+    default: throw new Error(`Unknown setting ctx for key "${String(spec.ctx satisfies never)}"`);
   }
 }
 
@@ -127,7 +127,7 @@ async function initForm(form: HTMLFormElement) {
     switch (spec.ctx) {
       case 'markdown': appendSettingRow(mdContainer, key, _settings[key]); break;
       case 'html': appendSettingRow(htmlContainer, key, _settings[key]); break;
-      default: throw new Error(`Unknown setting ctx for key "${String(key as never)}"`);
+      default: throw new Error(`Unknown setting ctx for key "${String(spec.ctx satisfies never)}"`);
     }
   }
 }

@@ -67,6 +67,7 @@ export type ToMdContext = {
   lastChar: string;                     // last emitted char (spacing state, internal)
   wsMode: 'normal' | 'pre';             // whitespace handling mode  // | 'pre-line'
   brMode: BrMode;                       // how to treat <br> tags
+  prettyTables: boolean;               // pretty-print tables with padded columns (default: false)
 };
 
 export const DefaultToMdContext: ToMdContext = {
@@ -84,6 +85,7 @@ export const DefaultToMdContext: ToMdContext = {
   lastChar: '',
   wsMode: 'normal',
   brMode: 'soft',
+  prettyTables: false,
 };
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
@@ -613,15 +615,20 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         const imageRefs: string[] = [];
         const tctx = { ...ctx, compact: true, anchorRefs, imageRefs };
 
-        class GridCol { constructor(public md: string, public remRowSpan: number) {} }
+        class GridCell {
+          md: string;
+          constructor(md: string, public remRowSpan: number, public colSpan: number) {
+            this.md = md.trim().replaceAll('|', '\\|'); // normalize
+          }
+        }
 
         type Align = 'l' | 'c' | 'r';
         const colAligns: (Align | null)[] = [];
 
         const rows = [...node.querySelectorAll('tr')] as HTMLTableRowElement[];
-        const grid: GridCol[][] = [];
+        const grid: GridCell[][] = [];
 
-        let prev: GridCol[] = [];
+        let prev: GridCell[] = [];
         let firstRowIsHeader = false;
 
         for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
@@ -641,29 +648,29 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
             }
           }
 
-          const row: GridCol[] = [];
+          const row: GridCell[] = [];
           let colIndex = 0;
 
           // place cells, skipping carried spans
           for (const cell of cells) {
             while (prev[colIndex]?.remRowSpan > 0) {
-              row.push(new GridCol('', prev[colIndex].remRowSpan - 1));
+              row.push(new GridCell('', prev[colIndex].remRowSpan - 1, prev[colIndex].colSpan));
               colIndex++;
             }
 
-            row.push(new GridCol(toMd(cell, tctx), cell.rowSpan - 1));
+            row.push(new GridCell(toMd(cell, tctx), cell.rowSpan - 1, cell.colSpan));
             colIndex++;
 
             // same-row placeholders for colSpan>1
             for (let k = 1; k < cell.colSpan; k++) {
-              row.push(new GridCol('', cell.rowSpan - 1));
+              row.push(new GridCell('', cell.rowSpan - 1, 0));
               colIndex++;
             }
           }
 
           // age trailing carries ONCE per row
           while (prev[colIndex]?.remRowSpan > 0) {
-            row.push(new GridCol('', prev[colIndex].remRowSpan - 1));
+            row.push(new GridCell('', prev[colIndex].remRowSpan - 1, prev[colIndex].colSpan));
             colIndex++;
           }
 
@@ -679,29 +686,74 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
         // pad short rows
         for (const r of grid) {
-          while (r.length < nCols) r.push(new GridCol('', 0));
+          while (r.length < nCols) r.push(new GridCell('', 0, 1));
         }
 
         // spoof header row if first isn't header
         if (grid.length && !firstRowIsHeader) {
-          grid.unshift(Array.from({ length: nCols }, () => new GridCol('', 0)));
+          grid.unshift(Array.from({ length: nCols }, () => new GridCell('', 0, 1)));
         }
 
         // insert separator row after header (empty; emitter sets '---' per cell)
-        grid.splice(1, 0, Array.from({ length: nCols }, () => new GridCol('', 0)));
+        grid.splice(1, 0, Array.from({ length: nCols }, () => new GridCell('', 0, 1)));
 
-        // ---- emit (unchanged policy) ----
+
+        let minColWidths: number[] = Array<number>(nCols).fill(3);
+
+        if (ctx.prettyTables) {
+          const stringWidth = (s: string) => s.length; // TODO: better measure for unicode strings
+          const innerGap = 3; // spaces between columns ' | '
+          const widthAlloc = (cols: GridCell[]) => {
+            return cols.flatMap((c) => {
+              if (c.colSpan === 0) return []; // spanned cell
+              const len = stringWidth(c.md) - innerGap * (c.colSpan - 1);
+              const q = (len / c.colSpan) | 0;
+              const r = len - q * c.colSpan;
+              return Array.from({ length: c.colSpan }, (_, i) => q + (i < r ? 1 : 0));
+            });
+          };
+
+          minColWidths = (() => {
+            const W = Array<number>(nCols).fill(3); // minimum column width
+            for (const r of grid) {
+              const a = widthAlloc(r);
+              for (let i = 0; i < a.length; i++) if (a[i] > W[i]) W[i] = a[i];
+            }
+            return W;
+          })();
+
+          // pad cells to column width
+          for (const row of grid) {
+            for (let j = 0; j < nCols; j++) {
+              const cell = row[j];
+              const targetWidth = minColWidths.slice(j, j + cell.colSpan).reduce((a, w) => a + w, 0 + innerGap * (cell.colSpan - 1));
+              const curWidth = stringWidth(cell.md);
+              const padSize = targetWidth - curWidth;
+              if (padSize > 0) {
+                cell.md = `${cell.md}${' '.repeat(padSize)}`;
+              }
+            }
+          }
+        }
+
+        if (!ctx.prettyTables) {
+          // all colSpans back to 1 for simple emission
+          for (const row of grid) for (const cell of row) cell.colSpan = 1;
+        }
+
+        // ---- emit ----
         const rowParts: string[] = [];
         for (let i = 0; i < grid.length; i++) {
           const row = grid[i];
           const colParts: string[] = [];
           for (let j = 0; j < nCols; j++) {
-            let md = row[j].md.trim().replaceAll('|', '\\|');
+            if (row[j].colSpan === 0) continue; // skip spanned columns
+            let md = row[j].md;
             let leftMark = ' ';
             let rightMark = ' ';
 
             if (i === 1) {
-              md = '---';
+              md = '-'.repeat(minColWidths[j]);
               leftMark  = colAligns[j] === 'l' || colAligns[j] === 'c' ? ':' : ' ';
               rightMark = colAligns[j] === 'r' || colAligns[j] === 'c' ? ':' : ' ';
             } else if (md === '') {

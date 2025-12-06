@@ -1,7 +1,7 @@
 import { hasOfType, isNonEmptyString, isNumber } from './typing';
 
-type AttrValue = string | number | boolean | null | undefined;
-type HAttrs = Record<string, AttrValue | Document> & { __doc?: Document; };
+export type AttrValue = string | number | boolean | null | undefined;
+export type HAttrs = Record<string, AttrValue | Document> & { __doc?: Document; };
 
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs?: HAttrs, ...children: (string | Node | null)[]): HTMLElementTagNameMap[K];
 export function h<K extends keyof SVGElementTagNameMap>(tag: `svg:${K}`, attrs?: HAttrs, ...children: (string | Node | null)[]): SVGElementTagNameMap[K];
