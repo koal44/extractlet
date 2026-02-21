@@ -390,6 +390,9 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
   } else { // --- default handling for HTML elements ---
     const tagName = node.tagName.toUpperCase();
     switch (tagName) {
+      case 'DD':
+      case 'DT':
+      case 'DL':
       case 'DETAILS':
       case 'BODY':
       case 'DIV':
@@ -816,9 +819,10 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         if (caption) fullCaption.push(caption);
 
         const body = [];
-        body.push('\n\n:::figure');
+        body.push('\n\n:::figure  ');
         if (parts.length) body.push(parts.filter(Boolean).join('\n'));
         if (fullCaption.length) body.push(`\n${fullCaption.join('\n')}`);
+        body[body.length - 1] += '  '; // force *some* previewers to place fence on its own line
         body.push(':::\n\n');
 
         result = body.join('\n');

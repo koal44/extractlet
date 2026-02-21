@@ -20,7 +20,7 @@ export default {
           sectionNum: 1,
           html: null,
           htmlStr: '<div class="wikinode-section-content"><figure><a href="https://en.wiki',
-          md: ':::figure\n[![](https://upload.wikimedia.org/wikipedia/commons/thumb/c/',
+          md: ':::figure  \n[![](https://upload.wikimedia.org/wikipedia/commons/thumb/c/',
           raw: '',
           children: [
             {
