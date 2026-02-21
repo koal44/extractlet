@@ -139,6 +139,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/**', 'dist-ff/**', '**/gen/**', 'eslint.config.mjs', 'vendor/**'],
+    ignores: ['dist/**', '**/gen/**', 'eslint.config.mjs', 'vendor/**'],
   }
 );

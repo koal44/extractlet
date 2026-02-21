@@ -15,21 +15,24 @@ type BundleEntry = {
   muteWarnings?: WarningCode[];
 };
 
+const DIST_ROOT = 'dist';
+const DIST_CHROME = `${DIST_ROOT}/chrome`;
+const DIST_FIREFOX = `${DIST_ROOT}/firefox`;
+
 // clear dist/ folders
-await fs.rm('dist', { recursive: true, force: true });
-await fs.rm('dist-ff', { recursive: true, force: true });
+await fs.rm(DIST_ROOT, { recursive: true, force: true });
 
 // --- bundle top-level extension scripts ---
 // These are the JS files the browser actually executes—via manifest (background,
 // options, site pages) or via programmatic injection (run-extractlet, run-normalize).
 const tsFiles: BundleEntry[] = [
-  { input: 'src/background.ts', output: 'dist/background.js', format: 'esm', patchPolyfill: true },
-  { input: 'src/content/run-extractlet.ts', output: 'dist/run-extractlet.js', format: 'iife' },
-  { input: 'src/content/run-normalize.ts', output: 'dist/run-normalize.js', format: 'iife' },
-  { input: 'src/settings-page.ts', output: 'dist/settings-page.js', format: 'iife' },
-  { input: 'src/sites/wiki-page.ts', output: 'dist/sites/wiki-page.js', format: 'iife' },
-  { input: 'src/sites/se-page.ts', output: 'dist/sites/se-page.js', format: 'iife' },
-  { input: 'src/sites/hub-page.ts', output: 'dist/sites/hub-page.js', format: 'iife' },
+  { input: 'src/background.ts', output: `${DIST_CHROME}/background.js`, format: 'esm', patchPolyfill: true },
+  { input: 'src/content/run-extractlet.ts', output: `${DIST_CHROME}/run-extractlet.js`, format: 'iife' },
+  { input: 'src/content/run-normalize.ts', output: `${DIST_CHROME}/run-normalize.js`, format: 'iife' },
+  { input: 'src/settings-page.ts', output: `${DIST_CHROME}/settings-page.js`, format: 'iife' },
+  { input: 'src/sites/wiki-page.ts', output: `${DIST_CHROME}/sites/wiki-page.js`, format: 'iife' },
+  { input: 'src/sites/se-page.ts', output: `${DIST_CHROME}/sites/se-page.js`, format: 'iife' },
+  { input: 'src/sites/hub-page.ts', output: `${DIST_CHROME}/sites/hub-page.js`, format: 'iife' },
 ];
 
 // --- bundle and patch polyfill imports where needed ---
@@ -40,30 +43,30 @@ for (const tsFile of tsFiles) {
   }
 }
 
-// --- copy public assets ---
-await fs.cp('public', 'dist', { recursive: true, force: true });
+// --- copy public assets into chrome build ---
+await fs.cp('public', DIST_CHROME, { recursive: true, force: true });
 await fs.cp(
   'node_modules/webextension-polyfill/dist/browser-polyfill.js',
-  'dist/browser-polyfill.js',
+  `${DIST_CHROME}/browser-polyfill.js`,
   { force: true }
 );
 
-// --- copy dist to dist-ff ---
-await fs.cp('dist', 'dist-ff', { recursive: true, force: true });
+// --- clone chrome build to firefox build ---
+await fs.cp(DIST_CHROME, DIST_FIREFOX, { recursive: true, force: true });
 
 // --- patch manifest.json for chrome/firefox incompatibilities ---
-const ffManifest = JSON.parse(await fs.readFile('dist-ff/manifest.json', 'utf8')) as unknown;
+const ffManifest = JSON.parse(await fs.readFile(`${DIST_FIREFOX}/manifest.json`, 'utf8')) as unknown;
 if (hasProp(ffManifest, ['background', 'service_worker'])) {
   delete (ffManifest.background as { service_worker?: unknown; }).service_worker;
-  await fs.writeFile('dist-ff/manifest.json', JSON.stringify(ffManifest, null, 2));
-  console.log('Patched manifest.json for Firefox in dist-ff');
+  await fs.writeFile(`${DIST_FIREFOX}/manifest.json`, JSON.stringify(ffManifest, null, 2));
+  console.log(`Patched manifest.json for Firefox in ${DIST_FIREFOX}`);
 }
 
-const manifest = JSON.parse(await fs.readFile('dist/manifest.json', 'utf8')) as unknown;
+const manifest = JSON.parse(await fs.readFile(`${DIST_CHROME}/manifest.json`, 'utf8')) as unknown;
 if (hasProp(manifest, ['background', 'scripts'])) {
   delete (manifest.background as { scripts?: unknown; }).scripts;
-  await fs.writeFile('dist/manifest.json', JSON.stringify(manifest, null, 2));
-  console.log('Patched manifest.json for Chrome/other in dist');
+  await fs.writeFile(`${DIST_CHROME}/manifest.json`, JSON.stringify(manifest, null, 2));
+  console.log(`Patched manifest.json for Chrome/other in ${DIST_CHROME}`);
 }
 
 console.log('Build completed!');

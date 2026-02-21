@@ -1,9 +1,8 @@
 {
   "name": "extractlet",
-  "version": "1.0.0",
-  "description": "A simple bookmarklet for sharing Wiki and StackExchange posts with your AI assistant using Markdown or Wikitext.",
-  "gistUrl": "https://gist.github.com/koal44/77102fb777f9e3eb820db2a342ef965d",
-  "main": "build.js",
+  "version": "0.1.0",
+  "description": "Browser extension for extracting GitHub, Stack Exchange, and MediaWiki content as normalized Markdown.",
+  "private": true,
   "scripts": {
     "build": "tsx --env-file=.env scripts/build.ts",
     "test": "vitest run",
@@ -27,9 +26,8 @@
     }
   },
   "keywords": [
-    "bookmarklet",
-    "gpt-friendly",
-    "share-with-ai",
+    "browser-extension",
+    "github",
     "stackexchange",
     "stackoverflow",
     "mediawiki",
@@ -37,8 +35,7 @@
     "markdown",
     "wikitext",
     "latex",
-    "mathjax",
-    "web-scraping"
+    "content-extraction"
   ],
   "author": "koal44",
   "license": "MIT",
