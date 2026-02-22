@@ -597,10 +597,8 @@ export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): WikiRe
 function getCopyPreamble(url: string): string {
   const copyArr: string[] = [];
   copyArr.push(
-    '===========================================',
-    '           Extractlet · Wiki',
-    '===========================================',
-    `URL: ${url}`
+    '<!-- Extractlet · Wiki -->',
+    `<!-- ${url} -->`
   );
   return copyArr.join('\n');
 }

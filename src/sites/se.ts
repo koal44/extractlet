@@ -322,15 +322,11 @@ function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
   const copyArr = [];
 
   if (isAll) {
-    copyArr.push(
-      '===========================================',
-      '        Extractlet · Stack Exchange',
-      '==========================================='
-    );
+    copyArr.push('Extractlet · Stack Exchange');
   }
 
-  if (pageData.title) copyArr.push(`Title: ${pageData.title}`);
-  copyArr.push(`URL: ${pageData.permalink}`, '');
+  if (pageData.title) copyArr.push(`<!-- ${pageData.title} -->`);
+  copyArr.push(`<!-- ${pageData.permalink} -->`, '');
 
   pageData.posts.forEach((post, idx) => {
     if (!isAll && idx !== postIdx) return;

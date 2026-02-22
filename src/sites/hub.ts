@@ -580,16 +580,12 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
   const copyArr: string[] = [];
 
   if (isAll) {
-    copyArr.push(
-      '===========================================',
-      '           Extractlet · GitHub',
-      '==========================================='
-    );
+    copyArr.push('<!-- Extractlet · GitHub -->');
   }
 
-  if (pageData.title) copyArr.push(`Title: ${pageData.title}`);
+  if (pageData.title) copyArr.push(`<!-- ${pageData.title} -->`);
   const url = isAll ? pageData.permalink : allPosts[postIdx].postId ? `${pageData.permalink}#${allPosts[postIdx].postId}` : pageData.permalink;
-  if (url) copyArr.push(`URL: ${url}`, '');
+  if (url) copyArr.push(`<-- ${url} -->`, '');
 
   allPosts.forEach((post, idx) => {
     if (!isAll && idx !== postIdx) return;

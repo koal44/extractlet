@@ -25,7 +25,7 @@ export function createCopyButton(
   const button = h('button', { class: 'copybutton', __doc: doc }, icon);
   button.addEventListener('click', () => {
     void (async function() {
-      const text = useXletFence ? `\n<<<XLET-BEGIN>>>\n\n${copyText()}\n\n<<<XLET-END>>>\n\n` : copyText();
+      const text = useXletFence ? `\n<!-- XLET-BEGIN -->\n\n${copyText()}\n\n<!-- XLET-END -->\n\n` : copyText();
       try {
         await navigator.clipboard.writeText(text);
         button.disabled = true;
