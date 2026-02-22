@@ -70,6 +70,7 @@ export type ToMdContext = {
   brMode: BrMode;                       // how to treat <br> tags
   prettyTables: boolean;                // pretty-print tables with padded columns (default: false)
   subSupMode: SubSupMode;               // how to render sub/superscripts
+  inTex: boolean;                       // when generating TeX ($...$), suppress markdown formatting and prefer TeX-safe output
 };
 
 export const DefaultToMdContext: ToMdContext = {
@@ -89,6 +90,7 @@ export const DefaultToMdContext: ToMdContext = {
   brMode: 'soft',
   prettyTables: false,
   subSupMode: 'html',
+  inTex: false,
 };
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
@@ -315,11 +317,14 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
       // --- element nodes ---
       else if (isElement(child)) {
-        md = toMd(child, { ...gcx, isRoot: false, lastChar: ch });
-        const raw = (child.textContent ?? '').replace(/\r\n?/g, '\n');
+        const childGcx = { ...gcx, isRoot: false, lastChar: ch, skipCustomHandler: false };
+        md = toMd(child, childGcx);
+
+        // Re-check skip when md=='' to avoid fabricating whitespace.
+        if (gcx.elementHandler?.(child, childGcx, glueChildren).skip) continue;
 
         // ---- handle empty elements (rare case) ----
-        if (md === '' && raw === '') continue;
+        if (md === '' && !child.textContent) continue;
         if (/^\s*$/.test(md) && !isBreak(child)) { // all whitespace
           if (!/\s/.test(ch) && (glueMode === 'inline' || i !== childNodes.length - 1)) {
             md = wsMode === 'normal' ? ' ' : md;
@@ -374,7 +379,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
   // --- handle site-specific elements ---
   const siteResult = !ctx.skipCustomHandler && ctx.elementHandler
-    ? ctx.elementHandler(node, ctx, glueChildren)
+    ? ctx.elementHandler(node, { ...ctx, skipCustomHandler: false }, glueChildren)
     : null;
   if (siteResult?.skip) return '';
 
@@ -414,13 +419,15 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       case 'EM':
       case 'I': {
-        result = `*${glueChildren(node, 'inline')}*`;
+        const fence = ctx.inTex ? '' : '*';
+        result = `${fence}${glueChildren(node, 'inline')}${fence}`;
         break;
       }
 
       case 'B':
       case 'STRONG': {
-        result = `**${glueChildren(node, 'inline')}**`;
+        const fence = ctx.inTex ? '' : '**';
+        result = `${fence}${glueChildren(node, 'inline')}${fence}`;
         break;
       }
 
@@ -906,7 +913,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           }
           case 'tex': {
             const op = node.tagName === 'SUB' ? '_' : '^';
-            const needsBraces = inner.length !== 1;
+            const needsBraces = ctx.inTex || inner.length !== 1;
             result = needsBraces ? `${op}{${inner}}` : `${op}${inner}`;
             break;
           }

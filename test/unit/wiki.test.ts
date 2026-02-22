@@ -1143,3 +1143,17 @@ $$
     expect(md).not.toContain('wikimedia.org/api/rest_v1/media/math/render/svg');
   });
 });
+
+describe('wiki toMd: texhtml stacked indices', () => {
+  it('converts span.texhtml stacked sup/sub (with <br>) into inline TeX', () => {
+    const html = `
+<span class="texhtml"><i>T</i><span style="white-space: nowrap;"> </span><span class="nowrap"><span style="display:inline-block;margin-bottom:-0.3em;vertical-align:-0.4em;line-height:0.8;font-size:80%;text-align:left"><sup style="font-size:inherit;line-height:inherit;vertical-align:baseline"><i>i</i></sup><br><sub style="font-size:inherit;line-height:inherit;vertical-align:baseline"><i>j</i></sub></span></span></span>
+    `.trim();
+
+    const md = toMd(el(html), { mathFence: 'dollar', subSupMode: 'tex' });
+
+    // Expected: inline TeX, no newline from <br>
+    expect(md).toBe('$T^{i}_{j}$');
+  });
+});
+

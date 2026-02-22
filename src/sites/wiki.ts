@@ -47,7 +47,7 @@ import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import type { HLevel } from '../utils/dom';
 import {
-  h, htmlToElementK, injectCss, isDiv, isDoc, isElement, isHeading, isHTML, isText, parseHeadingLevel,
+  h, htmlToElementK, injectCss, isBreak, isDiv, isDoc, isElement, isHeading, isHTML, isSub, isSup, isText, parseHeadingLevel,
 } from '../utils/dom';
 import { log, repr, warn } from '../utils/logging';
 import { jaroWinklerSimilarity } from '../utils/strings';
@@ -60,25 +60,22 @@ export type WikiResult = {
 
 function shouldSkip(node: Node | null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
-  if (isText(node)) return false; // Text nodes are never ignored
+  if (!isElement(node)) throw new Error('shouldSkip called with non-element node'); // shouldn't happen
+  // if (isText(node)) return false; // Text nodes are never ignored
 
-  if (isElement(node)) {
-    const tag = node.tagName.toUpperCase();
-    if (['META', 'STYLE', 'LINK'].includes(tag)) return true;
-    // const id = node.id || '';
-    // const aType = node.getAttribute('type') || '';
+  const tag = node.tagName.toUpperCase();
+  if (['META', 'STYLE', 'LINK'].includes(tag)) return true;
+  // const id = node.id || '';
+  // const aType = node.getAttribute('type') || '';
 
-    if (node.classList.contains('cite-accessibility-label')) return true;
-    if (node.classList.contains('mw-empty-elt')) return true;
+  if (node.classList.contains('cite-accessibility-label')) return true;
+  if (node.classList.contains('mw-empty-elt')) return true;
 
-    if (isHTML(node)) {
-      if (node.style.display === 'none') return true;
-    }
-    return false;
+  if (isHTML(node)) {
+    if (node.style.display === 'none') return true;
   }
 
-  // if it's not an elem or text, always skip
-  return true;
+  return false;
 }
 
 const toMdElemHandler: ToMdElementHandler = (el, ctx, _gc) => {
@@ -87,6 +84,21 @@ const toMdElemHandler: ToMdElementHandler = (el, ctx, _gc) => {
   const mathRepr = extractMathRepr(el);
   if (mathRepr) {
     return mathReprToMd(mathRepr, ctx);
+  }
+
+  if (  // ignore <br> between math elements, which is used for layout in some cases
+    isBreak(el) &&
+    (isSub(el.nextSibling) || isSup(el.nextSibling)) &&
+    (isText(el.previousSibling) || isElement(el.previousSibling))
+  ) return { skip: true };
+
+  if (el.matches('span.texhtml')) {
+    const md = toMd(el, { ...ctx, skipCustomHandler: true, inTex: true });
+    return { md: `$${md}$` };
+  }
+
+  if (el.matches('span') && el.parentElement?.matches('span.texhtml') && el.textContent?.trim() === '') {
+    return { skip: true };
   }
 
   return {};
