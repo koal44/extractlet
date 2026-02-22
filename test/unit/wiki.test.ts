@@ -1,5 +1,5 @@
 /* eslint-disable no-irregular-whitespace */
-import { describe, expect, test } from 'vitest';
+import { describe, expect, it, test } from 'vitest';
 import { normalizeWikitext, parseRawIntoSections, toHtml, toMd, WikiNode } from '../../src/sites/wiki';
 import {
   el, assertNodeEqual, setupDom, logPandocWtToMd, logPandocHtmlToMd, docEl,
@@ -273,8 +273,8 @@ For other uses, see [](/wiki/Tensor_(disambiguation)).
 
 This article is about tensors on a single vector space and is not to be confused with [](/wiki/Vector_field) or [](/wiki/Tensor_field).
 
-:::figure
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [](/wiki/Cauchy_stress_tensor)
+:::figure  
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [](/wiki/Cauchy_stress_tensor)  
 :::`.trim();
   strictEqual(result!.md, expectedMd);
 });
@@ -318,10 +318,10 @@ describe('Extractlet: Parsoid HTML 2.8.0 Spec', () => {
  <figcaption><p>caption</p></figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
+:::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foo.jpg)](./File:Foo.jpg)
 
-caption
+caption  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -378,10 +378,10 @@ caption
    <figcaption>caption content</figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
+:::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption content
+caption content  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -397,10 +397,10 @@ caption content
    <figcaption>caption</figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
+:::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption
+caption  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -416,10 +416,10 @@ caption
    <figcaption>caption</figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
+:::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption
+caption  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -435,10 +435,10 @@ caption
    <figcaption>caption</figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
+:::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption
+caption  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -454,10 +454,10 @@ caption
    <figcaption>caption</figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
+:::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption
+caption  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -473,10 +473,10 @@ caption
    <figcaption>caption</figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
+:::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption
+caption  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -492,10 +492,10 @@ caption
   <figcaption>Title</figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
+:::figure  
 [![](https://example.com/images/e/ea/Thumb.png)](file:///Foobar.jpg)
 
-Title
+Title  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -524,8 +524,8 @@ Title
   <figcaption></figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
+:::figure  
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -541,8 +541,8 @@ Title
   <figcaption></figcaption>
 </figure>`.trim();
     const expectedMd = `
-:::figure
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
+:::figure  
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)  
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -583,7 +583,7 @@ Title
 </figure>`.trim();
 
     const expectedMd = `
-:::figure
+:::figure  
 **Video sources:**
 - [Ogg source](https://upload.wikimedia.org/wikipedia/commons/9/94/Folgers.ogv)
 - [WebM 160P](https://upload.wikimedia.org/wikipedia/commons/transcoded/9/94/Folgers.ogv/Folgers.ogv.160p.webm)
@@ -593,7 +593,7 @@ Title
 **Subtitles:**
 - [Deutsch (de) subtitles](https://commons.wikimedia.org/w/index.php?title=TimedText:Folgers.ogv.de.srt&action=raw&ctype=text%2Fx-srt)
 
-caption
+caption  
 :::`.trim();
 
     strictEqual(toMd(el(html)), expectedMd);
@@ -693,11 +693,11 @@ caption
     `.trim();
 
     const expectedMd = `
-:::figure
+:::figure  
 [![](https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Foobar.pdf/page3-220px-Foobar.pdf.jpg)](./File:Foobar.pdf)
 
 page 3 preview
-caption
+caption  
 :::`.trim();
 
     strictEqual(toMd(el(html)), expectedMd);
@@ -715,10 +715,10 @@ caption
     `.trim();
 
     const expectedMd = `
-:::figure
+:::figure  
 [File:This image does not exist yet.jpg](./Special:FilePath/This_image_does_not_exist_yet.jpg)
 
-caption
+caption  
 :::`.trim();
 
     strictEqual(toMd(el(html)), expectedMd);
@@ -996,88 +996,6 @@ test('parsoid wiki MD uses absolute links within section container', () => {
   expect(md).toBe('See [Baz](https://en.wikipedia.org/wiki/Foo) and [](https://en.wikipedia.org/wiki/Bar).');
 });
 
-
-// test('foo', () => {
-//   const html = `
-// <div>
-//   <table>
-//     <tbody>
-//       <tr>
-//         <th scope="col" colspan="2">
-//           <button type="button">
-//             <span>show</span>
-//           </button>
-//           <a href="/wiki/Template:Tensors">foo</a>
-//         </div>
-//         <a>Tensors</a>
-//       </th>
-//     </tr>
-//     <tr hidden="until-found">
-//       <td colspan="2">
-//         <a href="/wiki/Glossary_of_tensor_theory" title="Glossary of tensor theory">Glossary of tensor theory</a>
-//       </td>
-//     </tr>
-//     <tr hidden="until-found">
-//       <th scope="row">Scope</th>
-//       <td>
-//         <div>foo</div>
-//       </td>
-//     </tr>
-//     <tr hidden="until-found">
-//       <th scope="row">Notation</th>
-//       <td>
-//         <a href="/wiki/Abstract_index_notation" title="Abstract index notation">Abstract index notation</a>
-//       </td>
-//     </tr>
-//     <tr hidden="until-found">
-//       <th scope="row">Tensor
-//         <br />definitions
-//         </th>
-//         <td>
-//           <a href="/wiki/Tensor_(intrinsic_definition)" title="Tensor (intrinsic definition)">Tensor (intrinsic definition)</a>
-//         </td>
-//       </tr>
-//       <tr hidden="until-found">
-//         <th scope="row">
-//           <a href="/wiki/Operation_(mathematics)" title="Operation (mathematics)">Operations</a>
-//         </th>
-//         <td>
-//           <a href="/wiki/Covariant_derivative" title="Covariant derivative">Covariant derivative</a>
-//         </td>
-//       </tr>
-//       <tr hidden="until-found">
-//         <th scope="row">Related
-//           <br />abstractions
-//         </th>
-//         <td>
-//           <a href="/wiki/Affine_connection" title="Affine connection">Affine connection</a>
-//         </td>
-//       </tr>
-//       <tr hidden="until-found">
-//         <th scope="row">Notable tensors</th>
-//         <td>
-//           <div>foo</div>
-//         </td>
-//       </tr>
-//       <tr hidden="until-found">
-//         <th scope="row">
-//           <a href="/wiki/Mathematician" title="Mathematician">Mathematicians</a>
-//         </th>
-//         <td>
-//           <a href="/wiki/%C3%89lie_Cartan" title="Élie Cartan">Élie Cartan</a>
-//         </td>
-//       </tr>
-//     </tbody>
-//   </table>
-// </div>
-// `.trim();
-//   const result = toMd(el(html));
-//   // console.log(result);
-//   // const expected = 'foo';
-//   // assertNodeEqual(result, expected);
-// });
-
-
 // describe('MediaWiki Math rendering', () => {
 
 // test('toHtml of <math>\\alpha</math>', () => {
@@ -1140,3 +1058,88 @@ test('parsoid wiki MD uses absolute links within section container', () => {
 //   });
 
 // });
+
+describe('wiki toMd: MediaWiki math', () => {
+  it('converts mwe-math-element inline to fenced TeX (prefers annotation[x-tex]) and skips fallback image', () => {
+    const html = `
+<dl><dd><span class="mwe-math-element mwe-math-element-inline"><span class="mwe-math-mathml-inline mwe-math-mathml-a11y" style="display: none;"><math xmlns="http://www.w3.org/1998/Math/MathML" alttext="{\\displaystyle T:\\underbrace {V^{*}\\times \\dots \\times V^{*}} _{p{\\text{ copies}}}\\times \\underbrace {V\\times \\dots \\times V} _{q{\\text{ copies}}}\\rightarrow \\mathbb {R} ,}">
+  <semantics>
+    <mrow class="MJX-TeXAtom-ORD">
+      <mstyle displaystyle="true" scriptlevel="0">
+        <mi>T</mi>
+        <mo>:</mo>
+        <munder>
+          <mrow class="MJX-TeXAtom-OP MJX-fixedlimits">
+            <munder>
+              <mrow>
+                <msup>
+                  <mi>V</mi>
+                  <mrow class="MJX-TeXAtom-ORD">
+                    <mo>∗<!-- ∗ --></mo>
+                  </mrow>
+                </msup>
+                <mo>×<!-- × --></mo>
+                <mo>⋯<!-- ⋯ --></mo>
+                <mo>×<!-- × --></mo>
+                <msup>
+                  <mi>V</mi>
+                  <mrow class="MJX-TeXAtom-ORD">
+                    <mo>∗<!-- ∗ --></mo>
+                  </mrow>
+                </msup>
+              </mrow>
+              <mo>⏟<!-- ⏟ --></mo>
+            </munder>
+          </mrow>
+          <mrow class="MJX-TeXAtom-ORD">
+            <mi>p</mi>
+            <mrow class="MJX-TeXAtom-ORD">
+              <mtext>&nbsp;copies</mtext>
+            </mrow>
+          </mrow>
+        </munder>
+        <mo>×<!-- × --></mo>
+        <munder>
+          <mrow class="MJX-TeXAtom-OP MJX-fixedlimits">
+            <munder>
+              <mrow>
+                <mi>V</mi>
+                <mo>×<!-- × --></mo>
+                <mo>⋯<!-- ⋯ --></mo>
+                <mo>×<!-- × --></mo>
+                <mi>V</mi>
+              </mrow>
+              <mo>⏟<!-- ⏟ --></mo>
+            </munder>
+          </mrow>
+          <mrow class="MJX-TeXAtom-ORD">
+            <mi>q</mi>
+            <mrow class="MJX-TeXAtom-ORD">
+              <mtext>&nbsp;copies</mtext>
+            </mrow>
+          </mrow>
+        </munder>
+        <mo stretchy="false">→<!-- → --></mo>
+        <mrow class="MJX-TeXAtom-ORD">
+          <mi mathvariant="double-struck">R</mi>
+        </mrow>
+        <mo>,</mo>
+      </mstyle>
+    </mrow>
+    <annotation encoding="application/x-tex">{\\displaystyle T:\\underbrace {V^{*}\\times \\dots \\times V^{*}} _{p{\\text{ copies}}}\\times \\underbrace {V\\times \\dots \\times V} _{q{\\text{ copies}}}\\rightarrow \\mathbb {R} ,}</annotation>
+  </semantics>
+</math></span><img src="https://wikimedia.org/api/rest_v1/media/math/render/svg/272d7fc02b7d0e37d35c0bad6e3ffce7d9c5c35b" class="mwe-math-fallback-image-inline mw-invert skin-invert" aria-hidden="true" style="vertical-align: -4.005ex; width:38.678ex; height:6.009ex;" alt="{\\displaystyle T:\\underbrace {V^{*}\\times \\dots \\times V^{*}} _{p{\\text{ copies}}}\\times \\underbrace {V\\times \\dots \\times V} _{q{\\text{ copies}}}\\rightarrow \\mathbb {R} ,}"></span></dd></dl>
+    `.trim();
+
+    const md = toMd(el(html), { mathFence: 'dollar' });
+
+    expect(md).toBe(`
+$$
+T:\\underbrace{V^{*}\\times \\dots \\times V^{*}}_{p{\\text{ copies}}}\\times \\underbrace{V\\times \\dots \\times V}_{q{\\text{ copies}}}\\rightarrow \\mathbb{R},
+$$
+    `.trim());
+
+    expect(md).not.toContain('![');
+    expect(md).not.toContain('wikimedia.org/api/rest_v1/media/math/render/svg');
+  });
+});

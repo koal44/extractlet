@@ -34,10 +34,7 @@ function createTexNode(tex: string, display: DisplayMode): Element {
     : h('code', { class: 'xlet-math-tex xlet-math-inline' }, tex);
 }
 
-export function createMathmlNode(mathml: string, display: DisplayMode, scrubAttr: boolean = true): Element {
-  const mathNode = htmlToElementK(mathml, 'math:math');
-  if (!mathNode) return h('span', {}, 'failed to parse MathML');
-
+function createMathmlNode(mathNode: MathMLElement, display: DisplayMode): Element {
   mathNode.classList.add('xlet-math-mathml');
   if (display === 'block') {
     mathNode.setAttribute('display', 'block');
@@ -47,27 +44,17 @@ export function createMathmlNode(mathml: string, display: DisplayMode, scrubAttr
     mathNode.classList.add('xlet-math-inline');
   }
 
-  if (scrubAttr) {
-    scrubMathJaxAttrs(mathNode);
-  }
-
   return mathNode;
 }
 
-function createSvgNode(svgOrContainer: Element, display: DisplayMode): Element {
-  const isMjxSvgContainer = svgOrContainer.matches('mjx-container'); // v3/v4
-  // note that v4 may have multiple child svgs inside a single mjx-container
+function createSvgNode(root: Element, display: DisplayMode): Element {
+  // mathjax v4 may have multiple svgs inside a single container
+  const els = root.matches('svg') ? [root] : [...root.children];
+  const nodes = els.map((el) => el.cloneNode(true));
 
-  const children: Node[] = isMjxSvgContainer
-    ? [...svgOrContainer.childNodes].map((n) => n.cloneNode(true))
-    : [svgOrContainer.cloneNode(true)];
-
-  const wrapper =
-    display === 'block'
-      ? h('div', { class: 'xlet-math-svg xlet-math-block' }, ...children)
-      : h('span', { class: 'xlet-math-svg xlet-math-inline' }, ...children);
-
-  return wrapper;
+  return display === 'block'
+    ? h('div', { class: 'xlet-math-svg xlet-math-block' }, ...nodes)
+    : h('span', { class: 'xlet-math-svg xlet-math-inline' }, ...nodes);
 }
 
 function scrubMathJaxAttrs(el: Element): void {
@@ -119,14 +106,14 @@ function handleMjxSkippableNode(el: Element): MathVendorToHtmlResult | null {
   return null;
 }
 
-function handleHiddenMjxSvgTable(el: Element, _view?: MathView): MathVendorToHtmlResult | null {
+function handleHiddenMjxSvgTable(el: Element, view?: MathView): MathVendorToHtmlResult | null {
   // v2.x hidden mathjax svg (global glyph table)
   if (
     el.matches('[style*="visibility: hidden" i]') &&
     el.querySelector(':scope > [id="MathJax_SVG_Hidden"]')
   ) {
     const svg = el.querySelector(':scope > svg');
-    if (!svg || _view !== 'svg') return { skip: true };
+    if (!svg || view !== 'svg') return { skip: true };
 
     return {
       node: h(
@@ -139,20 +126,22 @@ function handleHiddenMjxSvgTable(el: Element, _view?: MathView): MathVendorToHtm
   return null;
 }
 
-type MjxContent = {
+export type MathRepr = {
   tex: string | null;
-  mathml: string | null;
+  mathml: MathMLElement | null;
   svg: Element | null;
   display: DisplayMode;
 };
 
-function getMjxV2Content(el: Element, view: MathView): MjxContent | null {
+function getMjxV2Repr(el: Element, view: MathView): MathRepr | null {
   const id = el.getAttribute('id');
 
   if (el.matches('script[type^="math/tex" i], script[type^="math/mml" i]')) {
     const display: DisplayMode = el.matches('script[type*="mode=display" i]') ? 'block' : 'inline';
 
-    const mathml = getMathMl(el); // should always exist after normalize()
+    const mathmlStr = getMathMl(el); // should always exist after normalize()
+    const mathml = mathmlStr ? htmlToElementK(mathmlStr, 'math:math') : null;
+    if (mathml) scrubMathJaxAttrs(mathml);
     if (mathml === null && view !== 'tex') {
       console.warn(`[xlet:math] MathJax v2 script without MathML annotation ${repr(el)}`);
     }
@@ -171,7 +160,7 @@ function getMjxV2Content(el: Element, view: MathView): MjxContent | null {
   return null;
 }
 
-function getMjxV34Content(el: Element): MjxContent | null {
+function getMjxV34Repr(el: Element): MathRepr | null {
   // only care about v3/v4 MathJax containers
   if (!el.matches('mjx-container.MathJax')) return null;
 
@@ -180,8 +169,9 @@ function getMjxV34Content(el: Element): MjxContent | null {
 
   // prefer normalized MathML over assistive
   const assistiveSel = ':scope > mjx-assistive-mml > math';
-
-  const mathml = getMathMl(el) ?? el.querySelector(assistiveSel)?.outerHTML ?? null;
+  const mathmlStr = getMathMl(el);
+  const mathml = (mathmlStr ? htmlToElementK(mathmlStr, 'math:math') : null) ?? el.querySelector(assistiveSel);
+  if (mathml) scrubMathJaxAttrs(mathml);
   if (!mathml) {
     console.warn(`[xlet:math] MathJax v3/v4 script without MathML annotation ${repr(el)}`);
   }
@@ -197,17 +187,19 @@ function getMjxV34Content(el: Element): MjxContent | null {
 }
 
 export function mathVendorToHtml(el: Element, ctx: ToHtmlContext): MathVendorToHtmlResult {
-  const view = ctx.mathView;
-
   const skippablesResult = handleMjxSkippableNode(el);
   if (skippablesResult) return skippablesResult;
 
-  const svgTableResult = handleHiddenMjxSvgTable(el, view);
+  const svgTableResult = handleHiddenMjxSvgTable(el, ctx.mathView);
   if (svgTableResult) return svgTableResult;
 
-  const content = getMjxV2Content(el, view) ?? getMjxV34Content(el);
-  if (!content) return null;
+  const repr = getMjxV2Repr(el, ctx.mathView) ?? getMjxV34Repr(el);
+  if (!repr) return null;
 
+  return mathReprToHtml(repr, ctx);
+}
+
+export function mathReprToHtml(content: MathRepr, ctx: ToHtmlContext): MathVendorToHtmlResult {
   const { tex, mathml, svg, display } = content;
 
   if (!tex && !mathml && !svg) return { skip: true };
@@ -217,6 +209,7 @@ export function mathVendorToHtml(el: Element, ctx: ToHtmlContext): MathVendorToH
   // if (view === 'svg' && !svg) console.log('[xlet] Requested SVG view but no SVG available', el);
 
   let node: Node | null = null;
+  const view = ctx.mathView;
   switch (view) {
     case 'mathml': {
       if (mathml) node = createMathmlNode(mathml, display);
@@ -247,20 +240,38 @@ export function mathVendorToMd(el: Element, ctx: ToMdContext): { skip?: boolean;
   const svgTableResult = handleHiddenMjxSvgTable(el);
   if (svgTableResult) return { skip: true };
 
-  const content = getMjxV2Content(el, 'tex') ?? getMjxV34Content(el);
-  if (!content) return null;
+  const repr = getMjxV2Repr(el, 'tex') ?? getMjxV34Repr(el);
+  if (!repr) return null;
 
-  const { tex, mathml, svg, display } = content;
+  return mathReprToMd(repr, ctx);
+}
+
+export function mathReprToMd(repr: MathRepr, ctx: ToMdContext): { skip?: boolean; md?: string; } {
+  const { tex, mathml, svg, display } = repr;
 
   if (!tex && !mathml && !svg) return { skip: true };
 
-  if (tex) return { md: frameMath(tex, display, ctx) };
-  if (mathml) {
-    const mmlNode = htmlToElementK(mathml, 'math:math');
-    if (!mmlNode) return { md: mathml }; // fallback to raw MathML
-    scrubMathJaxAttrs(mmlNode);
-    return { md: mmlNode.outerHTML || '' };
-  }
+  if (tex) return { md: frameMath(normalizeTex(tex), display, ctx) };
+  if (mathml) return { md: mathml.outerHTML || '' };
 
   return { skip: true };
+}
+
+export function normalizeTex(tex: string): string {
+  let out = tex.trim();
+
+  // Strip outer {\displaystyle ...} wrapper
+  const m = out.match(/^\{\s*\\displaystyle\b\s*(.*?)\s*\}$/s);
+  out = m ? m[1].trim() : out;
+
+  // Remove ws before _{...} / ^{...}
+  out = out.replace(/[ \t]+(?=[_^]\{)/g, '');
+
+  // Collapse "\command {"
+  out = out.replace(/\\([a-zA-Z]+)[ \t]+\{/g, '\\$1{');
+
+  // Fix wiki artifact: whitespace between "}" and punctuation
+  out = out.replace(/\}[ \t]+([,.;:!?])/g, '}$1');
+
+  return out;
 }

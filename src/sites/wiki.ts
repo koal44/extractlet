@@ -40,6 +40,7 @@
 
 import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
+import { mathReprToMd, type MathRepr } from '../math-vendor';
 import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
 import { copyButtonCss, createCopyButton } from '../ui/copy-button';
@@ -80,34 +81,14 @@ function shouldSkip(node: Node | null): boolean {
   return true;
 }
 
-const toMdElemHandler: ToMdElementHandler = (node, _ctx, _gc) => {
-  if (shouldSkip(node)) return { skip: true };
+const toMdElemHandler: ToMdElementHandler = (el, ctx, _gc) => {
+  if (shouldSkip(el)) return { skip: true };
 
-  // if (node.tagName === 'SPAN' && node.getAttribute('typeof') === 'mw:Entity') {
-  //   const md = node.textContent; // node.textContent ?? '';
-  //   log('typeof mw:Entity', node, node.textContent, node.innerHTML);
-  //   return { md };
-  // }
+  const mathRepr = extractMathRepr(el);
+  if (mathRepr) {
+    return mathReprToMd(mathRepr, ctx);
+  }
 
-  // const tag = node.tagName.toUpperCase();
-  // if (tag === 'FIGURE') {
-  //   const captionNode = node.querySelector('figcaption');  // case sensitive??
-  //   const parts = [];
-  //   for (const child of node.childNodes) {
-  //     if (captionNode && child === captionNode) continue;
-  //     parts.push(toMd(child, ctx));
-  //   }
-
-  //   let md = ':::figure\n';
-  //   md += parts.filter(Boolean).join('\n');
-  //   if (parts.length && captionNode) md += '\n';
-  //   if (captionNode) {
-  //     const caption = toMd(captionNode, ctx).trim();  // captionNode.textContent??
-  //     if (caption) md += '\n' + caption;
-  //   }
-  //   md += '\n:::';
-  //   return { md };
-  // }
   return {};
 };
 
@@ -160,6 +141,40 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
   return _toHtml(node, { elementHandler: toHtmlElemHandler, ...opts });
+}
+
+function extractMathRepr(el: Element): MathRepr | null {
+  if (!el.classList.contains('mwe-math-element')) return null;
+
+  const parentTag = el.parentElement?.tagName.toUpperCase() ?? '';
+  const display = parentTag === 'DD' ? 'block'
+    : el.classList.contains('mwe-math-element-display') ? 'block'
+    : 'inline';
+
+  const mathEl = el.querySelector(':scope > math');
+  const mathml = mathEl ? (mathEl.cloneNode(true) as MathMLElement) : null;
+
+  let tex =
+    mathEl?.querySelector('annotation[encoding="application/x-tex"]')?.textContent?.trim()
+    ?? (mathEl?.getAttribute('alttext')?.trim() ?? null)
+    ?? (el.querySelector(':scope > img[alt]')?.getAttribute('alt')?.trim() ?? null);
+
+  // If there's TeX and it's immediately followed by punctuation, include the punctuation in the TeX and remove it from the DOM
+  if (display === 'block' && tex && el.nextSibling?.nodeType === Node.TEXT_NODE) {
+    const m = el.nextSibling.textContent?.match(/^\s*(\.\.\.|[…,.;:!?])\s*$/u);
+    if (m) {
+      tex += m[1];
+      el.nextSibling.remove();
+    }
+  }
+
+
+  // Only <img src=...svg>. No inline svg without fetch, so keep null for now.
+  const svg: Element | null = null;
+
+  if (!tex && !mathml /*&& !svg*/) return null;
+
+  return { tex, mathml, svg, display };
 }
 
 export class WikiNode {
@@ -354,7 +369,7 @@ export class WikiNode {
   }
 
   getFullMd(): string {
-    return `${'='.repeat(this.level)} ${this.title} ${'='.repeat(this.level)}\n\n${this.md}`;
+    return `${'#'.repeat(this.level)} ${this.title} ${'#'.repeat(this.level)}\n\n${this.md}`;
   }
 }
 
@@ -444,7 +459,6 @@ function renderMd(node: WikiNode): HTMLDivElement {
   const container = h('div', { class: 'md-wikinode-section' }, titleBar);
   container.id = `md-section-${node.sectionNum}`;
 
-  // const out = `${'='.repeat(node.level)} ${node.title} ${'='.repeat(node.level)}\n\n${node.md}`;
   const textElem = h('p', { class: 'md-text' }, node.md);
   container.appendChild(textElem);
   for (const child of node.children) {
