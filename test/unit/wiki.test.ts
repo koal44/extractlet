@@ -1,6 +1,8 @@
 /* eslint-disable no-irregular-whitespace */
 import { describe, expect, it, test } from 'vitest';
-import { normalizeWikitext, parseRawIntoSections, toHtml, toMd, WikiNode } from '../../src/sites/wiki';
+import {
+  normalizeWikitext, parseRawIntoSections, toHtml, toMd, transformNav, WikiNode,
+} from '../../src/sites/wiki';
 import {
   el, assertNodeEqual, setupDom, logPandocWtToMd, logPandocHtmlToMd, docEl,
 } from '../utils/test-utils';
@@ -1227,5 +1229,249 @@ describe('wiki toMd: citations', () => {
     expect(md).toBe(`
 1. <a id="cite_note-Kline-1"></a> Kline, Morris (1990). [*Mathematical Thought From Ancient to Modern Times*](https://books.google.com/books?id=-OsRDAAAQBAJ). Vol. 3. Oxford University Press. [ISBN](/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-19-506137-6](/wiki/Special:BookSources/978-0-19-506137-6 "Special:BookSources/978-0-19-506137-6").
     `.trim());
+  });
+});
+
+describe('navbox transformation', () => {
+  it('renders navbox with title, sections, and links', () => {
+    const html = `
+<div role="navigation" class="navbox" aria-labelledby="Tensors3898" style="padding:3px">
+  <table class="nowraplinks hlist mw-collapsible navbox-inner mw-made-collapsible" style="border-collapse:collapse; border:1px solid #ccc;" onload="this.querySelectorAll('th,td').forEach(c=>c.style.border='1px solid #ddd')">
+    <tbody>
+      <tr>
+        <th scope="col" class="navbox-title" colspan="2">
+          <button type="button">
+            <span class="mw-collapsible-text">hide</span>
+          </button>
+          <link rel="mw-deduplicated-inline-style" href="mw-data:TemplateStyles:r1333133064" />
+          <div class="navbar plainlinks hlist navbar-mini">
+          </div>
+          <div id="Tensors3898" style="font-size:114%;margin:0 4em">
+            <a class="mw-selflink selflink">Tensors</a>
+          </div>
+        </th>
+      </tr>
+      <tr>
+        <td class="navbox-abovebelow" colspan="2">
+          <div>
+            <i>
+              <a href="/wiki/Glossary_of_tensor_theory" title="Glossary of tensor theory">Glossary of tensor theory</a>
+            </i>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" class="navbox-group" style="width:1%">Scope</th>
+        <td class="navbox-list-with-group navbox-list navbox-odd" style="width:100%;padding:0">
+          <div style="padding:0 0.25em"></div>
+          <table class="nowraplinks navbox-subgroup" style="border-spacing:0">
+            <tbody>
+              <tr>
+                <th scope="row" class="navbox-group" style="width:1%;font-weight:normal;">
+                  <a href="/wiki/Mathematics" title="Mathematics">Mathematics</a>
+                </th>
+                <td class="navbox-list-with-group navbox-list navbox-odd" style="width:100%;padding:0">
+                  <div style="padding:0 0.25em">
+                    <ul>
+                      <li>
+                        <a href="/wiki/Coordinate_system" title="Coordinate system">Coordinate system</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Differential_geometry" title="Differential geometry">Differential geometry</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Dyadics" title="Dyadics">Dyadic algebra</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Euclidean_geometry" title="Euclidean geometry">Euclidean geometry</a>
+                      </li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row" class="navbox-group" style="width:1%;font-weight:normal;">
+                  <div class="hlist">
+                    <ul>
+                      <li>
+                        <a href="/wiki/Physics" title="Physics">Physics</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Engineering" title="Engineering">Engineering</a>
+                      </li>
+                    </ul>
+                  </div>
+                </th>
+                <td class="navbox-list-with-group navbox-list navbox-even" style="width:100%;padding:0">
+                  <div style="padding:0 0.25em">
+                    <ul>
+                      <li>
+                        <a href="/wiki/Computer_vision" title="Computer vision">Computer vision</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Continuum_mechanics" title="Continuum mechanics">Continuum mechanics</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Electromagnetism" title="Electromagnetism">Electromagnetism</a>
+                      </li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div></div>
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" class="navbox-group" style="width:1%">Notation</th>
+        <td class="navbox-list-with-group navbox-list navbox-odd" style="width:100%;padding:0">
+          <div style="padding:0 0.25em">
+            <ul>
+              <li>
+                <a href="/wiki/Abstract_index_notation" title="Abstract index notation">Abstract index notation</a>
+              </li>
+              <li>
+                <a href="/wiki/Einstein_notation" title="Einstein notation">Einstein notation</a>
+              </li>
+              <li>
+                <a href="/wiki/Index_notation" title="Index notation">Index notation</a>
+              </li>
+            </ul>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>`.trim();
+
+    const nextHtml = (transformNav(el(html))[0] as Element).outerHTML.trim();
+    // console.log(nextHtml);
+    expect(nextHtml).toBe(`
+<div>
+  <ul>
+    
+      <li>
+        <div>
+          
+          
+          
+          <div>
+            <strong>Tensors</strong>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div>
+            <i>
+              <a href="/wiki/Glossary_of_tensor_theory" title="Glossary of tensor theory">Glossary of tensor theory</a>
+            </i>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div>Scope</div>
+        <div>
+          
+          <ul>
+            
+              <li>
+                <div>
+                  <a href="/wiki/Mathematics" title="Mathematics">Mathematics</a>
+                </div>
+                <div>
+                  <div>
+                    <ul>
+                      <li>
+                        <a href="/wiki/Coordinate_system" title="Coordinate system">Coordinate system</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Differential_geometry" title="Differential geometry">Differential geometry</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Dyadics" title="Dyadics">Dyadic algebra</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Euclidean_geometry" title="Euclidean geometry">Euclidean geometry</a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <div><a href="/wiki/Physics" title="Physics">Physics</a> • <a href="/wiki/Engineering" title="Engineering">Engineering</a></div>
+                </div>
+                <div>
+                  <div>
+                    <ul>
+                      <li>
+                        <a href="/wiki/Computer_vision" title="Computer vision">Computer vision</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Continuum_mechanics" title="Continuum mechanics">Continuum mechanics</a>
+                      </li>
+                      <li>
+                        <a href="/wiki/Electromagnetism" title="Electromagnetism">Electromagnetism</a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </li>
+            
+          </ul>
+          
+        </div>
+      </li>
+      <li>
+        <div>Notation</div>
+        <div>
+          <div>
+            <ul>
+              <li>
+                <a href="/wiki/Abstract_index_notation" title="Abstract index notation">Abstract index notation</a>
+              </li>
+              <li>
+                <a href="/wiki/Einstein_notation" title="Einstein notation">Einstein notation</a>
+              </li>
+              <li>
+                <a href="/wiki/Index_notation" title="Index notation">Index notation</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </li>
+    
+  </ul>
+</div>
+      `.trim());
+
+    const nextMd = toMd(
+      el(html, 'https://en.wikipedia.org/wiki/Tensor'),
+      { filterGenericLabels: false, filterRedundantLabels: false }
+    ).trim();
+
+    // console.log(nextMd);
+    expect(nextMd).toBe(`
+:::navbox  
+- **Tensors**
+- *[Glossary of tensor theory](https://en.wikipedia.org/wiki/Glossary_of_tensor_theory "Glossary of tensor theory")*
+- Scope
+  - [Mathematics](https://en.wikipedia.org/wiki/Mathematics "Mathematics")
+    - [Coordinate system](https://en.wikipedia.org/wiki/Coordinate_system "Coordinate system")
+    - [Differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry")
+    - [Dyadic algebra](https://en.wikipedia.org/wiki/Dyadics "Dyadics")
+    - [Euclidean geometry](https://en.wikipedia.org/wiki/Euclidean_geometry "Euclidean geometry")
+  - [Physics](https://en.wikipedia.org/wiki/Physics "Physics") • [Engineering](https://en.wikipedia.org/wiki/Engineering "Engineering")
+    - [Computer vision](https://en.wikipedia.org/wiki/Computer_vision "Computer vision")
+    - [Continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics "Continuum mechanics")
+    - [Electromagnetism](https://en.wikipedia.org/wiki/Electromagnetism "Electromagnetism")
+- Notation
+  - [Abstract index notation](https://en.wikipedia.org/wiki/Abstract_index_notation "Abstract index notation")
+  - [Einstein notation](https://en.wikipedia.org/wiki/Einstein_notation "Einstein notation")
+  - [Index notation](https://en.wikipedia.org/wiki/Index_notation "Index notation")  
+:::
+      `.trim());
   });
 });

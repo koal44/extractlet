@@ -39,7 +39,7 @@
 
 
 import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from '../core';
-import { toHtml as _toHtml, toMd as _toMd } from '../core';
+import { toHtml as _toHtml, toMd as _toMd, copyHrefAttr, copySrcAttr } from '../core';
 import { mathReprToMd, type MathRepr } from '../math-vendor';
 import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
@@ -47,7 +47,7 @@ import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import type { HLevel } from '../utils/dom';
 import {
-  h, htmlToElementK, injectCss, isBreak, isDiv, isDoc, isElement, isHeading, isHTML, isListItem, isSub, isSup, isText, parseHeadingLevel,
+  h, htmlToElementK, injectCss, isBreak, isDiv, isDoc, isElement, isHeading, isHTML, isListItem, isSub, isSup, isText, isUList, parseHeadingLevel,
 } from '../utils/dom';
 import { log, repr, warn } from '../utils/logging';
 import { jaroWinklerSimilarity } from '../utils/strings';
@@ -61,19 +61,19 @@ export type WikiResult = {
 function shouldSkip(node: Node | null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
   if (!isElement(node)) throw new Error('shouldSkip called with non-element node'); // shouldn't happen
-  // if (isText(node)) return false; // Text nodes are never ignored
 
-  const tag = node.tagName.toUpperCase();
-  if (['META', 'STYLE', 'LINK'].includes(tag)) return true;
-  // const id = node.id || '';
-  // const aType = node.getAttribute('type') || '';
+  // Drop boilerplate/non-content nodes early
+  if (node.matches('meta, style, link')) return true;
 
-  if (node.classList.contains('cite-accessibility-label')) return true;
-  if (node.classList.contains('mw-empty-elt')) return true;
+  // Wikipedia/Parsoid noise
+  if (node.classList.contains('cite-accessibility-label')) return true; // 'Jump up to:' screenreader label
+  if (node.classList.contains('mw-empty-elt')) return true;             // placeholder / empty marker
 
-  if (isHTML(node)) {
-    if (node.style.display === 'none') return true;
-  }
+  // Respect hidden elements (usually nav chrome / template junk)
+  if (isHTML(node) && node.style.display === 'none') return true;
+
+  // Drop certain template constructs
+  if (node.classList.contains('authority-control')) return true;
 
   return false;
 }
@@ -81,44 +81,52 @@ function shouldSkip(node: Node | null): boolean {
 const toMdElemHandler: ToMdElementHandler = (el, ctx, gc) => {
   if (shouldSkip(el)) return { skip: true };
 
+  // Math extraction (wiki-specific repr -> TeX)
   const mathRepr = extractMathRepr(el);
-  if (mathRepr) {
-    return mathReprToMd(mathRepr, ctx);
-  }
+  if (mathRepr) return mathReprToMd(mathRepr, ctx);
 
-  if (  // ignore <br> between math elements, which is used for layout in some cases
+  // Layout-only <br> inside certain math constructs
+  if (
     isBreak(el) &&
     (isSub(el.nextSibling) || isSup(el.nextSibling)) &&
     (isText(el.previousSibling) || isElement(el.previousSibling))
   ) return { skip: true };
 
+  // texhtml wrapper => inline TeX
   if (el.matches('span.texhtml')) {
     const md = toMd(el, { ...ctx, skipCustomHandler: true, inTex: true });
     return { md: `$${md}$` };
   }
 
+  // Ignore spacer spans used inside texhtml
   if (el.matches('span') && el.parentElement?.matches('span.texhtml') && el.textContent?.trim() === '') {
     return { skip: true };
   }
 
+  // Wikipedia citation sup should behave like plain inline content (not ^{...})
   if (el.matches('sup.reference')) {
     return { md: gc(el, 'inline') };
   }
 
-  // escape link text as [[...]] has conflicting md meaning
+  // Wikipedia renders citation brackets as spans; escape to avoid [[...]] semantics in some MD consumers
   if (el.matches('span.cite-bracket')) {
     const match = el.textContent?.match(/[[\]]/);
-    if (match) {
-      return { md: `\\${match[0]}` };
-    }
+    if (match) return { md: `\\${match[0]}` };
   }
 
+  // Reflist 'jump back up' block: drop content, but inject an anchor for the cite_note-* target
   if (el.matches('span.mw-cite-backlink')) {
     if (isListItem(el.parentElement) && el.parentElement.id.startsWith('cite')) {
-      const anchor = `<a id="${el.parentElement.id}"></a>`;
-      return { md: anchor };
+      return { md: `<a id="${el.parentElement.id}"></a>` };
     }
     return { skip: true };
+  }
+
+  // Navboxes: normalize table-ish navigation UI into list-ish HTML, then markdownify inside a fence
+  if (el.matches('.navbox')) {
+    const navRoot = transformNav(el)[0] as Element;
+    const navMd = toMd(navRoot, { ...ctx, skipCustomHandler: true });
+    return { md: `\n\n:::navbox  \n${navMd.trim()}  \n:::\n\n` };
   }
 
   return {};
@@ -173,6 +181,85 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
   return _toHtml(node, { elementHandler: toHtmlElemHandler, ...opts });
+}
+
+export function transformNav(node: Node | null): Node[] {
+  if (!node) return [];
+  if (isText(node)) return [document.createTextNode(node.textContent ?? '')];
+  if (!isElement(node)) return [];
+
+  // Drop navbox UI chrome / styles that should not reach Markdown
+  if (node.matches('button, .navbar, link, style, .mw-collapsible-text, .mw-collapsible-toggle')) return [];
+
+  const tag = node.tagName.toLowerCase();
+
+  // Normalize common navbox quirks
+  if (tag === 'br') return [document.createTextNode(' ')];
+
+  // Self-links (no href) should render as text; bold only for the navbox title
+  if (tag === 'a' && !node.hasAttribute('href')) {
+    const next = node.closest('th.navbox-title') ? document.createElement('strong') : document.createElement('span');
+    next.textContent = node.textContent;
+    return [next];
+  }
+
+  // Flatten table section containers (prevents invalid <tbody> under <ul> after mapping)
+  switch (tag) {
+    case 'thead':
+    case 'tbody':
+    case 'tfoot':
+    case 'colgroup':
+      return [...node.childNodes].flatMap(transformNav);
+  }
+
+  // Table -> list structure (navboxes are navigational, not tabular)
+  let nextType = tag;
+  let nextNS = node.namespaceURI || 'http://www.w3.org/1999/xhtml';
+  switch (nextType) {
+    case 'table': nextType = 'ul'; nextNS = 'http://www.w3.org/1999/xhtml'; break;
+    case 'tr': nextType = 'li'; nextNS = 'http://www.w3.org/1999/xhtml'; break;
+    case 'td':
+    case 'th': nextType = 'div'; nextNS = 'http://www.w3.org/1999/xhtml'; break;
+  }
+
+  const next = document.createElementNS(nextNS, nextType);
+
+  // Keep only relevant attrs (href/src/title); drop styling/handlers/etc.
+  for (const attr of node.attributes) {
+    const name = attr.name.toLowerCase();
+    switch (name) {
+      case 'href':  copyHrefAttr(next, node); break;
+      case 'src':   copySrcAttr(next, node); break;
+      // eslint-disable-next-line no-restricted-syntax
+      case 'title': next.setAttribute('title', attr.value.replace(/\s+/g, ' ').trim()); break;
+    }
+  }
+
+  // hlist headers (e.g. Physics + Engineering) are label sets; render inline with separators
+  if (node.matches('div.hlist')) {
+    const ul = node.querySelector(':scope > ul');
+    if (isUList(ul)) {
+      let first = true;
+      for (const li of ul.children) {
+        const childEl = li.firstElementChild;
+        if (!childEl) continue;
+        if (!first) next.appendChild(document.createTextNode(' • '));
+        first = false;
+        for (const c of transformNav(childEl)) next.appendChild(c);
+      }
+      return next.childNodes.length ? [next] : [];
+    }
+  }
+
+  // Default: recurse and rebuild subtree under the mapped node
+  for (const child of node.childNodes) {
+    for (const c of transformNav(child)) next.appendChild(c);
+  }
+
+  // Drop empty containers created by mapping/flattening
+  if (!next.textContent?.trim() && next.childNodes.length === 0) return [];
+
+  return [next];
 }
 
 function extractMathRepr(el: Element): MathRepr | null {

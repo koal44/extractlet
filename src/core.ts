@@ -200,12 +200,12 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
   return clone;
 }
 
-function copyHrefAttr(dest: Element, src: Element) {
+export function copyHrefAttr(dest: Element, src: Element) {
   const val = getNormalizedUrl(src, 'href');
   if (val) dest.setAttribute('href', val);
 }
 
-function copySrcAttr(dest: Element, src: Element) {
+export function copySrcAttr(dest: Element, src: Element) {
   const val = getNormalizedUrl(src, 'src');
   if (val) dest.setAttribute('src', val);
 }
@@ -424,14 +424,14 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       case 'EM':
       case 'I': {
         const fence = ctx.inTex ? '' : '*';
-        result = `${fence}${glueChildren(node, 'inline')}${fence}`;
+        result = `${fence}${glueChildren(node, 'inline').trim()}${fence}`;
         break;
       }
 
       case 'B':
       case 'STRONG': {
         const fence = ctx.inTex ? '' : '**';
-        result = `${fence}${glueChildren(node, 'inline')}${fence}`;
+        result = `${fence}${glueChildren(node, 'inline').trim()}${fence}`;
         break;
       }
 
