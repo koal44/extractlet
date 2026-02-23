@@ -69,6 +69,7 @@ import { warn } from '../utils/logging';
 import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import { chooseCanonicalUrl, formatDateWithRelative } from '../utils/strings';
 import { setLang } from '../normalize';
+import { attachStickyHeader } from '../ui/sticky';
 
 export type HubResult = {
   permalink: string;
@@ -662,8 +663,7 @@ export const createPage: CreatePage = ({ sourceDoc, targetDoc, ctxs, root, state
     labels: ['html', 'md'],
     labelSide: 'right',
   });
-  const viewToggleContainer = h('div', { class: 'view-toggle' }, viewToggle);
-  root.appendChild(viewToggleContainer);
+  attachStickyHeader(root, viewToggle);
 
   const output = buildPosts(pageData, targetDoc);
   root.appendChild(output);

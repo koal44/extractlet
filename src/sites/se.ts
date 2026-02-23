@@ -41,6 +41,7 @@ import { asAbsUrl, pickEl, pickEls, pickVal } from '../utils/locator';
 import { getLang, hasSkip, markSkip, setLang } from '../normalize';
 import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
+import { attachStickyHeader } from '../ui/sticky';
 
 type Contributor = {
   contributorType: 'author' | 'editor' | 'commenter';
@@ -518,8 +519,7 @@ export const createPage: CreatePage = ({ sourceDoc, targetDoc, ctxs, root, state
     labels: ['html', 'md'],
     labelSide: 'right',
   });
-  const viewToggleContainer = h('div', { class: 'view-toggle' }, viewToggle);
-  root.appendChild(viewToggleContainer);
+  attachStickyHeader(root, viewToggle);
 
   const output = buildPosts(pageData, targetDoc);
   root.appendChild(output);

@@ -45,6 +45,7 @@ import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
 import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
+import { attachStickyHeader } from '../ui/sticky';
 import type { HLevel } from '../utils/dom';
 import {
   h, htmlToElementK, injectCss, isBreak, isDiv, isDoc, isElement, isHeading, isHTML, isListItem, isSub, isSup, isText, isUList, parseHeadingLevel,
@@ -851,8 +852,7 @@ export const createPage: CreatePage = async (
     },
   });
 
-  const viewToggleContainer = h('div', { class: 'view-toggle' }, viewToggle);
-  root.appendChild(viewToggleContainer);
+  attachStickyHeader(root, viewToggle);
 
   // --- Render views ---
   const html = h('div', { class: 'html-view' }, renderHtml(tree));

@@ -146,3 +146,8 @@ figure figcaption {
   padding-bottom: 0.2em;
 }
 /* === xlet math end === */
+
+/* === intra-page anchor handling when sticky header is present === */
+:root { --xlet-sticky-offset: 0px; }
+:target { scroll-margin-top: var(--xlet-sticky-offset); }
+[id] { scroll-margin-top: var(--xlet-sticky-offset); }
