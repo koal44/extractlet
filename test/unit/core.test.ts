@@ -1621,7 +1621,7 @@ test('toHtml preserves spoiler blockquote', () => {
 test('toMd figure handling', () => {
   const html = '<figure><img src="pic.jpg" alt="desc"><figcaption>Caption</figcaption></figure>';
   const result = toMd(el(html));
-  const expected = ':::figure  \n![desc](pic.jpg)\n\nCaption  \n:::';
+  const expected = ':::figure  \n![desc](pic.jpg)\n\nCaption\n\n:::';
   strictEqual(result, expected);
 });
 
@@ -1638,7 +1638,8 @@ test('toMd figure two images and caption', () => {
     '![foo alt](foo.jpg)',
     '![bar alt](bar.jpg)',
     '',
-    'This is a **caption** with a [](/wiki/Link).  ',
+    'This is a **caption** with a [](/wiki/Link).',
+    '',
     ':::',
   ].join('\n');
   const result = toMd(el(html));

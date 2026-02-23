@@ -126,7 +126,7 @@ const toMdElemHandler: ToMdElementHandler = (el, ctx, gc) => {
   if (el.matches('.navbox')) {
     const navRoot = transformNav(el)[0] as Element;
     const navMd = toMd(navRoot, { ...ctx, skipCustomHandler: true });
-    return { md: `\n\n:::navbox  \n${navMd.trim()}  \n:::\n\n` };
+    return { md: `\n\n:::navbox  \n${navMd.trim()}\n\n:::\n\n` };
   }
 
   return {};

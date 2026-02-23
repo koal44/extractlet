@@ -276,7 +276,8 @@ For other uses, see [](/wiki/Tensor_%28disambiguation%29).
 This article is about tensors on a single vector space and is not to be confused with [](/wiki/Vector_field) or [](/wiki/Tensor_field).
 
 :::figure  
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [](/wiki/Cauchy_stress_tensor)  
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [](/wiki/Cauchy_stress_tensor)
+
 :::`.trim();
   strictEqual(result!.md, expectedMd);
 });
@@ -323,7 +324,8 @@ describe('Extractlet: Parsoid HTML 2.8.0 Spec', () => {
 :::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foo.jpg)](./File:Foo.jpg)
 
-caption  
+caption
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -383,7 +385,8 @@ caption
 :::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption content  
+caption content
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -402,7 +405,8 @@ caption content
 :::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption  
+caption
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -421,7 +425,8 @@ caption
 :::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption  
+caption
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -440,7 +445,8 @@ caption
 :::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption  
+caption
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -459,7 +465,8 @@ caption
 :::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption  
+caption
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -478,7 +485,8 @@ caption
 :::figure  
 [![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
 
-caption  
+caption
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -497,7 +505,8 @@ caption
 :::figure  
 [![](https://example.com/images/e/ea/Thumb.png)](file:///Foobar.jpg)
 
-Title  
+Title
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -527,7 +536,8 @@ Title
 </figure>`.trim();
     const expectedMd = `
 :::figure  
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)  
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -544,7 +554,8 @@ Title
 </figure>`.trim();
     const expectedMd = `
 :::figure  
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)  
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Foobar.jpg/220px-Foobar.jpg)](file:///Foobar.jpg)
+
 :::`.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
@@ -595,7 +606,8 @@ Title
 **Subtitles:**
 - [Deutsch (de) subtitles](https://commons.wikimedia.org/w/index.php?title=TimedText:Folgers.ogv.de.srt&action=raw&ctype=text%2Fx-srt)
 
-caption  
+caption
+
 :::`.trim();
 
     strictEqual(toMd(el(html)), expectedMd);
@@ -699,7 +711,8 @@ caption
 [![](https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Foobar.pdf/page3-220px-Foobar.pdf.jpg)](./File:Foobar.pdf)
 
 page 3 preview
-caption  
+caption
+
 :::`.trim();
 
     strictEqual(toMd(el(html)), expectedMd);
@@ -720,7 +733,8 @@ caption
 :::figure  
 [File:This image does not exist yet.jpg](./Special:FilePath/This_image_does_not_exist_yet.jpg)
 
-caption  
+caption
+
 :::`.trim();
 
     strictEqual(toMd(el(html)), expectedMd);
@@ -1470,7 +1484,8 @@ describe('navbox transformation', () => {
 - Notation
   - [Abstract index notation](https://en.wikipedia.org/wiki/Abstract_index_notation "Abstract index notation")
   - [Einstein notation](https://en.wikipedia.org/wiki/Einstein_notation "Einstein notation")
-  - [Index notation](https://en.wikipedia.org/wiki/Index_notation "Index notation")  
+  - [Index notation](https://en.wikipedia.org/wiki/Index_notation "Index notation")
+
 :::
       `.trim());
   });
