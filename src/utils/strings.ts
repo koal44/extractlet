@@ -220,3 +220,20 @@ export function chooseCanonicalUrl(primary?: string, secondary?: string, base?: 
 
   return primary;
 }
+
+export function sanitizeMdLinks(url: string): string {
+  if (!url) return url;
+  if (url.startsWith('#')) return url;
+
+  let out = '';
+  for (let i = 0; i < url.length; i++) {
+    const ch = url[i];
+
+    if (ch === ' ') { out += '%20'; continue; }
+    if (ch === '(') { out += '%28'; continue; }
+    if (ch === ')') { out += '%29'; continue; }
+
+    out += ch;
+  }
+  return out;
+}

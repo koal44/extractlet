@@ -11,7 +11,7 @@ export default {
       sectionNum: 0,
       html: null,
       htmlStr: '<div class="wikinode-section-content"><div>For other uses, see <a href',
-      md: 'For other uses, see [](https://en.wikipedia.org/wiki/Tensor_(disambiguation)).\n\nThis article i',
+      md: 'For other uses, see [](https://en.wikipedia.org/wiki/Tensor_%28disambiguation%29).\n\nThis article i',
       raw: '',
       children: [
         {
@@ -49,7 +49,7 @@ export default {
               sectionNum: 4,
               html: null,
               htmlStr: '<div class="wikinode-section-content"><div>Main article: <a href="http',
-              md: 'Main article: [](https://en.wikipedia.org/wiki/Tensor_(intrinsic_definition))\n\nFor some mathem',
+              md: 'Main article: [](https://en.wikipedia.org/wiki/Tensor_%28intrinsic_definition%29)\n\nFor some mathem',
               raw: '',
               children: [],
             },

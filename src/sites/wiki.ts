@@ -47,7 +47,7 @@ import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import type { HLevel } from '../utils/dom';
 import {
-  h, htmlToElementK, injectCss, isBreak, isDiv, isDoc, isElement, isHeading, isHTML, isSub, isSup, isText, parseHeadingLevel,
+  h, htmlToElementK, injectCss, isBreak, isDiv, isDoc, isElement, isHeading, isHTML, isListItem, isSub, isSup, isText, parseHeadingLevel,
 } from '../utils/dom';
 import { log, repr, warn } from '../utils/logging';
 import { jaroWinklerSimilarity } from '../utils/strings';
@@ -78,7 +78,7 @@ function shouldSkip(node: Node | null): boolean {
   return false;
 }
 
-const toMdElemHandler: ToMdElementHandler = (el, ctx, _gc) => {
+const toMdElemHandler: ToMdElementHandler = (el, ctx, gc) => {
   if (shouldSkip(el)) return { skip: true };
 
   const mathRepr = extractMathRepr(el);
@@ -98,6 +98,26 @@ const toMdElemHandler: ToMdElementHandler = (el, ctx, _gc) => {
   }
 
   if (el.matches('span') && el.parentElement?.matches('span.texhtml') && el.textContent?.trim() === '') {
+    return { skip: true };
+  }
+
+  if (el.matches('sup.reference')) {
+    return { md: gc(el, 'inline') };
+  }
+
+  // escape link text as [[...]] has conflicting md meaning
+  if (el.matches('span.cite-bracket')) {
+    const match = el.textContent?.match(/[[\]]/);
+    if (match) {
+      return { md: `\\${match[0]}` };
+    }
+  }
+
+  if (el.matches('span.mw-cite-backlink')) {
+    if (isListItem(el.parentElement) && el.parentElement.id.startsWith('cite')) {
+      const anchor = `<a id="${el.parentElement.id}"></a>`;
+      return { md: anchor };
+    }
     return { skip: true };
   }
 

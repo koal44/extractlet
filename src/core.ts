@@ -8,7 +8,9 @@ import {
   isOList, isPre, isSVG, isTableCell, isTableHeader, isText, isTextArea,
   isUList, nodeName, parseHeadingLevel, safeDecode,
 } from './utils/dom.js';
-import { alphaLabel, filterGenericLabel, isLabelGeneric, isLabelRedundant, toPascalCase } from './utils/strings.js';
+import {
+  alphaLabel, filterGenericLabel, isLabelGeneric, isLabelRedundant, sanitizeMdLinks as sanitizeMdLinkUrl, toPascalCase,
+} from './utils/strings.js';
 
 void log; // lint hack
 void nodeName; // lint hack
@@ -406,6 +408,8 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         break;
       }
 
+      case 'CITE':
+      case 'BDI':
       case 'SPAN': {
         result = glueChildren(node, 'inline');
         break;
@@ -454,7 +458,8 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         const isImg = tagName === 'IMG';
 
         const urlAttr = isImg ? 'src' : 'href';
-        const url = safeDecode(getNormalizedUrl(node, urlAttr));
+        let url = safeDecode(getNormalizedUrl(node, urlAttr));
+        url = sanitizeMdLinkUrl(url);
         let title = node.getAttribute('title')?.replace(/\s+/g, ' ').trim() ?? '';
         let linkText = isImg
           ? node.getAttribute('alt')?.replace(/\s+/g, ' ').trim() ?? ''
@@ -593,6 +598,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         break;
       }
 
+      case 'Q':
       case 'BLOCKQUOTE': {
         result = glueChildren(node, 'block');
         const bqPrefix = result.match(new RegExp('^\\n*'))?.[0] ?? '';

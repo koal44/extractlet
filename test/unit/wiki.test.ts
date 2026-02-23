@@ -237,7 +237,7 @@ test('toMd tensor preamble', () => {
 </div>`.trim();
   const result = toMd(el(html));
   const expected = `
-For other uses, see [](https://en.wikipedia.org/wiki/Tensor_(disambiguation)).
+For other uses, see [](https://en.wikipedia.org/wiki/Tensor_%28disambiguation%29).
 
 Not to be confused with [](https://en.wikipedia.org/wiki/Vector_field) or [](https://en.wikipedia.org/wiki/Tensor_field).
 `.trim();
@@ -269,7 +269,7 @@ test('WikiNode.buildFromHTML produces double linefeeds between top-level childre
   const doc = docEl(html);
   const result = WikiNode.buildFromHTML(doc);
   const expectedMd = `
-For other uses, see [](/wiki/Tensor_(disambiguation)).
+For other uses, see [](/wiki/Tensor_%28disambiguation%29).
 
 This article is about tensors on a single vector space and is not to be confused with [](/wiki/Vector_field) or [](/wiki/Tensor_field).
 
@@ -1157,3 +1157,75 @@ describe('wiki toMd: texhtml stacked indices', () => {
   });
 });
 
+
+describe('wiki toMd: citations', () => {
+  it('renders inline citation marker as escaped bracket link', () => {
+    const html = `
+<sup id="cite_ref-Kline_1-0" class="reference"><a href="#cite_note-Kline-1"><span class="cite-bracket">[</span>1<span class="cite-bracket">]</span></a></sup>
+    `.trim();
+
+    const md = toMd(el(html), { mathFence: 'dollar', subSupMode: 'tex' });
+
+    expect(md).toBe('[\\[1\\]](#cite_note-Kline-1)');
+  });
+
+  it('renders reference list item with HTML anchor id and citation text', () => {
+    const html = `
+<div class="mw-references-wrap mw-references-columns" style="column-width: calc( 0.9 * 30em );">
+  <ol class="references">
+    <li id="cite_note-Kline-1">
+      <span class="mw-cite-backlink">^ 
+        <a href="#cite_ref-Kline_1-0">
+          <span class="cite-accessibility-label">Jump up to: </span>
+          <sup>
+            <i>
+              <b>a</b>
+            </i>
+          </sup>
+        </a>
+        <a href="#cite_ref-Kline_1-1">
+          <sup>
+            <i>
+              <b>b</b>
+            </i>
+          </sup>
+        </a>
+        <a href="#cite_ref-Kline_1-2">
+          <sup>
+            <i>
+              <b>c</b>
+            </i>
+          </sup>
+        </a>
+        <a href="#cite_ref-Kline_1-3">
+          <sup>
+            <i>
+              <b>d</b>
+            </i>
+          </sup>
+        </a>
+      </span>
+      <span class="reference-text">
+        <cite id="CITEREFKline1990" class="citation book cs1">Kline, Morris (1990). 
+          <a rel="nofollow" class="external text" href="https://books.google.com/books?id=-OsRDAAAQBAJ">
+            <i>Mathematical Thought From Ancient to Modern Times</i>
+          </a>. Vol.&nbsp;3. Oxford University Press. 
+          <a href="/wiki/ISBN_(identifier)" class="mw-redirect" title="ISBN (identifier)">ISBN</a>&nbsp;
+          <a href="/wiki/Special:BookSources/978-0-19-506137-6" title="Special:BookSources/978-0-19-506137-6">
+            <bdi>978-0-19-506137-6</bdi>
+          </a>.
+        </cite>
+        <span title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Abook&amp;rft.genre=book&amp;rft.btitle=Mathematical+Thought+From+Ancient+to+Modern+Times&amp;rft.pub=Oxford+University+Press&amp;rft.date=1990&amp;rft.isbn=978-0-19-506137-6&amp;rft.aulast=Kline&amp;rft.aufirst=Morris&amp;rft_id=https%3A%2F%2Fbooks.google.com%2Fbooks%3Fid%3D-OsRDAAAQBAJ&amp;rfr_id=info%3Asid%2Fen.wikipedia.org%3ATensor" class="Z3988"></span>
+      </span>
+    </li>
+  </ol>
+</div>
+    `.trim();
+
+    const md = toMd(el(html), { mathFence: 'dollar', subSupMode: 'tex', filterRedundantLabels: false, filterGenericLabels: false });
+
+    expect(md).toBe(`
+1. <a id="cite_note-Kline-1"></a> Kline, Morris (1990). [*Mathematical Thought From Ancient to Modern Times*](https://books.google.com/books?id=-OsRDAAAQBAJ). Vol. 3. Oxford University Press. [ISBN](/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-19-506137-6](/wiki/Special:BookSources/978-0-19-506137-6 "Special:BookSources/978-0-19-506137-6").
+    `.trim());
+  });
+});

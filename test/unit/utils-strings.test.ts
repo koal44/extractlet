@@ -4,6 +4,7 @@ import { assertApproxEqual } from '../utils/test-utils';
 import {
   isLabelRedundant, jaccardSimilarity, jaroWinklerSimilarity, levenshteinSimilarity,
   toKebabCase, toKebabCaseI18n, toPascalCase, toPascalCaseI18n, chooseCanonicalUrl,
+  sanitizeMdLinks,
 } from '../../src/utils/strings';
 
 test('toKebabCase', () => {
@@ -314,4 +315,22 @@ describe('chooseCanonicalUrl', () => {
     )).toBe('https://x.com/a');
   });
 
+});
+
+describe('stringUtils: sanitizeMdLinkDestination', () => {
+  it('percent-encodes markdown-ambiguous chars (space and parens) without changing other URI structure', () => {
+    // wiki-style relative with parentheses
+    expect(sanitizeMdLinks('/wiki/ISBN_(identifier)'))
+      .toBe('/wiki/ISBN_%28identifier%29');
+
+    // Space + parentheses
+    const url =
+      'http://www.cs.toronto.edu/~maov/tensorfaces/Springer ECCV 2002_files/eccv02proceeding_23500447.pdf';
+    expect(sanitizeMdLinks(url))
+      .toBe('http://www.cs.toronto.edu/~maov/tensorfaces/Springer%20ECCV%202002_files/eccv02proceeding_23500447.pdf');
+
+    // no double-encoding of existing escapes
+    expect(sanitizeMdLinks('/wiki/Basis_%28linear_algebra%29'))
+      .toBe('/wiki/Basis_%28linear_algebra%29');
+  });
 });
