@@ -76,6 +76,12 @@ function shouldSkip(node: Node | null): boolean {
   // Drop certain template constructs
   if (node.classList.contains('authority-control')) return true;
 
+  // hide certain backlink anchors that are hidden with CSS
+  if (node.matches('a.mw-cite-up-arrow-backlink')
+    && node.textContent?.trim() === '^'
+    && node.previousElementSibling?.textContent?.trim() === '^'
+  ) return true;
+
   return false;
 }
 
