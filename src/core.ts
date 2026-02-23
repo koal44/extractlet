@@ -381,7 +381,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
   // --- handle site-specific elements ---
   const siteResult = !ctx.skipCustomHandler && ctx.elementHandler
-    ? ctx.elementHandler(node, { ...ctx, skipCustomHandler: false }, glueChildren)
+    ? ctx.elementHandler(node, { ...ctx, skipCustomHandler: true }, glueChildren)
     : null;
   if (siteResult?.skip) return '';
 

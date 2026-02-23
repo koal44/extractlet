@@ -182,6 +182,16 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
     return { node: clone };
   }
 
+  // navbox
+  if (node.matches('div.navbox table')) {
+    const clone = toHtml(node, ctx) as HTMLTableElement | null;
+    if (!clone) return { skip: true };
+    clone.classList.add('xlet-navbox');
+    return { node: clone };
+  }
+  if (node.matches('th.navbox-title button')) return { skip: true };
+  if (node.matches('th.navbox-title .navbar')) return { skip: true };
+
   // return { skip: false, node: undefined };
   return {};
 };
