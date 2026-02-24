@@ -39,8 +39,8 @@
 
 
 import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from '../core';
-import { toHtml as _toHtml, toMd as _toMd, copyHrefAttr, copySrcAttr } from '../core';
-import { mathReprToMd, type MathRepr } from '../math-vendor';
+import { toHtml as _toHtml, toMd as _toMd } from '../core';
+import { mathReprToHtml, mathReprToMd, type MathRepr } from '../math-vendor';
 import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
 import { copyButtonCss, createCopyButton } from '../ui/copy-button';
@@ -48,7 +48,8 @@ import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import { attachStickyHeader } from '../ui/sticky';
 import type { HLevel } from '../utils/dom';
 import {
-  h, htmlToElementK, injectCss, isBreak, isDiv, isDoc, isElement, isHeading, isHTML, isListItem, isSub, isSup, isText, isUList, parseHeadingLevel,
+  copyHrefAttr, copySrcAttr, h, htmlToElementK, injectCss, isBreak, isDiv, isDoc, isElement,
+  isHeading, isHTML, isListItem, isSub, isSup, isText, isUList, parseHeadingLevel,
 } from '../utils/dom';
 import { log, repr, warn } from '../utils/logging';
 import { jaroWinklerSimilarity } from '../utils/strings';
@@ -148,12 +149,10 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
   if (node.nodeType !== Node.ELEMENT_NODE) throw new Error('toHtmlElemHandler called with non-element node'); // shouldn't happen
 
   if (node.matches('span.mwe-math-element')) {
-    const img = node.querySelector<HTMLImageElement>('img.mwe-math-fallback-image-inline');
-    if (!img) return { skip: true };
-    const clone = toHtml(img, ctx) as HTMLImageElement | null;
-    if (!clone) return { skip: true };
-    clone.style.verticalAlign = img.style.verticalAlign;
-    return { node: clone };
+    const repr = extractMathRepr(node);
+    if (!repr) return { skip: true };
+    const r = mathReprToHtml(repr, ctx);
+    return r?.skip ? { skip: true } : { node: r?.node };
   }
 
   if (node.matches('span.mvar, span.texhtml')) {
@@ -287,7 +286,7 @@ function extractMathRepr(el: Element): MathRepr | null {
     : el.classList.contains('mwe-math-element-display') ? 'block'
     : 'inline';
 
-  const mathEl = el.querySelector(':scope > math');
+  const mathEl = el.querySelector('math');
   const mathml = mathEl ? (mathEl.cloneNode(true) as MathMLElement) : null;
 
   let tex =
@@ -304,13 +303,16 @@ function extractMathRepr(el: Element): MathRepr | null {
     }
   }
 
+  const img = el.querySelector<HTMLImageElement>('img.mwe-math-fallback-image-inline')
+    ?? el.querySelector<HTMLImageElement>('img[src]') ?? null;
 
   // Only <img src=...svg>. No inline svg without fetch, so keep null for now.
   const svg: Element | null = null;
 
-  if (!tex && !mathml /*&& !svg*/) return null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!tex && !mathml && !img && !svg) return null;
 
-  return { tex, mathml, svg, display };
+  return { tex, mathml, svg, img, display };
 }
 
 export class WikiNode {

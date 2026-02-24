@@ -1,9 +1,17 @@
 import type { MathView, ToHtmlContext, ToMdContext } from './core';
 import { getMathMl, getTex } from './normalize';
-import { h, htmlToElementK } from './utils/dom';
+import { copySrcAttr, copyStyleAttr, h, htmlToElementK } from './utils/dom';
 import { repr } from './utils/logging';
 
-export function frameMath(tex: string, display: DisplayMode, ctx: ToMdContext) {
+export type MathRepr = {
+  tex: string | null;
+  mathml: MathMLElement | null;
+  svg: Element | null;
+  img: HTMLImageElement | null;
+  display: DisplayMode;
+};
+
+function frameMath(tex: string, display: DisplayMode, ctx: ToMdContext) {
   // if (!tex) return ''; // if it happens, leave it visible for debugging
   if (ctx.compact) display = 'inline';
 
@@ -55,6 +63,23 @@ function createSvgNode(root: Element, display: DisplayMode): Element {
   return display === 'block'
     ? h('div', { class: 'xlet-math-svg xlet-math-block' }, ...nodes)
     : h('span', { class: 'xlet-math-svg xlet-math-inline' }, ...nodes);
+}
+
+function createImgNode(img: HTMLImageElement, display: DisplayMode): HTMLImageElement {
+  // no wrapper: some sources emit multiple side-by-side images for one expression
+
+  const out = document.createElement('img');
+  copySrcAttr(out, img);
+  copyStyleAttr(out, img, new Set(['vertical-align']));
+
+  ['width', 'height'].forEach((attr) => {
+    const val = img.getAttribute(attr);
+    if (val) out.setAttribute(attr, val);
+  });
+
+  out.classList.add('xlet-math-img');
+  out.classList.add(display === 'block' ? 'xlet-math-block' : 'xlet-math-inline');
+  return out;
 }
 
 function scrubMathJaxAttrs(el: Element): void {
@@ -126,13 +151,6 @@ function handleHiddenMjxSvgTable(el: Element, view?: MathView): MathVendorToHtml
   return null;
 }
 
-export type MathRepr = {
-  tex: string | null;
-  mathml: MathMLElement | null;
-  svg: Element | null;
-  display: DisplayMode;
-};
-
 function getMjxV2Repr(el: Element, view: MathView): MathRepr | null {
   const id = el.getAttribute('id');
 
@@ -154,7 +172,7 @@ function getMjxV2Repr(el: Element, view: MathView): MathRepr | null {
 
     const svg = el.parentElement?.querySelector(`.MathJax_SVG[id^="${id}-"] svg`) ?? null;
 
-    return { tex, mathml, svg, display };
+    return { tex, mathml, svg, img: null, display };
   }
 
   return null;
@@ -183,7 +201,7 @@ function getMjxV34Repr(el: Element): MathRepr | null {
     }
   }
 
-  return { tex, mathml, svg, display };
+  return { tex, mathml, svg, img: null, display };
 }
 
 export function mathVendorToHtml(el: Element, ctx: ToHtmlContext): MathVendorToHtmlResult {
@@ -200,7 +218,7 @@ export function mathVendorToHtml(el: Element, ctx: ToHtmlContext): MathVendorToH
 }
 
 export function mathReprToHtml(content: MathRepr, ctx: ToHtmlContext): MathVendorToHtmlResult {
-  const { tex, mathml, svg, display } = content;
+  const { tex, mathml, svg, img, display } = content;
 
   if (!tex && !mathml && !svg) return { skip: true };
 
@@ -215,16 +233,19 @@ export function mathReprToHtml(content: MathRepr, ctx: ToHtmlContext): MathVendo
       if (mathml) node = createMathmlNode(mathml, display);
       if (!node && svg) node = createSvgNode(svg, display);
       if (!node && tex) node = createTexNode(tex, display);
+      if (!node && img) node = createImgNode(img, display);
       return node ? { node } : { skip: true };
     }
     case 'tex': {
       if (tex) node = createTexNode(tex, display);
       if (!node && mathml) node = createMathmlNode(mathml, display);
       if (!node && svg) node = createSvgNode(svg, display);
+      if (!node && img) node = createImgNode(img, display);
       return node ? { node } : { skip: true };
     }
     case 'svg': {
       if (svg) node = createSvgNode(svg, display);
+      if (!node && img) node = createImgNode(img, display);
       if (!node && mathml) node = createMathmlNode(mathml, display);
       if (!node && tex) node = createTexNode(tex, display);
       return node ? { node } : { skip: true };

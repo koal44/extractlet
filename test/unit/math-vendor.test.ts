@@ -51,6 +51,7 @@ describe('math-vendor: mathReprToMd', () => {
         tex: '{\\displaystyle \\sum _{j=1}^{n} \\mathbb {R} ,}',
         mathml: null,
         svg: null,
+        img: null,
         display: 'block',
       },
       ctx
