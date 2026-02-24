@@ -40,7 +40,7 @@
 
 import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
-import { mathReprToHtml, mathReprToMd, type MathRepr } from '../math-vendor';
+import { frameMath, mathReprToHtml, mathReprToMd, normalizeTex, type MathRepr } from '../math-vendor';
 import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
 import { copyButtonCss, createCopyButton } from '../ui/copy-button';
@@ -92,6 +92,22 @@ const toMdElemHandler: ToMdElementHandler = (el, ctx, gc) => {
   // Math extraction (wiki-specific repr -> TeX)
   const mathRepr = extractMathRepr(el);
   if (mathRepr) return mathReprToMd(mathRepr, ctx);
+
+  // Math extraction for blocks
+  if (el.matches('dl > dd')) {
+    const parts: string[] = [];
+
+    for (const child of el.children) {
+      const repr = extractMathRepr(child);
+      if (!repr?.tex) { parts.length = 0; break; }
+      parts.push(normalizeTex(repr.tex));
+    }
+
+    if (parts.length) {
+      const tex = parts.join('\n');
+      return { md: frameMath(tex, 'block', ctx) };
+    }
+  }
 
   // Layout-only <br> inside certain math constructs
   if (
@@ -279,12 +295,10 @@ export function transformNav(node: Node | null): Node[] {
 }
 
 function extractMathRepr(el: Element): MathRepr | null {
-  if (!el.classList.contains('mwe-math-element')) return null;
+  if (!el.matches('span.mwe-math-element')) return null;
 
   const parentTag = el.parentElement?.tagName.toUpperCase() ?? '';
-  const display = parentTag === 'DD' ? 'block'
-    : el.classList.contains('mwe-math-element-display') ? 'block'
-    : 'inline';
+  const display = parentTag === 'DD' ? 'block' : 'inline';
 
   const mathEl = el.querySelector('math');
   const mathml = mathEl ? (mathEl.cloneNode(true) as MathMLElement) : null;

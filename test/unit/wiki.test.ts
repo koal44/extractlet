@@ -1490,3 +1490,45 @@ describe('navbox transformation', () => {
       `.trim());
   });
 });
+
+describe('wiki math blocks', () => {
+  it('collapses adjacent mwe-math-element spans inside dl>dd into one fenced block', () => {
+    const html = `
+<div>
+  <dl>
+    <dd>
+      <span class="mwe-math-element">
+        <span class="mwe-math-mathml-inline">
+          <math alttext="{\\displaystyle a}">
+            <semantics>
+              <annotation encoding="application/x-tex">{\\displaystyle a}</annotation>
+            </semantics>
+          </math>
+        </span>
+        <img src="https://example.invalid/a.svg">
+      </span>
+      <span class="mwe-math-element">
+        <span class="mwe-math-mathml-inline">
+          <math alttext="{\\displaystyle b}">
+            <semantics>
+              <annotation encoding="application/x-tex">{\\displaystyle b}</annotation>
+            </semantics>
+          </math>
+        </span>
+        <img src="https://example.invalid/b.svg">
+      </span>
+    </dd>
+  </dl>
+</div>`.trim();
+
+    const md = toMd(el(html), { mathFence: 'dollar' }).trim();
+
+    expect(md.includes('\\displaystyle')).toBe(false);
+    expect(md).toBe(`
+$$
+a
+b
+$$
+    `.trim());
+  });
+});

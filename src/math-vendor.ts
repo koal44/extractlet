@@ -11,7 +11,7 @@ export type MathRepr = {
   display: DisplayMode;
 };
 
-function frameMath(tex: string, display: DisplayMode, ctx: ToMdContext) {
+export function frameMath(tex: string, display: DisplayMode, ctx: ToMdContext) {
   // if (!tex) return ''; // if it happens, leave it visible for debugging
   if (ctx.compact) display = 'inline';
 
