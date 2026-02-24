@@ -1,12 +1,13 @@
 import { getLang } from './normalize.js';
-import { hasOfType, isNumberish, isString, parseJsonAs } from './utils/typing.js';
+import { hasOfType, isNumberish, parseJsonAs } from './utils/typing.js';
 
 import { mathVendorToHtml, mathVendorToMd } from './math-vendor';
 import { log } from './utils/logging.js';
 import {
+  copyHrefAttr, copySrcAttr, copyStyleAttr, getNormalizedUrl,
   isBreak, isElement, isHTML, isImage, isInput, isList, isListItem,
   isOList, isPre, isSVG, isTableCell, isTableHeader, isText, isTextArea,
-  isUList, nodeName, parseHeadingLevel, safeDecode,
+  isUList, nodeName, parseHeadingLevel, safeDecode, scrubSvgElement,
 } from './utils/dom.js';
 import {
   alphaLabel, filterGenericLabel, isLabelGeneric, isLabelRedundant, sanitizeMdLinks as sanitizeMdLinkUrl, toPascalCase,
@@ -128,7 +129,9 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
 
   // --- svg handling ---
   if (isSVG(node)) {
-    return svgToHtml(node, ctx);
+    const clone = node.cloneNode(true) as SVGElement;
+    scrubSvgElement(clone);
+    return clone;
   }
 
   // --- default handling for HTML elements ---
@@ -198,81 +201,6 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
   }
 
   return clone;
-}
-
-export function copyHrefAttr(dest: Element, src: Element) {
-  const val = getNormalizedUrl(src, 'href');
-  if (val) dest.setAttribute('href', val);
-}
-
-export function copySrcAttr(dest: Element, src: Element) {
-  const val = getNormalizedUrl(src, 'src');
-  if (val) dest.setAttribute('src', val);
-}
-
-function getNormalizedUrl(node: Element, attr: 'href' | 'src'): string {
-  const url = node.getAttribute(attr)?.trim();
-  if (!url) return '';
-  if (url.startsWith('#')) return url;
-  if (url.toLowerCase().startsWith('javascript:')) return '#';
-  if (url.startsWith('//')) return `https:${url}`; // assume protocol-relative URLs are HTTPS
-
-  // --- resolve relative urls ---
-  // prefer browser-resolved property
-  if (hasOfType(node, attr, isString)) {
-    return node[attr].trim();
-  }
-  // otherwise resolve using doc's base uri
-  try {
-    return new URL(url, node.ownerDocument.baseURI).href;
-  } catch {
-    return url;
-  }
-}
-
-function copyStyleAttr(dest: HTMLElement, src: HTMLElement, allowStyles: boolean | ReadonlySet<string>) {
-  if (!src.hasAttribute('style')) return; // check only one of these?
-  if (allowStyles === false) return;
-  if (allowStyles === true) {
-    dest.setAttribute('style', src.getAttribute('style')!);
-    return;
-  }
-
-  const keep = new Set([
-    ...allowStyles,
-    'display', 'clear',
-    ...(isImage(src) ? ['width', 'height'] : []),
-  ]);
-
-  let styleString = '';
-  for (const k of keep) {
-    const v = src.style.getPropertyValue(k);
-    if (v) styleString += `${k}: ${v}; `;
-  }
-  styleString = styleString.trim();
-
-  if (styleString) dest.setAttribute('style', styleString);
-}
-
-function svgToHtml(node: SVGElement, ctx: ToHtmlContext): SVGElement | null {
-  // deep clone the whole SVG subtree
-  const clone = node.cloneNode(true) as SVGElement;
-  scrubSvgElement(clone, ctx);
-  return clone;
-}
-
-function scrubSvgElement(e: Element, c: ToHtmlContext): void {
-  if (e.matches('script,foreignObject')) return void e.remove();
-
-  for (const { name: n, value: v } of [...e.attributes]) {
-    if (
-      /^(on|aria-)/i.test(n) ||
-      /^(style|class|id|role|version)$/i.test(n) ||
-      (/^(xlink:)?href$/i.test(n) && !/^\s*#/.test(v))
-    ) e.removeAttribute(n);
-  }
-
-  for (let i = e.children.length; i--;) scrubSvgElement(e.children[i], c);
 }
 
 export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): string {
@@ -946,7 +874,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
     : result;
 }
 
-export function frameMd(md: string, glueMode: GlueMode, fcx: ToMdContext ): string {
+function frameMd(md: string, glueMode: GlueMode, fcx: ToMdContext ): string {
   const glueRules = {
     block: fcx.inListItem
       ? { prefix: '\n', suffix: '\n', trimStart: true, trimEnd: true }

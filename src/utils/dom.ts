@@ -1,4 +1,4 @@
-import { hasOfType, isNonEmptyString, isNumber } from './typing';
+import { hasOfType, isNonEmptyString, isNumber, isString } from './typing';
 
 export type AttrValue = string | number | boolean | null | undefined;
 export type HAttrs = Record<string, AttrValue | Document> & { __doc?: Document; };
@@ -150,6 +150,74 @@ export function nodeName(node: Node | null): string {
   if (isText(node)) return '#text';
   if (isElement(node)) return node.id ? `#${node.tagName.toLowerCase()}#${node.id}` : node.tagName.toLowerCase();
   return `#${node.nodeName}`;
+}
+
+export function copyHrefAttr(dest: Element, src: Element) {
+  const val = getNormalizedUrl(src, 'href');
+  if (val) dest.setAttribute('href', val);
+}
+
+export function copySrcAttr(dest: Element, src: Element) {
+  const val = getNormalizedUrl(src, 'src');
+  if (val) dest.setAttribute('src', val);
+}
+
+export function getNormalizedUrl(node: Element, attr: 'href' | 'src'): string {
+  const url = node.getAttribute(attr)?.trim();
+  if (!url) return '';
+  if (url.startsWith('#')) return url;
+  if (url.toLowerCase().startsWith('javascript:')) return '#';
+  if (url.startsWith('//')) return `https:${url}`; // assume protocol-relative URLs are HTTPS
+
+  // --- resolve relative urls ---
+  // prefer browser-resolved property
+  if (hasOfType(node, attr, isString)) {
+    return node[attr].trim();
+  }
+  // otherwise resolve using doc's base uri
+  try {
+    return new URL(url, node.ownerDocument.baseURI).href;
+  } catch {
+    return url;
+  }
+}
+
+export function copyStyleAttr(dest: HTMLElement, src: HTMLElement, allowStyles: boolean | ReadonlySet<string>) {
+  if (!src.hasAttribute('style')) return; // check only one of these?
+  if (allowStyles === false) return;
+  if (allowStyles === true) {
+    dest.setAttribute('style', src.getAttribute('style')!);
+    return;
+  }
+
+  const keep = new Set([
+    ...allowStyles,
+    'display', 'clear',
+    ...(isImage(src) ? ['width', 'height'] : []),
+  ]);
+
+  let styleString = '';
+  for (const k of keep) {
+    const v = src.style.getPropertyValue(k);
+    if (v) styleString += `${k}: ${v}; `;
+  }
+  styleString = styleString.trim();
+
+  if (styleString) dest.setAttribute('style', styleString);
+}
+
+export function scrubSvgElement(e: Element): void {
+  if (e.matches('script,foreignObject')) return void e.remove();
+
+  for (const { name: n, value: v } of [...e.attributes]) {
+    if (
+      /^(on|aria-)/i.test(n) ||
+      /^(style|class|id|role|version)$/i.test(n) ||
+      (/^(xlink:)?href$/i.test(n) && !/^\s*#/.test(v))
+    ) e.removeAttribute(n);
+  }
+
+  for (let i = e.children.length; i--;) scrubSvgElement(e.children[i]);
 }
 
 export function isNode(x: unknown): x is Node {
