@@ -164,23 +164,41 @@ export function isLabelGeneric(label?: string): boolean {
   // return isLabelRedundant(content, reference);
 }
 
-export function formatDateWithRelative(iso?: string | null): string {
+export function formatDateWithRelative(iso?: string | null, opts?: { utc?: boolean; }): string {
   if (!iso) return 'unknown-date';
+
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return 'invalid-date';
+  const t = d.getTime();
+  if (Number.isNaN(t)) return 'invalid-date';
+
+  const utc = opts?.utc ?? false;
 
   const pad = (n: number) => String(n).padStart(2, '0');
-  const ymd = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const y = utc ? d.getUTCFullYear() : d.getFullYear();
+  const m = (utc ? d.getUTCMonth() : d.getMonth()) + 1;
+  const day = utc ? d.getUTCDate() : d.getDate();
+  const ymd = `${y}-${pad(m)}-${pad(day)}`;
 
-  // --- relative ---
-  const diffMs = Date.now() - d.getTime();
-  const diffDays = Math.round(diffMs / 86400000); // 1 day = 86400000 ms
+  const diffMs = Date.now() - t;  // positive => past
+  const absMs = Math.abs(diffMs);
+
   const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const dayMs = 24 * hour;
+  const month = 30 * dayMs;
+  const year = 365 * dayMs;
+
+  const sign = diffMs >= 0 ? -1 : 1;  // rtf: negative => past ("2 days ago")
+
   let rel: string;
-  if (Math.abs(diffDays) < 30) rel = rtf.format(-diffDays, 'day');
-  else if (Math.abs(diffDays) < 365) rel = rtf.format(-Math.round(diffDays / 30), 'month');
-  else rel = rtf.format(-Math.round(diffDays / 365), 'year');
+  if (absMs < minute) rel = 'just now';
+  else if (absMs < hour) rel = rtf.format(sign * Math.round(absMs / minute), 'minute');
+  else if (absMs < dayMs) rel = rtf.format(sign * Math.round(absMs / hour), 'hour');
+  else if (absMs < month) rel = rtf.format(sign * Math.round(absMs / dayMs), 'day');
+  else if (absMs < year) rel = rtf.format(sign * Math.round(absMs / month), 'month');
+  else rel = rtf.format(sign * Math.round(absMs / year), 'year');
 
   return `${ymd} (${rel})`;
 }

@@ -42,6 +42,7 @@ import { getLang, hasSkip, markSkip, setLang } from '../normalize';
 import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
 import { attachStickyHeader } from '../ui/sticky';
+import { formatDateWithRelative } from '../utils/strings';
 
 type Contributor = {
   contributorType: 'author' | 'editor' | 'commenter';
@@ -333,7 +334,7 @@ function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
     if (!isAll && idx !== postIdx) return;
 
     const postHeading = idx === 0 ? 'Question' : `Answer ${idx}`;
-    copyArr.push(`\n❖❖ ${postHeading} ❖❖`, post.bodyMd);
+    copyArr.push(`\n## ${postHeading}`, post.bodyMd);
 
     const postContrib = buildContribsAndVotes(post.contributors, post.vote);
     if (postContrib) copyArr.push('', postContrib);
@@ -341,7 +342,7 @@ function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
     if (post.comments.length > 0) {
       post.comments.forEach((comment, cIdx) => {
         const commentContrib = buildContribsAndVotes(comment.contributors, comment.vote);
-        copyArr.push('', `Comment ${cIdx + 1}:`, `${comment.bodyMd}${commentContrib ? ` ${commentContrib}` : ''}`);
+        copyArr.push('', `### Comment ${cIdx + 1}:`, `${comment.bodyMd}${commentContrib ? ` ${commentContrib}` : ''}`);
       });
     }
 
@@ -395,7 +396,8 @@ function buildContribsAndVotes(contributors: Contributor[], voteCount: number): 
       ? selected[0].name
       : rawName;
     const name = fallbackName.replace(/\s+/g, '-');
-    const date = c.timestamp.trim() ? c.timestamp.split(' ')[0] : 'unknown-date';
+    // const date = c.timestamp.trim() ? c.timestamp.split(' ')[0] : 'unknown-date';
+    const date = formatDateWithRelative(c.timestamp);
     return { name, date };
   });
 
