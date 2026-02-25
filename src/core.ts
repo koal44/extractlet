@@ -22,7 +22,6 @@ export type ToHtmlElementHandler = (
 ) => { skip?: boolean; node?: Node; };
 
 export type MathView = 'tex' | 'svg' | 'mathml';
-export type CopyAs = 'html' | 'md';
 
 export type ToHtmlContext = {
   elementHandler?: ToHtmlElementHandler;       // optional per-element override handler
@@ -30,7 +29,6 @@ export type ToHtmlContext = {
   allowStyles: ReadonlySet<string> | boolean;  // style allowlist or true/false for all/none
   mathView: MathView;                          // how to render math
   isRoot: boolean;                             // true only for top-level call (clone root; prevent side-effects))
-  copyAs: CopyAs;                              // whether to grab 'html' or 'md' when copy button is clicked (default: 'md')
 };
 
 export const DefaultToHtmlContext: ToHtmlContext = {
@@ -38,7 +36,6 @@ export const DefaultToHtmlContext: ToHtmlContext = {
   allowStyles: false,
   mathView: 'tex',
   isRoot: true,
-  copyAs: 'md',
 };
 
 type GlueMode = 'block' | 'list' | 'listItem' | 'inline';

@@ -2,14 +2,12 @@ import browser from 'webextension-polyfill';
 import type {
   BrMode, MathFenceStyle, MathView, SubSupMode,
   ToMdContext, ToHtmlContext,
-  CopyAs,
 } from './core';
-import { DefaultToHtmlContext, DefaultToMdContext, toMd } from './core';
+import { DefaultToHtmlContext, DefaultToMdContext } from './core';
 import type { Permutations } from './utils/typing';
 import { isBoolean, isString } from './utils/typing';
 import { warn } from './utils/logging';
-import { htmlToElement, injectCss, type HAttrs } from './utils/dom';
-import { copyButtonCss, createCopyButton } from './ui/copy-button';
+import { type HAttrs } from './utils/dom';
 
 type SpecValueType = string | boolean | number;
 type ContextKind = 'markdown' | 'html';
@@ -116,36 +114,6 @@ export const XLET_SETTINGS = {
       content: () => loadSnippet('mathview-preview.html'),
     },
   }),
-  copyAs: stringSpec({
-    values: ['html', 'md'] as const satisfies Permutations<CopyAs>,
-    valueLabels: ['HTML', 'Markdown'] as const,
-    fallback: DefaultToHtmlContext.copyAs,
-    settingLabel: 'Copy as',
-    ctx: 'html',
-    preview: {
-      content: () => `<div data-xlet-preview />`,
-      wire: (root, contexts) => {
-        const html = '<b>rock</b> paper <i>scissors</i>';
-        const md = toMd(htmlToElement(`<div>${html}</div>`), contexts.md);
-        const getSample = () => (contexts.html.copyAs === 'html' ? html : md);
-
-        const previewArea = root.querySelector<HTMLElement>('[data-xlet-preview]');
-        if (!previewArea) return console.warn('[xlet:settings] copyAs preview: missing preview area');
-
-        const copyButton = createCopyButton(getSample);
-        const btn = copyButton.querySelector<HTMLButtonElement>('button.copybutton');
-        if (!btn) return warn('[xlet:settings] copyAs preview: missing .copybutton');
-        btn.addEventListener('click', (ev) => ev.stopPropagation(), { capture: true });
-        const response = copyButton.querySelector<HTMLElement>('.copybutton-response');
-        if (!response) return warn('[xlet:settings] copyAs preview: missing .copybutton-response');
-        response.textContent = `Copied: ${getSample()}`;
-        response.style.display = 'inline-block';
-
-        injectCss(copyButtonCss, { id: 'copy-button-css' });
-        previewArea.replaceChildren(copyButton);
-      },
-    },
-  }),
 } as const satisfies Partial<Record<AllowedSettingKey, SettingSpec>>;
 
 async function loadSnippet(name: string): Promise<string> {
@@ -218,7 +186,6 @@ export function settingsToContexts(settings: Partial<XletSettings>): XletContext
 
       // html settings
       case 'mathView': htmlCtx.mathView = val as MathView; break;
-      case 'copyAs': htmlCtx.copyAs = val as CopyAs; break;
       default: throw new Error(`[xlet:settings] Unhandled markdown setting key "${String(key satisfies never)}"`);
     }
   }
