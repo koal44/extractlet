@@ -1,37 +1,43 @@
 import browser from 'webextension-polyfill';
 import type {
-  BrMode, MathFenceStyle, MathView,
+  BrMode, MathFenceStyle, MathView, SubSupMode,
   ToMdContext, ToHtmlContext,
-  SubSupMode,
+  CopyAs,
 } from './core';
-import { DefaultToHtmlContext, DefaultToMdContext } from './core';
+import { DefaultToHtmlContext, DefaultToMdContext, toMd } from './core';
 import type { Permutations } from './utils/typing';
 import { isBoolean, isString } from './utils/typing';
 import { warn } from './utils/logging';
-import type { HAttrs } from './utils/dom';
+import { htmlToElement, injectCss, type HAttrs } from './utils/dom';
+import { copyButtonCss, createCopyButton } from './ui/copy-button';
 
 type SpecValueType = string | boolean | number;
 type ContextKind = 'markdown' | 'html';
+
+type Preview = {
+  content: (() => Promise<string>) | (() => string);
+  wire?: (root: HTMLElement, contexts: XletContexts) => void;
+  attrs?: HAttrs;
+};
 
 type BoolSettingSpec = {
   kind: 'boolean';
   settingLabel: string;
   ctx: ContextKind;
-  preview: (() => Promise<string>) | (() => string);
+  preview: Preview;
   values: readonly boolean[];
   valueLabels: readonly string[];
   coerce(val: unknown): boolean;
-  previewAttrs?: HAttrs;
 };
+
 type StringSettingSpec = {
   kind: 'string';
   settingLabel: string;
   ctx: ContextKind;
-  preview: (() => Promise<string>) | (() => string);
+  preview: Preview;
   values: readonly string[];
   valueLabels: readonly string[];
   coerce(val: unknown): string;
-  previewAttrs?: HAttrs;
 };
 
 type SettingSpec = BoolSettingSpec | StringSettingSpec;
@@ -44,7 +50,9 @@ export const XLET_SETTINGS = {
     valueLabels: ['Keep', 'Remove'] as const,
     settingLabel: 'Redundant text in links/images',
     ctx: 'markdown',
-    preview: () => '<a href="https://example.com/all_about_cats" title="All About Cats">Cats!</a>',
+    preview: {
+      content: () => '<a href="https://example.com/all_about_cats" title="All About Cats">Cats!</a>',
+    },
     fallback: DefaultToMdContext.filterRedundantLabels,
   }),
   filterGenericLabels: boolSpec({
@@ -52,7 +60,9 @@ export const XLET_SETTINGS = {
     valueLabels: ['Keep', 'Remove'] as const,
     settingLabel: 'Generic text in links/images',
     ctx: 'markdown',
-    preview: () => '<a href="https://example.com/">Click here</a>',
+    preview: {
+      content: () => '<a href="https://example.com/">Click here</a>',
+    },
     fallback: DefaultToMdContext.filterGenericLabels,
   }),
   mathFence: stringSpec({
@@ -61,7 +71,9 @@ export const XLET_SETTINGS = {
     fallback: DefaultToMdContext.mathFence,
     settingLabel: 'Math delimiters',
     ctx: 'markdown',
-    preview: () => '<mjx-container class="MathJax" data-xlet-tex="ax^2 + bx + c = 0" display="true" data-xlet-mathml="boo!"></mjx-container>',
+    preview: {
+      content: () => '<mjx-container class="MathJax" data-xlet-tex="ax^2 + bx + c = 0" display="true" data-xlet-mathml="boo!"></mjx-container>',
+    },
   }),
   brMode: stringSpec({
     values: ['escape', 'hard', 'soft'] as const satisfies Permutations<BrMode>,
@@ -69,16 +81,19 @@ export const XLET_SETTINGS = {
     fallback: DefaultToMdContext.brMode,
     settingLabel: 'Line breaks',
     ctx: 'markdown',
-    preview: () => '<span>Line abc<br />Line abc<br />Line abc</span>',
+    preview: {
+      content: () => '<span>Line abc<br />Line abc<br />Line abc</span>',
+    },
   }),
   prettyTables: boolSpec({
     values: [false, true] as const,
     valueLabels: ['LLM-friendly', 'Human-friendly'] as const,
     settingLabel: 'Markdown tables',
     ctx: 'markdown',
-    preview: () =>
-      '<table><thead><tr><th>Impactor</th><th>Diameter (km)</th></tr></thead><tbody><tr><td>Chicxulub</td><td>10</td></tr><tr><td>Tunguska</td><td>0.05</td></tr></tbody></table>',
-    previewAttrs: { style: 'font-family: monospace;' },
+    preview: {
+      content: () => '<table><thead><tr><th>Impactor</th><th>Diameter (km)</th></tr></thead><tbody><tr><td>Chicxulub</td><td>10</td></tr><tr><td>Tunguska</td><td>0.05</td></tr></tbody></table>',
+      attrs: { style: 'font-family: monospace;' },
+    },
     fallback: DefaultToMdContext.prettyTables,
   }),
   subSupMode: stringSpec({
@@ -87,7 +102,9 @@ export const XLET_SETTINGS = {
     fallback: DefaultToMdContext.subSupMode,
     settingLabel: 'Subscripts & superscripts',
     ctx: 'markdown',
-    preview: () => '<p>H<sub>2</sub>O</p>',
+    preview: {
+      content: () => '<p>H<sub>2</sub>O</p>',
+    },
   }),
   mathView: stringSpec({
     values: ['tex', 'svg', 'mathml'] as const satisfies Permutations<MathView>,
@@ -95,7 +112,39 @@ export const XLET_SETTINGS = {
     fallback: DefaultToHtmlContext.mathView,
     settingLabel: 'Math source',
     ctx: 'html',
-    preview: () => loadSnippet('mathview-preview.html'),
+    preview: {
+      content: () => loadSnippet('mathview-preview.html'),
+    },
+  }),
+  copyAs: stringSpec({
+    values: ['html', 'md'] as const satisfies Permutations<CopyAs>,
+    valueLabels: ['HTML', 'Markdown'] as const,
+    fallback: DefaultToHtmlContext.copyAs,
+    settingLabel: 'Copy as',
+    ctx: 'html',
+    preview: {
+      content: () => `<div data-xlet-preview />`,
+      wire: (root, contexts) => {
+        const html = '<b>rock</b> paper <i>scissors</i>';
+        const md = toMd(htmlToElement(`<div>${html}</div>`), contexts.md);
+        const getSample = () => (contexts.html.copyAs === 'html' ? html : md);
+
+        const previewArea = root.querySelector<HTMLElement>('[data-xlet-preview]');
+        if (!previewArea) return console.warn('[xlet:settings] copyAs preview: missing preview area');
+
+        const copyButton = createCopyButton(getSample);
+        const btn = copyButton.querySelector<HTMLButtonElement>('button.copybutton');
+        if (!btn) return warn('[xlet:settings] copyAs preview: missing .copybutton');
+        btn.addEventListener('click', (ev) => ev.stopPropagation(), { capture: true });
+        const response = copyButton.querySelector<HTMLElement>('.copybutton-response');
+        if (!response) return warn('[xlet:settings] copyAs preview: missing .copybutton-response');
+        response.textContent = `Copied: ${getSample()}`;
+        response.style.display = 'inline-block';
+
+        injectCss(copyButtonCss, { id: 'copy-button-css' });
+        previewArea.replaceChildren(copyButton);
+      },
+    },
   }),
 } as const satisfies Partial<Record<AllowedSettingKey, SettingSpec>>;
 
@@ -111,14 +160,13 @@ async function loadSnippet(name: string): Promise<string> {
 export type XletSettingKey = keyof typeof XLET_SETTINGS;
 
 function boolSpec(
-  { values, valueLabels, fallback, settingLabel, ctx, preview, previewAttrs }:
+  { values, valueLabels, fallback, settingLabel, ctx, preview }:
   { values: readonly boolean[];
     valueLabels: readonly string[];
     fallback: boolean;
     settingLabel: string;
     ctx: ContextKind;
-    preview: (() => Promise<string>) | (() => string);
-    previewAttrs?: HAttrs; }
+    preview: Preview; }
 ): BoolSettingSpec {
   if (values.length !== valueLabels.length) console.warn(`[xlet:settings] val/labels mismatch for "${settingLabel}"`);
   if (!values.includes(fallback)) console.warn(`[xlet:settings] "${fallback}" is not in values [${values.join(', ')}]`);
@@ -126,19 +174,17 @@ function boolSpec(
     kind: 'boolean',
     values, valueLabels, settingLabel, ctx, preview,
     coerce(val: unknown): boolean { return isBoolean(val) ? val : fallback; },
-    previewAttrs,
   };
 }
 
 function stringSpec(
-  { values, valueLabels, fallback, settingLabel, ctx, preview, previewAttrs }:
+  { values, valueLabels, fallback, settingLabel, ctx, preview }:
   { values: readonly string[];
     valueLabels: readonly string[];
     fallback: string;
     settingLabel: string;
     ctx: ContextKind;
-    preview: (() => Promise<string>) | (() => string);
-    previewAttrs?: HAttrs; }
+    preview: Preview; }
 ): StringSettingSpec {
   if (!values.includes(fallback)) console.warn(`[xlet:settings] "${fallback}" is not in values [${values.join(', ')}]`);
   if (values.length !== valueLabels.length) console.warn(`[xlet:settings] val/labels mismatch for "${settingLabel}"`);
@@ -146,7 +192,6 @@ function stringSpec(
     kind: 'string',
     values, valueLabels, settingLabel, ctx, preview,
     coerce(val: unknown): string { return (isString(val) && values.includes(val)) ? val : fallback; },
-    previewAttrs,
   };
 }
 
@@ -173,6 +218,7 @@ export function settingsToContexts(settings: Partial<XletSettings>): XletContext
 
       // html settings
       case 'mathView': htmlCtx.mathView = val as MathView; break;
+      case 'copyAs': htmlCtx.copyAs = val as CopyAs; break;
       default: throw new Error(`[xlet:settings] Unhandled markdown setting key "${String(key satisfies never)}"`);
     }
   }
@@ -258,33 +304,3 @@ export function observeSettings(
 
   return () => browser.storage.onChanged.removeListener(listener);
 }
-
-// harder-to-maintain version that gives better typing for XletSettings
-//
-// export type XletSettings = {
-//   -readonly [K in XletSettingKey]: ReturnType<typeof XLET_SETTINGS[K]['coerce']>;
-// };
-// export function coerceSetting(key: 'filterRedundantLabels', val: unknown): XletSettings['filterRedundantLabels'];
-// export function coerceSetting(key: 'filterGenericLabels',   val: unknown): XletSettings['filterGenericLabels'];
-// export function coerceSetting(key: 'mathFenceStyle',        val: unknown): XletSettings['mathFenceStyle'];
-// export function coerceSetting(key: 'brMode',                val: unknown): XletSettings['brMode'];
-// export function coerceSetting(key: 'mathView',              val: unknown): XletSettings['mathView'];
-// export function coerceSetting(key: XletSettingKey, val: unknown): XletSettings[XletSettingKey] {
-//   return XLET_SETTINGS[key].coerce(val);
-// }
-// export function coerceSettings(raw: Record<string, unknown>): Partial<XletSettings> {
-//   const out: Partial<XletSettings> = {};
-//   for (const [k, v] of Object.entries(raw)) {
-//     if (isXletKey(k)) {
-//       switch (k) {
-//         case 'filterRedundantLabels': out[k] = coerceSetting(k, v); break;
-//         case 'filterGenericLabels':   out[k] = coerceSetting(k, v); break;
-//         case 'mathFenceStyle':        out[k] = coerceSetting(k, v); break;
-//         case 'brMode':                out[k] = coerceSetting(k, v); break;
-//         case 'mathView':              out[k] = coerceSetting(k, v); break;
-//         default: throw new Error(`Unknown setting key: ${String(k satisfies never)}`);
-//       }
-//     }
-//   }
-//   return out;
-// }

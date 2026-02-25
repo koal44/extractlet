@@ -98,21 +98,24 @@ async function showPreview(key: XletSettingKey, row: HTMLElement) {
   if (!previewBox) return console.warn('[xlet:opt] Preview box not found');
   previewBox.innerHTML = '';
 
-  const { md: mdCtx, html: htmlCtx } = settingsToContexts(_settings);
-  const previewNode = htmlToElement(await spec.preview());
+  const contexts = settingsToContexts(_settings);
+  const previewNode = htmlToElement(await spec.preview.content());
   if (!previewNode) return console.warn(`[xlet:opt] Failed to parse preview for key "${String(key)}"`);
 
+  let previewEl: HTMLElement;
   switch (spec.ctx) {
     case 'html': {
-      previewBox.appendChild(h('div', { class: 'html-view', ...spec.previewAttrs }, toHtml(previewNode, htmlCtx)));
+      previewEl = h('div', { class: 'html-view', ...spec.preview.attrs }, toHtml(previewNode, contexts.html));
       break;
     }
     case 'markdown': {
-      previewBox.appendChild(h('div', { class: 'md-view', ...spec.previewAttrs }, toMd(previewNode, mdCtx)));
+      previewEl = h('div', { class: 'md-view', ...spec.preview.attrs }, toMd(previewNode, contexts.md));
       break;
     }
     default: throw new Error(`Unknown setting ctx for key "${String(spec.ctx satisfies never)}"`);
   }
+  previewBox.appendChild(previewEl);
+  spec.preview.wire?.(previewEl, contexts);
 }
 
 async function initForm(form: HTMLFormElement) {
