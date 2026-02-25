@@ -520,8 +520,17 @@ export class WikiNode {
     }
   }
 
-  getFullMd(): string {
-    return `${'#'.repeat(this.level)} ${this.title} ${'#'.repeat(this.level)}\n\n${this.md}`;
+  getSelfMd(): string {
+    const hash = '#'.repeat(this.level);
+    return `${hash} ${this.title} ${hash}${this.md ? '\n\n' : ''}${this.md}`;
+  }
+
+  getSubtreeMd(): string {
+    let out = this.getSelfMd();
+    for (const child of this.children) {
+      out += `\n\n${child.getSubtreeMd()}`;
+    }
+    return out;
   }
 }
 
@@ -590,7 +599,7 @@ export function populateWikiNodeWithRaw(
 }
 
 function renderHtml(node: WikiNode): HTMLDivElement {
-  const copyBtn = createCopyButton(() => node.getFullMd(), () => 'Copied Markdown!');
+  const copyBtn = createCopyButton(() => node.getSubtreeMd(), () => 'Copied Markdown!');
   const titleElem = h(`h${node.level}`, { class: 'html-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
   const container = h('div', { class: 'html-wikinode-section' }, titleBar);
@@ -604,7 +613,7 @@ function renderHtml(node: WikiNode): HTMLDivElement {
 }
 
 function renderMd(node: WikiNode): HTMLDivElement {
-  const copyBtn = createCopyButton(() => node.getFullMd(), () => 'Copied Markdown!');
+  const copyBtn = createCopyButton(() => node.getSubtreeMd(), () => 'Copied Markdown!');
   const titleElem = h(`h${node.level}`, { class: 'md-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
   const container = h('div', { class: 'md-wikinode-section' }, titleBar);
@@ -779,7 +788,7 @@ export const createPage: CreatePage = async (
       idPrefix: 'html-section-',
       observeClass: 'html-wikinode-title',
       containerClass: 'html-view',
-      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map((n) => n.getFullMd()).join('\n\n')}`,
+      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${tree.getSubtreeMd()}`,
       getCopyAllResponse: () => 'Copied all sections as Markdown!',
       getCopyAllHint: () => 'Copy all sections as Markdown',
     },
@@ -789,7 +798,7 @@ export const createPage: CreatePage = async (
       idPrefix: 'md-section-',
       observeClass: 'md-wikinode-title',
       containerClass: 'md-view',
-      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map((n) => n.getFullMd()).join('\n\n')}`,
+      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${tree.getSubtreeMd()}`,
       getCopyAllResponse: () => 'Copied all sections as Markdown!',
       getCopyAllHint: () => 'Copy all sections as Markdown',
     },

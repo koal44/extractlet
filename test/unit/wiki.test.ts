@@ -1532,3 +1532,121 @@ $$
     `.trim());
   });
 });
+
+describe('WikiNode.getFullMd', () => {
+  const url = 'https://en.wikipedia.org/wiki/Tensor';
+
+  const makeWiki = () => {
+    const doc = docEl(`
+      <html><body>
+      <div class="mw-content-container">
+        <main id="content" class="mw-body">
+          <header class="mw-body-header">
+            <h1 id="firstHeading" class="firstHeading mw-first-heading">
+              <span class="mw-page-title-main">Tensor</span>
+            </h1>
+          </header>
+          <div id="bodyContent">
+            <div id="mw-content-text" class="mw-body-content">
+              <div class="mw-content-ltr mw-parser-output">
+                <p>In mathematics...</p>
+
+                <div class="mw-heading mw-heading2">
+                  <h2 id="Definition">Definition</h2>
+                </div>
+
+                <div class="mw-heading mw-heading3">
+                  <h3 id="As_multidimensional_arrays">As multi-dimensional arrays</h3>
+                </div>
+                <p>Although seemingly different...</p>
+
+                <div class="mw-heading mw-heading3">
+                  <h3 id="As_multilinear_maps">As multilinear maps</h3>
+                </div>
+                <p>A downside...</p>
+
+                <div class="mw-heading mw-heading2">
+                  <h2 id="History">History</h2>
+                </div>
+                <p>The concepts of...</p>
+
+                <div class="mw-heading mw-heading2">
+                  <h2 id="Examples">Examples</h2>
+                </div>
+                <p>An elementary example...</p>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+      </body></html>
+    `, url);
+
+    const wiki = WikiNode.buildFromHTML(doc);
+    expect(wiki).toBeTruthy();
+    return wiki!;
+  };
+
+  it('copies a structural section (Definition) including descendant sections', () => {
+    const wiki = makeWiki();
+
+    const definition = wiki.getNodeByTitle('Definition');
+    expect(definition).toBeTruthy();
+
+    const md = definition!.getSubtreeMd();
+    expect(md).toBe([
+      '## Definition ##',
+      '',
+      '### As multi-dimensional arrays ###',
+      '',
+      'Although seemingly different...',
+      '',
+      '### As multilinear maps ###',
+      '',
+      'A downside...',
+    ].join('\n'));
+  });
+
+  it('copies a leaf section (History) as heading + direct body', () => {
+    const wiki = makeWiki();
+
+    const history = wiki.getNodeByTitle('History');
+    expect(history).toBeTruthy();
+
+    const md = history!.getSubtreeMd();
+    expect(md).toBe([
+      '## History ##',
+      '',
+      'The concepts of...',
+    ].join('\n'));
+  });
+
+  it('root copy includes intro + all sections in preorder', () => {
+    const wiki = makeWiki();
+
+    const md = wiki.getSubtreeMd();
+    expect(md).toBe([
+      '# Tensor #',
+      '',
+      'In mathematics...',
+      '',
+      '## Definition ##',
+      '',
+      '### As multi-dimensional arrays ###',
+      '',
+      'Although seemingly different...',
+      '',
+      '### As multilinear maps ###',
+      '',
+      'A downside...',
+      '',
+      '## History ##',
+      '',
+      'The concepts of...',
+      '',
+      '## Examples ##',
+      '',
+      'An elementary example...',
+    ].join('\n'));
+  });
+});
