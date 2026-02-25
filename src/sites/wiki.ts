@@ -590,8 +590,7 @@ export function populateWikiNodeWithRaw(
 }
 
 function renderHtml(node: WikiNode): HTMLDivElement {
-  const copyText = node.html?.outerHTML || ''; // TODO: use node.md!! node.html is only for dev
-  const copyBtn = createCopyButton(() => copyText, () => 'Copied HTML!');
+  const copyBtn = createCopyButton(() => node.getFullMd(), () => 'Copied Markdown!');
   const titleElem = h(`h${node.level}`, { class: 'html-wikinode-title' }, node.title);
   const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
   const container = h('div', { class: 'html-wikinode-section' }, titleBar);

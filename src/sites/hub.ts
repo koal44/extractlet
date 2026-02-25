@@ -586,11 +586,10 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
 
   if (pageData.title) copyArr.push(`<!-- ${pageData.title} -->`);
   const url = isAll ? pageData.permalink : allPosts[postIdx].postId ? `${pageData.permalink}#${allPosts[postIdx].postId}` : pageData.permalink;
-  if (url) copyArr.push(`<-- ${url} -->`, '');
+  if (url) copyArr.push(`<!-- ${url} -->`, '');
 
   allPosts.forEach((post, idx) => {
     if (!isAll && idx !== postIdx) return;
-    // if (isAll && idx === 0) copyArr.push(''); // pre-amble \n post0
     copyArr.push(''); // postN \n postN+1
 
     const postType = idx === 0 ? 'Post' : `Comment ${idx}`;
