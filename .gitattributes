@@ -1,1 +1,4 @@
 * text=auto eol=lf
+
+# exclude fixture blobs from language statistics
+test/fix/fixtures/** linguist-vendored
