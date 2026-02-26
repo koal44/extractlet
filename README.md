@@ -4,5 +4,5 @@ Browser extension that extracts GitHub, Stack Exchange, and MediaWiki pages into
 
 ## Demo
 
-https://github.com/koal44/extractlet/releases/download/v0.1.0/demo.mp4
+https://github.com/user-attachments/assets/8b9e1daa-2be6-4b34-914e-67631d8fadf1
 
