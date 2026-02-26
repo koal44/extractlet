@@ -45,7 +45,36 @@
   "web_accessible_resources": [
     {
       "resources": ["run-normalize.js"],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "*://stackexchange.com/*",
+        "*://stackoverflow.com/*",
+        "*://serverfault.com/*",
+        "*://superuser.com/*",
+        "*://askubuntu.com/*",
+        "*://stackapps.com/*",
+        "*://mathoverflow.net/*",
+        "*://*.stackexchange.com/*",
+        "*://*.stackoverflow.com/*",
+        "*://*.serverfault.com/*",
+        "*://*.superuser.com/*",
+        "*://*.askubuntu.com/*",
+        "*://*.stackapps.com/*",
+        "*://*.mathoverflow.net/*",
+
+        "*://*.wikipedia.org/*",
+        "*://*.wikibooks.org/*",
+        "*://*.wikiversity.org/*",
+        "*://*.wikidata.org/*",
+        "*://*.wikinews.org/*",
+        "*://*.wikiquote.org/*",
+        "*://*.wikivoyage.org/*",
+        "*://*.wiktionary.org/*",
+        "*://*.wikisource.org/*",
+        "*://*.wikimedia.org/*",
+        "*://*.mediawiki.org/*",
+
+        "*://*.github.com/*"
+      ]
     }
   ]
 }
