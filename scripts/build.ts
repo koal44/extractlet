@@ -2,8 +2,6 @@
 import fs from 'node:fs/promises';
 import { rollup, type ModuleFormat, type RollupLog } from 'rollup';
 import typescript from '@rollup/plugin-typescript';
-import { hasProp } from '../src/utils/typing';
-import { dumpNodeState } from './utils/process-report';
 
 type WarningCode = RollupLog['code'];
 
@@ -15,11 +13,15 @@ type BundleEntry = {
   muteWarnings?: WarningCode[];
 };
 
+type ManifestStub = {
+  background?: { service_worker?: string; scripts?: string[]; };
+  incognito?: string;
+  browser_specific_settings?: unknown;
+};
+
 const DIST_ROOT = 'dist';
 const DIST_CHROME = `${DIST_ROOT}/chrome`;
 const DIST_FIREFOX = `${DIST_ROOT}/firefox`;
-
-// clear dist/ folders
 await fs.rm(DIST_ROOT, { recursive: true, force: true });
 
 // --- bundle top-level extension scripts ---
@@ -55,25 +57,27 @@ await fs.cp(
 await fs.cp(DIST_CHROME, DIST_FIREFOX, { recursive: true, force: true });
 
 // --- patch manifest.json for chrome/firefox incompatibilities ---
-const ffManifest = JSON.parse(await fs.readFile(`${DIST_FIREFOX}/manifest.json`, 'utf8')) as unknown;
-if (hasProp(ffManifest, ['background', 'service_worker'])) {
-  delete (ffManifest.background as { service_worker?: unknown; }).service_worker;
+async function patchFirefoxManifest(): Promise<void> {
+  const ffManifest = JSON.parse(await fs.readFile(`${DIST_FIREFOX}/manifest.json`, 'utf8')) as ManifestStub;
+  delete ffManifest.background?.service_worker;
+  delete ffManifest.incognito;
   await fs.writeFile(`${DIST_FIREFOX}/manifest.json`, JSON.stringify(ffManifest, null, 2));
   console.log(`Patched manifest.json for Firefox in ${DIST_FIREFOX}`);
 }
 
-const manifest = JSON.parse(await fs.readFile(`${DIST_CHROME}/manifest.json`, 'utf8')) as unknown;
-if (hasProp(manifest, ['background', 'scripts'])) {
-  delete (manifest.background as { scripts?: unknown; }).scripts;
+async function patchChromeManifest(): Promise<void> {
+  const manifest = JSON.parse(await fs.readFile(`${DIST_CHROME}/manifest.json`, 'utf8')) as ManifestStub;
+  delete manifest.background?.scripts;
+  delete manifest.browser_specific_settings;
   await fs.writeFile(`${DIST_CHROME}/manifest.json`, JSON.stringify(manifest, null, 2));
-  console.log(`Patched manifest.json for Chrome/other in ${DIST_CHROME}`);
+  console.log(`Patched manifest.json for Chrome in ${DIST_CHROME}`);
 }
+
+await Promise.all([patchFirefoxManifest(), patchChromeManifest()]);
 
 console.log('Build completed!');
+process.exit(0);
 
-if (process.env.DUMP_HANDLES) {
-  await dumpNodeState('post-build');
-}
 
 // ------------------------
 // --- HELPER FUNCTIONS ---

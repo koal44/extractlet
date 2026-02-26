@@ -76,5 +76,13 @@
         "*://*.github.com/*"
       ]
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "extractlet@koal44",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  }
 }

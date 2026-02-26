@@ -198,6 +198,12 @@ const areas: Partial<Record<'local' | 'sync' | 'managed', browser.Storage.Storag
   managed: browser.storage.managed,
 };
 
+async function safeGet(area: browser.Storage.StorageArea | undefined, keys: string[]): Promise<Record<string, unknown>> {
+  if (!area) return {};
+  try { return await area.get(keys); }
+  catch { return {}; } // managed storage can throw if no enterprise manifest is present
+}
+
 export function coerceSettings(raw: Record<string, unknown>): Partial<XletSettings> {
   const out: Partial<XletSettings> = {};
   for (const key of Object.keys(XLET_SETTINGS) as XletSettingKey[]) {
@@ -211,9 +217,9 @@ export async function loadSettings(): Promise<XletSettings> {
   const keys = Object.keys(XLET_SETTINGS) as XletSettingKey[];
 
   const [localRaw, syncRaw, managedRaw] = await Promise.all([
-    areas.local?.get(keys)   ?? {},
-    areas.sync?.get(keys)    ?? {},
-    areas.managed?.get(keys) ?? {},
+    safeGet(areas.local, keys),
+    safeGet(areas.sync, keys),
+    safeGet(areas.managed, keys),
   ]);
 
   const local   = coerceSettings(localRaw);
