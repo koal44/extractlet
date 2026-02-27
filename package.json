@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "build": "tsx --env-file=.env scripts/build.ts",
+    "release": "tsx scripts/release.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:fix": "vitest run --dir ./test/fix",
@@ -63,6 +64,7 @@
     "typescript-eslint": "^8.36.0",
     "vite-node": "^3.2.4",
     "vitest": "^4.0.3",
+    "web-ext": "^9.3.0",
     "webextension-polyfill": "^0.12.0"
   }
 }
