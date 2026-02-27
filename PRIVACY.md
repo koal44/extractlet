@@ -2,7 +2,7 @@
 
 Extractlet exists for one purpose: to let you convert content from supported sites into Markdown.
 
-There is no 3rd-party whatever, no trackers, no ads.
+No trackers, no ads, no collection or sharing of your data.
 
 ## What the Extension Does
 

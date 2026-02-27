@@ -122,7 +122,8 @@ async function initForm(form: HTMLFormElement) {
   const mdContainer = form.querySelector<HTMLElement>('#md-settings');
   const htmlContainer = form.querySelector<HTMLElement>('#html-settings');
   if (!mdContainer || !htmlContainer) return console.warn('[xlet:opt] Settings containers not found');
-  mdContainer.innerHTML = htmlContainer.innerHTML = '';
+  mdContainer.innerHTML = '';
+  htmlContainer.innerHTML = '';
 
   _settings = await loadSettings();
   for (const key of Object.keys(XLET_SETTINGS) as XletSettingKey[]) {

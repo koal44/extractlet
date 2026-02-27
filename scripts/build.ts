@@ -52,6 +52,11 @@ await fs.cp(
   `${DIST_CHROME}/browser-polyfill.js`,
   { force: true }
 );
+await fs.cp(
+  'node_modules/dompurify/dist/purify.min.js',
+  `${DIST_CHROME}/dompurify.js`,
+  { force: true }
+);
 
 // --- clone chrome build to firefox build ---
 await fs.cp(DIST_CHROME, DIST_FIREFOX, { recursive: true, force: true });
@@ -95,10 +100,10 @@ async function patchPolyFillImport(file: string): Promise<void> {
 }
 
 async function bundleSource({ input, output, format, muteWarnings }: BundleEntry): Promise<void> {
-  const globals = { 'webextension-polyfill': 'browser' };
+  const globals = { 'webextension-polyfill': 'browser', dompurify: 'DOMPurify' };
   const bundle = await rollup({
     input,
-    external: ['webextension-polyfill'],
+    external: ['webextension-polyfill', 'dompurify'],
     plugins: [typescript()],
 
     // Some entry scripts export values but aren't libraries; mute IIFE export warnings.
@@ -106,6 +111,12 @@ async function bundleSource({ input, output, format, muteWarnings }: BundleEntry
     onwarn(warning, defaultWarn) {
       if (muteWarnings?.includes(warning.code)) return;
       defaultWarn(warning);
+    },
+    treeshake: {
+      moduleSideEffects: (id) => {
+        if (id === 'dompurify') return false; // safe to drop unused import
+        return true;
+      },
     },
   });
 

@@ -1,4 +1,5 @@
 import { hasOfType, isNonEmptyString, isNumber, isString } from './typing';
+import DOMPurify from 'dompurify';
 
 export type AttrValue = string | number | boolean | null | undefined;
 export type HAttrs = Record<string, AttrValue | Document> & { __doc?: Document; };
@@ -55,14 +56,18 @@ export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(html: stri
 export function htmlToElementK(
   html: string, tag: string, doc: Document = document
 ): Element | null {
-  const template = doc.createElement('template');
-  template.innerHTML = html.trim();
-  if (template.content.children.length !== 1) {
-    // throw new Error(`html must contain exactly one element: ${html}`);
+  if (!doc.defaultView) {
+    console.warn(null, `[xlet] htmlToElementK(): provided document has no defaultView`);
+    return null;
+  }
+
+  const purify = DOMPurify(doc.defaultView);
+  const cleanHtml = purify.sanitize(html.trim(), { RETURN_DOM: true });
+  if (!isHTML(cleanHtml) || cleanHtml.childElementCount !== 1) {
     // return warn(null, `[xlet] html must contain exactly one element: ${html.slice(0, 1000)}`);
     return null;
   }
-  const el = template.content.firstElementChild;
+  const el = cleanHtml.firstElementChild;
 
   const expectedTag =
     tag.startsWith('math:') ? tag.slice(5) :
@@ -70,7 +75,6 @@ export function htmlToElementK(
     tag;
 
   if (el?.tagName.toLowerCase() !== expectedTag.toLowerCase()) {
-    // throw new Error(`No element found for tag ${tag} in HTML: ${html}`);
     // warn(null, `[xlet] No element found for tag ${tag} in HTML: ${html.slice(0, 1000)}`);
     return null;
   }
@@ -79,14 +83,18 @@ export function htmlToElementK(
 
 export function htmlToElement(str?: string, doc: Document = document): Element | null {
   if (!str || !str.trim()) return null;
-  const template = doc.createElement('template');
-  template.innerHTML = str.trim();
-  if (template.content.children.length !== 1) {
-    // throw new Error(`html must contain exactly one element: ${html}`);
+  if (!doc.defaultView) {
+    console.warn(null, `[xlet] htmlToElement(): provided document has no defaultView`);
+    return null;
+  }
+
+  const purify = DOMPurify(doc.defaultView);
+  const cleanHtml = purify.sanitize(str.trim(), { RETURN_DOM: true });
+  if (!isHTML(cleanHtml) || cleanHtml.childElementCount !== 1) {
     // return warn(null, `[xlet] html must contain exactly one element: ${str.slice(0, 1000)}`);
     return null;
   }
-  return template.content.firstElementChild;
+  return cleanHtml.firstElementChild;
 }
 
 export function injectCss(
