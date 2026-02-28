@@ -54,14 +54,14 @@ export function htmlToElementK<K extends keyof MathMLElementTagNameMap>(html: st
 export function htmlToElementK<K extends keyof SVGElementTagNameMap>(html: string, tag: `svg:${K}`, doc?: Document): SVGElementTagNameMap[K] | null;
 export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(html: string, tag: K, doc?: Document): HTMLElementTagNameMap[K] | null;
 export function htmlToElementK(
-  html: string, tag: string, doc: Document = document
+  html: string, tag: string, windowDoc: Document = document
 ): Element | null {
-  if (!doc.defaultView) {
+  if (!windowDoc.defaultView) {
     console.warn(null, `[xlet] htmlToElementK(): provided document has no defaultView`);
     return null;
   }
 
-  const purify = DOMPurify(doc.defaultView);
+  const purify = DOMPurify(windowDoc.defaultView);
   const cleanHtml = purify.sanitize(html.trim(), { RETURN_DOM: true });
   if (!isHTML(cleanHtml) || cleanHtml.childElementCount !== 1) {
     // return warn(null, `[xlet] html must contain exactly one element: ${html.slice(0, 1000)}`);
@@ -81,14 +81,14 @@ export function htmlToElementK(
   return el;
 }
 
-export function htmlToElement(str?: string, doc: Document = document): Element | null {
+export function htmlToElement(str?: string, targetDoc: Document = document): Element | null {
   if (!str || !str.trim()) return null;
-  if (!doc.defaultView) {
+  if (!targetDoc.defaultView) {
     console.warn(null, `[xlet] htmlToElement(): provided document has no defaultView`);
     return null;
   }
 
-  const purify = DOMPurify(doc.defaultView);
+  const purify = DOMPurify(targetDoc.defaultView);
   const cleanHtml = purify.sanitize(str.trim(), { RETURN_DOM: true });
   if (!isHTML(cleanHtml) || cleanHtml.childElementCount !== 1) {
     // return warn(null, `[xlet] html must contain exactly one element: ${str.slice(0, 1000)}`);

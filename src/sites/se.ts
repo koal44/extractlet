@@ -228,38 +228,38 @@ const seTable: Record<seVarKey, Locator[]> = {
   ],
 } as const;
 
-function scrapePermalink(root: Document): string | undefined {
-  return pickVal(seTable.permalink, root);
+function scrapePermalink(srcDoc: Document): string | undefined {
+  return pickVal(seTable.permalink, srcDoc);
 }
 
-function scrapeTitle(root: Document): string | undefined {
-  const val = pickVal(seTable.title, root);
-  return toMd(htmlToElement(`<div>${val}</div>`, root), { mathFence: 'dollar' });
+function scrapeTitle(srcDoc: Document): string | undefined {
+  const val = pickVal(seTable.title, srcDoc);
+  return toMd(htmlToElement(`<div>${val}</div>`, document), { mathFence: 'dollar' });
 }
 
-function scrapePosts(doc: Document, ctxs?: XletContexts): Post[] {
+function scrapePosts(srcDoc: Document, ctxs?: XletContexts): Post[] {
   const posts: Post[] = [];
 
-  for (const post of pickEls(seTable['posts_items'], doc)) {
+  for (const post of pickEls(seTable['posts_items'], srcDoc)) {
     // post body
-    const bodyEl = pickEl(seTable['post_body'], doc, post);
+    const bodyEl = pickEl(seTable['post_body'], srcDoc, post);
     const bodyHtml = toHtml(bodyEl, ctxs?.html)?.outerHTML;
     const bodyMd = toMd(bodyEl, ctxs?.md);
 
     // contributors
-    const sigNodes = pickEls(seTable['sig_items'], doc, post);
-    const contributors = sigNodes.map((x) => scrapePostContributor(x, doc));
+    const sigNodes = pickEls(seTable['sig_items'], srcDoc, post);
+    const contributors = sigNodes.map((x) => scrapePostContributor(x, srcDoc));
 
-    const vote = scrapePostVote(post, doc);
+    const vote = scrapePostVote(post, srcDoc);
 
     // comments
-    const comments = pickEls(seTable['comment_items'], doc, post).map((comment) => {
-      const cBodyEl = pickEl(seTable['comment_body'], doc, comment);
+    const comments = pickEls(seTable['comment_items'], srcDoc, post).map((comment) => {
+      const cBodyEl = pickEl(seTable['comment_body'], srcDoc, comment);
       const bodyHtml = toHtml(cBodyEl, ctxs?.html)?.outerHTML;
       const bodyMd = toMd(cBodyEl, ctxs?.md);
 
-      const contributors = [scrapeCommentContributor(comment, doc)];
-      const vote = scrapeCommentVote(comment, doc);
+      const contributors = [scrapeCommentContributor(comment, srcDoc)];
+      const vote = scrapeCommentVote(comment, srcDoc);
       return { bodyHtml, bodyMd, contributors, vote };
     });
 
@@ -268,42 +268,42 @@ function scrapePosts(doc: Document, ctxs?: XletContexts): Post[] {
   return posts;
 }
 
-export function scrapePostContributor(elem: Element | null, doc: Document): Contributor {
+export function scrapePostContributor(elem: Element | null, srcDoc: Document): Contributor {
   if (!elem) return { contributorType: 'editor', isOwner: false, timestamp: '', name: '', userId: -1, userSlug: '' };
 
-  const timestamp = pickVal(seTable['poster_time'], doc, elem) ?? '';
-  const contributorType = pickVal(seTable['poster_type'], doc, elem) === 'author' ? 'author' : 'editor';
-  const isOwner = pickVal(seTable['poster_isOwner'], doc, elem) === 'true';
+  const timestamp = pickVal(seTable['poster_time'], srcDoc, elem) ?? '';
+  const contributorType = pickVal(seTable['poster_type'], srcDoc, elem) === 'author' ? 'author' : 'editor';
+  const isOwner = pickVal(seTable['poster_isOwner'], srcDoc, elem) === 'true';
 
-  const name = pickVal(seTable['poster_name'], doc, elem) ?? '';
-  const userId = parseInt(pickVal(seTable['poster_id'], doc, elem) ?? '-1', 10);
-  const userSlug = pickVal(seTable['poster_slug'], doc, elem) ?? '';
+  const name = pickVal(seTable['poster_name'], srcDoc, elem) ?? '';
+  const userId = parseInt(pickVal(seTable['poster_id'], srcDoc, elem) ?? '-1', 10);
+  const userSlug = pickVal(seTable['poster_slug'], srcDoc, elem) ?? '';
 
   return { contributorType, isOwner, timestamp, name, userId, userSlug };
 }
 
-function scrapePostVote(elem: Element, doc: Document): number {
-  const val = pickVal(seTable['poster_voteCount'], doc, elem);
+function scrapePostVote(elem: Element, srcDoc: Document): number {
+  const val = pickVal(seTable['poster_voteCount'], srcDoc, elem);
   const n = parseInt(val ?? '', 10);
   return Number.isNaN(n) ? 0 : n;
 }
 
-function scrapeCommentContributor(elem: Element, doc: Document): Contributor {
-  const timestamp = pickVal(seTable['commenter_time'], doc, elem) ?? '';
-  const name = pickVal(seTable['commenter_name'], doc, elem) ?? '';
-  const userId = parseInt(pickVal(seTable['commenter_id'], doc, elem) ?? '-1', 10);
-  const userSlug = pickVal(seTable['commenter_slug'], doc, elem) ?? '';
+function scrapeCommentContributor(elem: Element, srcDoc: Document): Contributor {
+  const timestamp = pickVal(seTable['commenter_time'], srcDoc, elem) ?? '';
+  const name = pickVal(seTable['commenter_name'], srcDoc, elem) ?? '';
+  const userId = parseInt(pickVal(seTable['commenter_id'], srcDoc, elem) ?? '-1', 10);
+  const userSlug = pickVal(seTable['commenter_slug'], srcDoc, elem) ?? '';
 
   return { contributorType: 'commenter', isOwner: false, timestamp, name, userId, userSlug };
 }
 
-function scrapeCommentVote(elem: Element, doc: Document): number {
-  const val = pickVal(seTable['commenter_voteCount'], doc, elem);
+function scrapeCommentVote(elem: Element, srcDoc: Document): number {
+  const val = pickVal(seTable['commenter_voteCount'], srcDoc, elem);
   const n = parseInt(val ?? '', 10);
   return Number.isNaN(n) ? 0 : n;
 }
 
-function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
+function buildCopyButton(targetDoc: Document, pageData: SEResult, postIdx = -1) {
   if (postIdx < -1 || postIdx >= pageData.posts.length) {
     throw new Error(`Invalid postIdx: ${postIdx}`);
   }
@@ -350,7 +350,7 @@ function buildCopyButton(doc: Document, pageData: SEResult, postIdx = -1) {
   });
 
   const copyTxt = `${copyArr.join('\n').trim()}\n`;
-  return createCopyButton(() => copyTxt, () => responseTxt, () => hintTxt, { doc });
+  return createCopyButton(() => copyTxt, () => responseTxt, () => hintTxt, { doc: targetDoc });
 }
 
 function buildContribsAndVotes(contributors: Contributor[], voteCount: number): string {
@@ -419,25 +419,25 @@ function buildContribsAndVotes(contributors: Contributor[], voteCount: number): 
   return `[[ ${contribsText} | ${voteText} ]]`;
 }
 
-function buildPosts(data: SEResult, doc: Document): HTMLElement {
+function buildPosts(data: SEResult, targetDoc: Document): HTMLElement {
   const div = h('div', { class: 'posts' });
   data.posts.forEach(function(post, idx) {
     const postNode = h('div', { class: 'post' });
     div.appendChild(postNode);
 
     const postTitle = h('h2', { class: 'post-title' }, idx === 0 ? 'Question' : `Answer ${idx}`);
-    const copyButton = buildCopyButton(doc, data, idx);
+    const copyButton = buildCopyButton(targetDoc, data, idx);
     const postHeading = h('div', { class: 'post-heading' }, postTitle, copyButton);
     postNode.appendChild(postHeading);
 
-    postNode.appendChild(buildPostView(post, 'md', doc));
-    postNode.appendChild(buildPostView(post, 'html', doc));
+    postNode.appendChild(buildPostView(post, 'md', targetDoc));
+    postNode.appendChild(buildPostView(post, 'html', targetDoc));
   });
 
   return div;
 }
 
-function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTMLDivElement {
+function buildPostView(post: Post, viewMode: 'html' | 'md', targetDoc: Document): HTMLDivElement {
   const modes: Record<'html' | 'md', { key: 'bodyHtml' | 'bodyMd'; class: string; }> = {
     html: { key: 'bodyHtml', class: 'html-view' },
     md:   { key: 'bodyMd',   class: 'md-view'   },
@@ -446,7 +446,7 @@ function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTML
 
   function renderBody(str: string): Node | string | null {
     switch (viewMode) {
-      case 'html': return htmlToElement(str, doc);
+      case 'html': return htmlToElement(str, targetDoc);
       case 'md': return str;
       default: throw new Error(`Unknown mode: ${String(viewMode)}`);
     }

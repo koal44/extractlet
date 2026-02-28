@@ -278,24 +278,24 @@ function detectGhDomain(str: string): GhDomain | undefined  {
   if (u.pathname.includes('/discussions/')) return 'discussion';
 }
 
-function scrapePermaUrl(doc: Document): string | undefined {
-  let link = pickVal(getLocators('permalink'), doc);
-  link = chooseCanonicalUrl(link, doc.baseURI);
+function scrapePermaUrl(srcDoc: Document): string | undefined {
+  let link = pickVal(getLocators('permalink'), srcDoc);
+  link = chooseCanonicalUrl(link, srcDoc.baseURI);
   if (!link) return warn(undefined, 'scrapePermaUrl: no link found');
   const detected = matchGhUrl(link, false);
   if (detected) return detected;
 }
 
-function scrapeTitle(doc: Document, domain: GhDomain): string | undefined {
-  const title = pickVal(getLocators('title', domain), doc);
+function scrapeTitle(srcDoc: Document, domain: GhDomain): string | undefined {
+  const title = pickVal(getLocators('title', domain), srcDoc);
   return title;
 }
 
-function scrapeFirstPost(doc: Document, domain: GhDomain, ctxs?: XletContexts): Post | undefined {
-  const author    = pickVal(getLocators('firstPost_author',    domain), doc);
-  const postId    = pickVal(getLocators('firstPost_postId',    domain), doc);
-  const createdAt = pickVal(getLocators('firstPost_createdAt', domain), doc);
-  const editedBy  = pickVal(getLocators('firstPost_editedBy',  domain), doc);
+function scrapeFirstPost(srcDoc: Document, domain: GhDomain, ctxs?: XletContexts): Post | undefined {
+  const author    = pickVal(getLocators('firstPost_author',    domain), srcDoc);
+  const postId    = pickVal(getLocators('firstPost_postId',    domain), srcDoc);
+  const createdAt = pickVal(getLocators('firstPost_createdAt', domain), srcDoc);
+  const editedBy  = pickVal(getLocators('firstPost_editedBy',  domain), srcDoc);
 
   if (!author && !createdAt && !postId) return undefined;
 
@@ -305,22 +305,22 @@ function scrapeFirstPost(doc: Document, domain: GhDomain, ctxs?: XletContexts): 
     editor: editedBy,
   };
 
-  const bodyViewer = pickEl(getLocators('firstPost_bodyViewer', domain), doc);
+  const bodyViewer = pickEl(getLocators('firstPost_bodyViewer', domain), srcDoc);
   const bodyHtml   = bodyViewer ? toHtml(bodyViewer, ctxs?.html)?.outerHTML : undefined;
   const bodyMd     = bodyViewer ? toMd(bodyViewer, ctxs?.md) : undefined;
 
   return { contributor, bodyHtml, bodyMd, postId: postId };
 }
 
-function scrapePosts(doc: Document, domain: GhDomain, ctxs?: XletContexts): Post[] {
-  const items = pickEls(getLocators('posts_items', domain), doc);
+function scrapePosts(srcDoc: Document, domain: GhDomain, ctxs?: XletContexts): Post[] {
+  const items = pickEls(getLocators('posts_items', domain), srcDoc);
 
   const posts: Post[] = [];
   for (const item of items) {
-    const author    = pickVal(getLocators('posts_author',     domain), doc, item);
-    const createdAt = pickVal(getLocators('posts_createdAt',  domain), doc, item);
-    const postId    = pickVal(getLocators('posts_postId',     domain), doc, item);
-    const bodyEl    =  pickEl(getLocators('posts_bodyViewer', domain), doc, item);
+    const author    = pickVal(getLocators('posts_author',     domain), srcDoc, item);
+    const createdAt = pickVal(getLocators('posts_createdAt',  domain), srcDoc, item);
+    const postId    = pickVal(getLocators('posts_postId',     domain), srcDoc, item);
+    const bodyEl    =  pickEl(getLocators('posts_bodyViewer', domain), srcDoc, item);
 
     const isComment = author || createdAt || bodyEl;
     if (!isComment) continue;
@@ -508,25 +508,25 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
   return _toHtml(node, { elementHandler: toHtmlElemHandler, ...opts });
 }
 
-function buildPosts(data: HubResult, doc: Document): HTMLElement {
+function buildPosts(data: HubResult, targetDoc: Document): HTMLElement {
   const div = h('div', { class: 'posts' });
   data.posts.forEach(function(post, idx) {
     const postNode = h('div', { class: 'post' });
     div.appendChild(postNode);
 
     const postTitle = h('h2', { class: 'post-title' }, idx === 0 ? 'Initial Post' : `Comment ${idx}`);
-    const copyButton = buildCopyButton(doc, data, idx);
+    const copyButton = buildCopyButton(targetDoc, data, idx);
     const postHeading = h('div', { class: 'post-heading' }, postTitle, copyButton);
     postNode.appendChild(postHeading);
 
-    postNode.appendChild(buildPostView(post, 'md', doc));
-    postNode.appendChild(buildPostView(post, 'html', doc));
+    postNode.appendChild(buildPostView(post, 'md', targetDoc));
+    postNode.appendChild(buildPostView(post, 'html', targetDoc));
   });
 
   return div;
 }
 
-function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTMLDivElement {
+function buildPostView(post: Post, viewMode: 'html' | 'md', targetDoc: Document): HTMLDivElement {
   const modes: Record<'html' | 'md', { key: 'bodyHtml' | 'bodyMd'; class: string; }> = {
     html: { key: 'bodyHtml', class: 'html-view' },
     md:   { key: 'bodyMd',   class: 'md-view'   },
@@ -535,7 +535,7 @@ function buildPostView(post: Post, viewMode: 'html' | 'md', doc: Document): HTML
 
   function renderBody(str?: string): Node | string | null {
     switch (viewMode) {
-      case 'html': return htmlToElement(str, doc);
+      case 'html': return htmlToElement(str, targetDoc);
       case 'md': return str ?? null;
       default: throw new Error(`Unknown mode: ${String(viewMode)}`);
     }
@@ -557,7 +557,7 @@ function contribLine(p: Post): string {
   return `[[ ${a} on ${when}${edited} ]]`;
 }
 
-function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
+function buildCopyButton(targetDoc: Document, pageData: HubResult, postIdx = -1) {
   const allPosts = pageData.posts;
 
   if (postIdx < -1 || postIdx >= allPosts.length) {
@@ -605,11 +605,11 @@ function buildCopyButton(doc: Document, pageData: HubResult, postIdx = -1) {
   });
 
   const copyTxt = `${copyArr.join('\n').trim()}\n`;
-  return createCopyButton(() => copyTxt, () => responseTxt, () => hintTxt, { doc });
+  return createCopyButton(() => copyTxt, () => responseTxt, () => hintTxt, { doc: targetDoc });
 }
 
-export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): HubResult | undefined {
-  const permalink = scrapePermaUrl(sourceDoc);
+export function extractFromDoc(srcDoc: Document, ctxs?: XletContexts): HubResult | undefined {
+  const permalink = scrapePermaUrl(srcDoc);
   if (!permalink) {
     console.debug('[extractFromDoc] No base URL found in the document');
     return;
@@ -621,9 +621,9 @@ export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): HubRes
     return;
   }
 
-  const title  = scrapeTitle(sourceDoc, domain) ?? '???';
-  const first  = scrapeFirstPost(sourceDoc, domain, ctxs);
-  const others = scrapePosts(sourceDoc, domain, ctxs);
+  const title  = scrapeTitle(srcDoc, domain) ?? '???';
+  const first  = scrapeFirstPost(srcDoc, domain, ctxs);
+  const others = scrapePosts(srcDoc, domain, ctxs);
 
   const posts = [
     ...(first ? [first] : []),

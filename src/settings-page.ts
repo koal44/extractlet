@@ -99,7 +99,7 @@ async function showPreview(key: XletSettingKey, row: HTMLElement) {
   previewBox.innerHTML = '';
 
   const contexts = settingsToContexts(_settings);
-  const previewNode = htmlToElement(await spec.preview.content());
+  const previewNode = htmlToElement(await spec.preview.content(), document);
   if (!previewNode) return console.warn(`[xlet:opt] Failed to parse preview for key "${String(key)}"`);
 
   let previewEl: HTMLElement;

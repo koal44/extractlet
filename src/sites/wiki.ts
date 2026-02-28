@@ -513,7 +513,7 @@ export class WikiNode {
       // nothing to deserialize
       return console.warn(`[xlet:wiki-deserial] No htmlStr for section "${this.title}" (H${this.level}) [§${this.sectionNum}]`);
     }
-    this.html = htmlToElementK(this.htmlStr, 'div');
+    this.html = htmlToElementK(this.htmlStr, 'div', document);
     this.htmlStr = null;
     for (const child of this.children) {
       child.deserialize();
@@ -656,20 +656,20 @@ function renderRaw(node: WikiNode): HTMLDivElement {
   }
 }
 
-function getPermaUrl(doc: Document): string | null {
+function getPermaUrl(srcDoc: Document): string | null {
   // classic pages
-  const canonical = doc.querySelector<HTMLLinkElement>('head > link[rel="canonical"]');
-  if (canonical) return new URL(canonical.href, doc.baseURI).href;
+  const canonical = srcDoc.querySelector<HTMLLinkElement>('head > link[rel="canonical"]');
+  if (canonical) return new URL(canonical.href, srcDoc.baseURI).href;
 
   // parsoid pages
-  const dcLink = doc.querySelector<HTMLLinkElement>('head > link[rel="dc:isVersionOf"]');
-  if (dcLink) return new URL(dcLink.href, doc.baseURI).href;
+  const dcLink = srcDoc.querySelector<HTMLLinkElement>('head > link[rel="dc:isVersionOf"]');
+  if (dcLink) return new URL(dcLink.href, srcDoc.baseURI).href;
 
   return null;
 }
 
-function getRawUrl(doc: Document, baseUrl: string): string {
-  const altLink = doc.querySelector<HTMLLinkElement>('link[rel="alternate"][type="application/x-wiki"]');
+function getRawUrl(srcDoc: Document, baseUrl: string): string {
+  const altLink = srcDoc.querySelector<HTMLLinkElement>('link[rel="alternate"][type="application/x-wiki"]');
   let rawUrl = altLink?.href.includes('action=edit')
     ? altLink.href.replace(/action=edit$/, 'action=raw')
     : '';
