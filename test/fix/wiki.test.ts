@@ -27,7 +27,8 @@ const allCases = await loadFixtures<WikiExpect>(fixturesDir);
 
 describe('wiki: extractFromDoc', () => {
   for (const f of allCases) {
-    it(f.name, () => {
+    it(f.name, async () => {
+      if (f.test) return await f.test(f.dom);
       const r = extractFromDoc(f.dom);
       expect(r).toBeDefined();
       if (!r) return;

@@ -6,6 +6,7 @@ import { JSDOM, VirtualConsole } from 'jsdom';
 export type BaseSidecar<TExpect> = {
   baseUrl: string;
   expect: TExpect;
+  test?: (dom: Document) => void | Promise<void>;
 };
 
 export type FixtureCase<TExpect> = BaseSidecar<TExpect> & {
@@ -51,6 +52,7 @@ export async function loadFixtures<TExpect>(rootDir: string): Promise<FixtureCas
       name, sidePath, htmlPath, html, dom,
       baseUrl: meta.baseUrl,
       expect: meta.expect,
+      test: meta.test,
     });
 
   }

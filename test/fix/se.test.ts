@@ -19,7 +19,8 @@ const allCases = await loadFixtures<SEExpect>(fixturesDir);
 
 describe('stackexchange: extractFromDoc', () => {
   for (const f of allCases) {
-    it(f.name, () => {
+    it(f.name, async () => {
+      if (f.test) return await f.test(f.dom);
       const r = extractFromDoc(f.dom);
       expect(r).toBeDefined();
       if (!r) return; // narrow for TS

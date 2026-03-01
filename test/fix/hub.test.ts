@@ -17,7 +17,8 @@ const allCases = await loadFixtures<HubExpect>(fixturesDir);
 
 describe('github: extractFromDoc', () => {
   for (const f of allCases) {
-    it(f.name, () => {
+    it(f.name, async () => {
+      if (f.test) await f.test(f.dom);
       const r = extractFromDoc(f.dom);
       expect(r).toBeDefined();
       if (!r) return; // for TS
