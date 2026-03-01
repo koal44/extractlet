@@ -593,7 +593,7 @@ function buildCopyButton(targetDoc: Document, pageData: HubResult, postIdx = -1)
     copyArr.push(''); // postN \n postN+1
 
     const postType = idx === 0 ? 'Post' : `Comment ${idx}`;
-    const heading = isAll ? `## ${postType}` : `Post: ${postType}`;
+    const heading = isAll ? `## ${postType}` : `# ${postType}`;
 
     copyArr.push(heading);
     copyArr.push((post.bodyMd ?? '').trim());

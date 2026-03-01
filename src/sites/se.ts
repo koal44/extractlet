@@ -321,12 +321,9 @@ function buildCopyButton(targetDoc: Document, pageData: SEResult, postIdx = -1) 
     isQuestion ? 'Copy question' :
     isAnswer   ? `Copy answer ${postIdx}` : '';
 
-  const copyArr = [];
+  const copyArr: string[] = [];
 
-  if (isAll) {
-    copyArr.push('Extractlet · Stack Exchange');
-  }
-
+  if (isAll) copyArr.push('<!-- Extractlet · Stack Exchange -->');
   if (pageData.title) copyArr.push(`<!-- ${pageData.title} -->`);
   copyArr.push(`<!-- ${pageData.permalink} -->`, '');
 
@@ -334,7 +331,7 @@ function buildCopyButton(targetDoc: Document, pageData: SEResult, postIdx = -1) 
     if (!isAll && idx !== postIdx) return;
 
     const postHeading = idx === 0 ? 'Question' : `Answer ${idx}`;
-    copyArr.push(`\n## ${postHeading}`, post.bodyMd);
+    copyArr.push('', `${isAll ? '##' : '#'} ${postHeading}`, post.bodyMd);
 
     const postContrib = buildContribsAndVotes(post.contributors, post.vote);
     if (postContrib) copyArr.push('', postContrib);
