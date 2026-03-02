@@ -1,6 +1,6 @@
 import { strictEqual } from 'node:assert';
 import { describe, expect, it, test } from 'vitest';
-import { toHtml, toMd } from '../../src/core';
+import { toHtml, toMd, type ToMdElementHandler } from '../../src/core';
 import { el, assertNodeEqual, setupDom, logPandocHtmlToMd } from '../utils/test-utils';
 import { log } from '../../src/utils/logging';
 void log; // eslint whining
@@ -3381,3 +3381,111 @@ describe('toMd sub/sup handling', () => {
   });
 });
 
+describe('toMd – <code> containing child elements', () => {
+  it('renders inline code when <code> contains an anchor child', () => {
+    const html = `
+      <p>Commit: <code><a href="/commit/0272013">0272013</a></code></p>
+    `.trim();
+
+    const result = toMd(el(html), { filterRedundantLabels: false });
+
+    expect(result).toBe('Commit: `[0272013](/commit/0272013)`');
+  });
+
+  it('renders code-wrapped anchor content without leaking multiline title and without adding indentation whitespace', () => {
+    const html = `
+      <div>
+        <code>
+          <a title="copilot-sdk: add dependency and build infrastructure
+
+Add @github/copilot-sdk 0.1.23 as a production dependency. The SDK ships
+per-platform native CLI binaries (@github/copilot-darwin-arm64, etc.) that
+require build system support:
+
+- .moduleignore: strip copilot prebuilds/ripgrep/clipboard for other platforms
+- gulpfile.vscode.ts: filter wrong-arch platform packages, ASAR-unpack binaries
+- next/index.ts: add copilotSdkHost as a utility process entry point" class="Link--secondary markdown-title" href="/microsoft/vscode/pull/295817/commits/02720134f6dd9209c0c446ff2b71cfb1549c9c53">copilot-sdk: add dependency and build infrastructure</a>
+        </code>
+      </div>
+    `.trim();
+
+    const result = toMd(el(html), { filterRedundantLabels: false });
+    expect(result).toBe('`[copilot-sdk: add dependency and build infrastructure](/microsoft/vscode/pull/295817/commits/02720134f6dd9209c0c446ff2b71cfb1549c9c53 "copilot-sdk: add dependency and build infrastructure Add @github/copilot-sdk 0.1.23 as a production dependency. The SDK ships per-platform native CLI binaries (@github/copilot-darwin-arm64, etc.) that require build system support: - .moduleignore: strip copilot prebuilds/ripgrep/clipboard for other platforms - gulpfile.vscode.ts: filter wrong-arch platform packages, ASAR-unpack binaries - next/index.ts: add copilotSdkHost as a utility process entry point")`');
+  });
+});
+
+describe('toMd – inert child nodes do not affect spacing/content', () => {
+  it('produces the same markdown with and without an interleaved comment between block siblings', () => {
+    const withoutComment = `
+      <div>
+        <p>alpha</p>
+        <p>beta</p>
+      </div>
+    `.trim();
+
+    const withComment = `
+      <div>
+        <p>alpha</p>
+        <!-- parser guard -->
+        <p>beta</p>
+      </div>
+    `.trim();
+
+    const a = toMd(el(withoutComment));
+    const b = toMd(el(withComment));
+
+    expect(b).toBe(a);
+  });
+
+  it('produces the same markdown when an interleaved element is skipped by custom handler', () => {
+    const withoutSkippedNode = `
+      <div>
+        <p>alpha</p>
+        <p>beta</p>
+      </div>
+    `.trim();
+
+    const withSkippedNode = `
+      <div>
+        <p>alpha</p>
+        <p id="skip-me">SHOULD NOT APPEAR</p>
+        <p>beta</p>
+      </div>
+    `.trim();
+
+    const skipIdHandler: ToMdElementHandler = (elem, _ctx, _gc) => {
+      if (elem.matches('p#skip-me')) return { skip: true };
+      return {};
+    };
+
+    const a = toMd(el(withoutSkippedNode));
+    const b = toMd(el(withSkippedNode), { elementHandler: skipIdHandler });
+
+    expect(b).toBe(a);
+    expect(b).not.toContain('SHOULD NOT APPEAR');
+  });
+
+  describe('toMd – inert nodes do not affect BR adjacency semantics', () => {
+    it('preserves consecutive <br> semantics when a comment is interleaved between BR siblings', () => {
+      const withoutComment = `<p>A<br/><br/><br/>B</p>`;
+      const withComment = `<p>A<br/><!-- inert --><br/><br/>B</p>`;
+
+      const a = toMd(el(withoutComment), { brMode: 'hard' });
+      const b = toMd(el(withComment), { brMode: 'hard' });
+
+      expect(a).toBe(`A\n\n\nB`);
+      expect(b).toBe(a);
+    });
+  });
+
+  // it('emits soft line breaks for <br> in normal mode (no collapsing)', () => {
+  //   const html = `
+  //     <div>
+  //       <div>Alpha<span><br />Beta<br /><br /><br />Gamma</span>Omega</div>
+  //     </div>`
+  //     .trim();
+  //   const actual = toMd(el(html));
+  //   const expected = `Alpha  \nBeta  \n  \n  \nGammaOmega`.trim();
+  //   expect(actual).toBe(expected);
+  // });
+});

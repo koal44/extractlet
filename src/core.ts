@@ -213,6 +213,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
     const parts: string[] = [];
     let ch = gcx.lastChar;
+    let isPrevSibBr = false;
 
     // --- handle glueing child nodes ---
     const childNodes = node.childNodes;
@@ -265,6 +266,10 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
           continue;
         }
       }
+      // --- other node types (comments, etc) ---
+      else {
+        continue;
+      }
 
       // --- whitespace trimming between children ---
       if (wsMode === 'normal') {
@@ -272,14 +277,15 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
         const curIsBlock = /^[ \t]*\n/.test(md);
         const prevPart = parts.length > 0 ? parts[parts.length - 1] : '';
         const prevIsBlock = prevPart.endsWith('\n');
-        const prevIsBrTag = isBreak(childNodes[i - 1]);
         const keepStartIndent = glueMode === 'listItem' || glueMode === 'list'; // has leading semantic indent
 
         const trimCurStart = !keepStartIndent && (prevIsBlock || (!curIsBlock && /\s/.test(ch))) && !curIsBrTag;
-        const trimPrevEnd = !trimCurStart && curIsBlock && !!prevPart && !prevIsBrTag;
+        const trimPrevEnd = !trimCurStart && curIsBlock && !!prevPart && !isPrevSibBr;
 
         if (trimCurStart) md = md.trimStart();
         if (trimPrevEnd) parts[parts.length - 1] = parts[parts.length - 1].trimEnd();
+
+        isPrevSibBr = curIsBrTag;
 
         // console.log(
         //   '[glue trimming]',
@@ -515,10 +521,18 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       }
 
       case 'CODE': {
-        result = node.textContent ?? '';
-        if (isPre(node.parentNode)) {
-          break; // handled by PRE
+        result = '';
+        for (const c of node.childNodes) {
+          if (isElement(c)) result += toMd(c, ctx);
+          else result += c.textContent ?? '';
         }
+
+        if (isPre(node.parentNode)) break; // handled by PRE
+
+        // trim if it looks like html was pretty-printed
+        if (/^\s*[\r\n]/.test(result)) result = result.trimStart();
+        if (/[\r\n]\s*$/.test(result)) result = result.trimEnd();
+
         const fence = '`'.repeat(1 + Math.max(0, ...(result.match(/`+/g) || []).map((s) => s.length)));
         result = fence.length > 1
           ? `${fence} ${result} ${fence}`
@@ -549,6 +563,11 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       case 'S':
       case 'STRIKE': {
         result = `~~${glueChildren(node, 'inline')}~~`;
+        break;
+      }
+
+      case 'INS': {
+        result = `++${glueChildren(node, 'inline')}++`;
         break;
       }
 
@@ -828,7 +847,8 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       case 'SUMMARY': {
         result = glueChildren(node, 'inline');
-        result = `▸ ${result}`; //▶︎
+        const marker = node.nextElementSibling ? '▸ ' : ''; //▶︎
+        result = `${marker}${result}`;
         break;
       }
 
