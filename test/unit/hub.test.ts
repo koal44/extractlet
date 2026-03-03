@@ -128,9 +128,9 @@ _italics_
 - [x] done
 - [ ] not done
 
-[![Robot_icon svg](https://private-user-images.githubusercontent.com/78566945/505755490-dd2cb34d-e93b-45be-a3b3-26caaac727fb.png?jwt=eyJ0e)](https://private-user-images.githubusercontent.com/78566945/505755490-dd2c.png?jwt=eyJ0e) @koal44 (mention) #1839 (reference)
+[![Robot_icon svg](https://private-user-images.githubusercontent.com/78566945/505755490-dd2cb34d-e93b-45be-a3b3-26caaac727fb.png?jwt=eyJ0e)](https://private-user-images.githubusercontent.com/78566945/505755490-dd2c.png?jwt=eyJ0e) @koal44 (mention) [#1839](https://github.com/antlr/antlr4/issues/1839) (reference)
 
-Duplicate of #1839 (saved reply)
+Duplicate of [#1839](https://github.com/antlr/antlr4/issues/1839) (saved reply)
 `.trim();
   // <img width="1024" height="1024" alt="Robot_icon svg" src="https://github.com/user-attachments/assets/dd2cb34d-e93b-45be-a3b3-26caaac727fb" />
   const result = toMd(el(html));

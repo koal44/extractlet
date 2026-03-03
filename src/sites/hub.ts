@@ -394,7 +394,7 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   if (node.matches('input[type="checkbox"]')) {
     return { md: node.hasAttribute('checked') ? '[x] ' : '[ ] ' };
   }
-  if (node.matches('a.user-mention, a.issue-link')) {
+  if (node.matches('a.user-mention')) {
     return { md: node.textContent ?? '' };
   }
   if (node.matches('relative-time')) {
@@ -498,6 +498,12 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   if (node.matches('task-lists table') && node.querySelectorAll('td').length === 1) {
     const td = node.querySelector('td');
     return { md: td ? gc(td, 'block') : '' };
+  }
+
+  if (node.matches('.Details-content--hidden pre')) {
+    let body = gc(node, 'inline', { wsMode: 'pre' });
+    body = body.replace(/^\[…/, '…[');
+    return { md: `:::details\n${body}\n:::` };
   }
 
   // treat custom els as <div>
