@@ -37,7 +37,7 @@ export default {
           author: '0xFireWolf',
         },
         bodyHtml: '<div data-view-component="true">          <div>\n  <div>\n    <div>\n    ',
-        bodyMd: '`[Cpp: Fix the unused parameter warning in the sempred function. (](ht',
+        bodyMd: '[Cpp: Fix the unused parameter warning in the sempred function. (](https://github.com',
       },
       {
         contributor: {

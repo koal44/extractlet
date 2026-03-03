@@ -62,7 +62,7 @@ import {
 import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
 import {
-  h, htmlToElement, htmlToElementK, injectCss, isElement, isSub, isSup, isText,
+  h, htmlToElement, htmlToElementK, injectCss, isAnchor, isElement, isSub, isSup, isText,
 } from '../utils/dom';
 import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { warn } from '../utils/logging';
@@ -631,16 +631,13 @@ function normalizeTimelineBody(node?: Element): Element | undefined {
       }
     });
 
-    // unwrap code blocks that only contain a single link (common in GH commit links)
+    // unwrap code wrappers that are just links
     clone.querySelectorAll('code').forEach((code) => {
-      const { firstElementChild, childElementCount, childNodes } = code;
-      if (childElementCount !== 1 || firstElementChild?.tagName !== 'A') return;
-      for (const n of childNodes) {
-        if (n !== firstElementChild && (n.nodeType !== Node.TEXT_NODE || n.textContent?.trim())) {
-          return;
-        }
-      }
-      code.replaceWith(firstElementChild);
+      const nodes = [...code.childNodes];
+      const canUnwrap =
+        nodes.some(isAnchor) &&
+        nodes.every((n) => isAnchor(n) || (isText(n) && !n.textContent?.trim()));
+      if (canUnwrap) code.replaceWith(...nodes);
     });
 
     // Remove commit build status details (too noisy for one little check mark)
