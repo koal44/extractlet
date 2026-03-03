@@ -150,19 +150,27 @@ const ghTable: GhTable  = {
       { sel: 'div[id^="issue-"] .comment-body' },
     ],
     posts_items: [
-      { sel: 'div[id^="issuecomment-"]' },
+      { sel: '.js-timeline-item  .TimelineItem' },
     ],
     posts_author: [
       { sel: ':scope .timeline-comment-header a.author', attr: 'textContent' },
+      { sel: ':scope .TimelineItem-body a.author', attr: 'textContent' },
+      { sel: ':scope img.avatar-user', attr: 'alt', valMap: (alt) => alt.replace(/^@/, '') },
     ],
     posts_createdAt: [
       { sel: ':scope .timeline-comment-header relative-time', attr: 'datetime' },
+      { sel: ':scope .TimelineItem-body relative-time', attr: 'datetime' },
     ],
     posts_postId: [
-      { sel: ':scope', attr: 'id' },
+      { sel: ':scope [id^="issuecomment-"]', attr: 'id' },
+      { sel: ':scope [id^="pullrequestreview-"]', attr: 'id' },
+      { sel: ':scope [id^="event-"]', attr: 'id' },
+      { sel: ':scope [id^="commits-pushed-"]', attr: 'id' },
+      // { sel: ':scope', attr: 'id' },
     ],
     posts_bodyViewer: [
-      { sel: ':scope .comment-body' },
+      // { sel: ':scope .comment-body' },
+      { sel: ':scope .TimelineItem-body' },
     ],
   },
   discussion: {
@@ -320,7 +328,8 @@ function scrapePosts(srcDoc: Document, domain: GhDomain, ctxs?: XletContexts): P
     const author    = pickVal(getLocators('posts_author',     domain), srcDoc, item);
     const createdAt = pickVal(getLocators('posts_createdAt',  domain), srcDoc, item);
     const postId    = pickVal(getLocators('posts_postId',     domain), srcDoc, item);
-    const bodyEl    =  pickEl(getLocators('posts_bodyViewer', domain), srcDoc, item);
+    let bodyEl      =  pickEl(getLocators('posts_bodyViewer', domain), srcDoc, item);
+    bodyEl = normalizeTimelineBody(bodyEl ?? item);
 
     const isComment = author || createdAt || bodyEl;
     if (!isComment) continue;
@@ -349,6 +358,7 @@ function shouldSkip(node: Node | null): boolean {
       'clipboard-copy',
       'clipboard',
       'svg.octicon',
+      'link',
       // '.sr-only', '.visually-hidden', '[hidden]',
     ].join(','));
 
@@ -387,40 +397,68 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   if (node.matches('a.user-mention, a.issue-link')) {
     return { md: node.textContent ?? '' };
   }
+  if (node.matches('relative-time')) {
+    const dt = node.getAttribute('datetime');
+    return { md: dt ? formatDateWithRelative(dt) : (node.textContent?.trim() ?? '') };
+  }
 
   // GitHub code table (line-numbered snippet)
-  if (node.matches('table.js-file-line-container')) {
+  if (
+    node.matches('table') &&
+    node.querySelector('td[data-line-number]') &&
+    node.querySelector('.blob-code-inner, td.blob-code')
+  ) {
     const table = node as HTMLTableElement;
-    const entries: { num: string; code: string; }[] = [];
+    type Entry = { leftNo: string; rightNo: string; op: '+' | '-' | ' '; code: string; };
+    const entries: Entry[] = [];
     let lang = '';
 
+    // Detect line number columns (some tables have one for additions and one for deletions, but some have only one shared column)
+    const lineNoCols = new Set<number>();
+    for (const tr of table.rows) for (const c of tr.cells) if (c.hasAttribute('data-line-number')) lineNoCols.add(c.cellIndex);
+    if (lineNoCols.size > 2) return {};
+    const leftCol = Math.min(...lineNoCols);
+    const rightCol = lineNoCols.has(leftCol + 1) ? leftCol + 1 : null;
+
     for (const tr of table.rows) {
-      const lineTd = tr.querySelector('td[data-line-number]');
-      const codeTd = tr.querySelector('td.blob-code');
-      if (!lineTd || !codeTd) continue;
+      const leftTd = tr.cells[leftCol] as HTMLTableCellElement | undefined;
+      const rightTd = rightCol ? (tr.cells[rightCol] as HTMLTableCellElement | undefined) : undefined;
+      const leftNo = leftTd?.getAttribute('data-line-number')?.trim() ?? '';
+      const rightNo = rightTd?.getAttribute('data-line-number')?.trim() ?? '';
 
-      const num = lineTd.getAttribute('data-line-number');
-      if (!num) continue;
+      const codeTd = tr.querySelector<HTMLElement>('td.blob-code, td.blob-code-inner');
+      if (!codeTd) continue;
 
-      const code = codeTd.textContent ?? ''; // toMd(codeTd, { ...ctx, wsMode: 'pre' });
-      entries.push({ num, code });
-      if (!lang) {
-        lang = [...codeTd.classList].find((c) => c.endsWith('-file-line'))?.replace(/-file-line$/, '') ?? '';
+      // ignore pretty-print whitespace (alt: .blob-code-inner=pre, .blob-code!=pre)
+      let code = '';
+      const kids = [...codeTd.childNodes];
+      for (let i = 0; i < kids.length; i++) {
+        const t = kids[i].textContent ?? '';
+        if ((i === 0 || i === kids.length - 1) && isText(kids[i]) && /[\r\n]/.test(t)) continue;
+        code += t;
       }
+
+      const classList = [...codeTd.classList, ...tr.classList];
+      const op = classList.some((c) => /addition/.test(c)) ? '+'
+        : classList.some((c) => /deletion/.test(c)) ? '-'
+        : ' ';
+      entries.push({ leftNo, rightNo, op, code });
+      lang ||= classList.find((c) => c.endsWith('-file-line'))?.replace(/-file-line$/, '') ?? '';
     }
 
     if (!entries.length) return {};
 
-    const maxDigits = entries.reduce(
-      (m, e) => (e.num.length > m ? e.num.length : m)
-      , 0
-    );
-
-    const lines = entries.map(({ num, code }) => {
-      const padded = num.padStart(maxDigits, ' ');
-      return `  ${padded} ${code}`;
+    const maxPropLen = (prop: 'leftNo' | 'rightNo') =>
+      entries.reduce((m, e) => Math.max(m, e[prop].length), 0);
+    const leftW = maxPropLen('leftNo');
+    const rightW = maxPropLen('rightNo');
+    const opUse = entries.some((e) => e.op !== ' ');
+    const lines = entries.map(({ leftNo, rightNo, op, code }) => {
+      let out = `  ${leftNo.padStart(leftW, ' ')}`;
+      if (rightW > 0) out += ` ${rightNo.padStart(rightW, ' ')}`;
+      if (opUse) out += ` ${op}`;
+      return code ? `${out} ${code}` : out;
     });
-
     const md = [`\`\`\`${lang}`, ...lines, '```'].join('\n');
     return { md };
   }
@@ -452,6 +490,18 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
     const alias = node.getAttribute('alias');
     return { md: alias ? `:${alias}:` : '' };
   }
+
+  if (node.matches('include-fragment')) {
+    if (!node.textContent?.trim()) return { md: '[xlet: thread content not loaded; load on GitHub]' };
+  }
+
+  if (node.matches('task-lists table') && node.querySelectorAll('td').length === 1) {
+    const td = node.querySelector('td');
+    return { md: td ? gc(td, 'block') : '' };
+  }
+
+  // treat custom els as <div>
+  if (node.matches('task-lists, turbo-frame, details-collapsible, details-toggle, deferred-diff-lines')) return { md: gc(node, 'block') };
 
   return {};
 };
@@ -506,6 +556,145 @@ const toHtmlElemHandler: ToHtmlElementHandler = (node, ctx) => {
 export function toHtml(node: Element, opts?: Partial<ToHtmlContext>): Element | null;
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
   return _toHtml(node, { elementHandler: toHtmlElemHandler, ...opts });
+}
+
+function normalizeTimelineBody(node?: Element): Element | undefined {
+  if (!node) return undefined;
+  if (node.matches('.TimelineItem-body')) {
+    const clone = node.cloneNode(true) as HTMLElement;
+
+    // // Prefer actual markdown comment body if present
+    // const contentBody = clone.querySelector('.comment-body') ?? clone.querySelector('.markdown-body');
+    // if (contentBody) return contentBody;
+
+    // Remove inline review-comment header strips
+    clone.querySelectorAll('h3').forEach((h3) => {
+      if (!h3.querySelector('img.avatar, a.author')) return;
+      const row = h3.parentElement;
+      if (!row) return;
+      const hasActionSibling = [...row.children].some((el) =>
+        el !== h3 && el.querySelector('.timeline-comment-actions')
+      );
+      if (!hasActionSibling) return;
+      row.remove();
+    });
+
+    // Remove leading avatar/icon anchors
+    clone.querySelectorAll('span.avatar, img.avatar-user, img.avatar').forEach((el) => {
+      const a = el.closest('a');
+      if (a && clone.contains(a)) a.remove();
+    });
+
+    // Remove relative-time and following sibs
+    const rt = clone.querySelector('relative-time');
+    if (rt) {
+      const timeAnchor = rt.closest('a');
+      const cutPoint = (timeAnchor && clone.contains(timeAnchor)) ? timeAnchor : rt;
+      removeFollowingSiblings(cutPoint);
+      cutPoint.remove();
+    }
+
+    // Remove reaction summaries
+    clone.querySelectorAll('div.comment-reactions').forEach((reactions) => {
+      const p = reactions.parentElement;
+      if (p?.matches('div.edit-comment-hide')) p.remove();
+    });
+
+    // Replace GitHub hidden-conversations load-more form with a compact marker (before button removal).
+    clone.querySelectorAll('form.js-review-hidden-comment-ids').forEach((form) => {
+      const label = (form.querySelector('button')?.textContent ?? '').replace(/\s+/g, ' ').trim();
+      if (!/^\d+\s+hidden\s+conversation(s)?$/i.test(label)) return;
+      form.replaceWith(h('div', {}, `▸ [xlet: ${label}; load on GitHub]`));
+    });
+
+    clone.querySelectorAll('.minimized-comment').forEach((el) => el.remove());
+    clone.querySelectorAll('.AvatarStack').forEach((el) => el.remove());
+    clone.querySelectorAll('.hidden-text-expander').forEach((el) => el.remove());
+    clone.querySelectorAll('dialog-helper').forEach((el) => el.remove());
+    clone.querySelectorAll('button').forEach((el) => el.remove());
+    // clone.querySelectorAll('.Details-content--hidden').forEach((el) => el.remove());
+
+    // slice anchor titles to first line to avoid clutter (GH might stuff commit title + body there...)
+    clone.querySelectorAll('a[title]').forEach((a) => {
+      const title = a.getAttribute('title');
+      if (!title) return;
+      const firstLine = title.split(/\r?\n/, 1)[0]?.trimEnd() ?? '';
+      // eslint-disable-next-line no-restricted-syntax
+      a.setAttribute('title', firstLine);
+    });
+
+    // remove code links that are likely to be duped commit hashes
+    clone.querySelectorAll('code > a[href]').forEach((a) => {
+      const txt = (a.textContent ?? '').trim();
+      if (/^[0-9a-f]{6,9}$/i.test(txt)) {
+        a.closest('code')?.remove(); // or a.remove() if you prefer
+      }
+    });
+
+    // unwrap code blocks that only contain a single link (common in GH commit links)
+    clone.querySelectorAll('code').forEach((code) => {
+      const { firstElementChild, childElementCount, childNodes } = code;
+      if (childElementCount !== 1 || firstElementChild?.tagName !== 'A') return;
+      for (const n of childNodes) {
+        if (n !== firstElementChild && (n.nodeType !== Node.TEXT_NODE || n.textContent?.trim())) {
+          return;
+        }
+      }
+      code.replaceWith(firstElementChild);
+    });
+
+    // Remove commit build status details (too noisy for one little check mark)
+    clone.querySelectorAll('details.commit-build-statuses').forEach((el) => el.remove());
+    clone.querySelectorAll('.timeline-comment-header').forEach((el) => el.remove());
+    clone.querySelectorAll('form.js-comment-update').forEach((el) => el.remove());
+    clone.querySelectorAll('form.js-pick-reaction').forEach((el) => el.remove());
+    clone.querySelectorAll('form.js-review-hidden-comment-ids').forEach((el) => el.remove());
+    clone.querySelectorAll('.pr-review-reactions').forEach((el) => el.remove());
+    clone.querySelectorAll('.js-minimize-comment').forEach((el) => el.remove());
+    clone.querySelectorAll('.Details-content--closed').forEach((el) => el.remove());
+    clone.querySelectorAll('.Details-content--open').forEach((el) => el.remove());
+    clone.querySelectorAll('.timeline-comment-actions').forEach((el) => el.remove());
+    clone.querySelectorAll('react-partial').forEach((el) => el.remove());
+    clone.querySelectorAll('[data-show-on-forbidden-error]').forEach((el) => el.remove());
+    clone.querySelectorAll('input').forEach((el) => el.remove());
+
+    // remove duplicate links by normalized href (keep first surviving occurrence)
+    // const seen = new Set<string>();
+    // clone.querySelectorAll('a[href]').forEach((a) => {
+    //   const href = a.getAttribute('href')?.trim();
+    //   if (!href || seen.has(href)) return href ? void a.remove() : undefined;
+    //   seen.add(href);
+    // });
+
+    clone.querySelectorAll('svg[aria-label="Loading"], svg[aria-label="Loading..."]').forEach((svg) => {
+      const span = svg.closest('span');
+      if (span) span.remove();
+      else svg.remove();
+    });
+
+    // Remove self-link/permalink anchors (hidden hash anchors)
+    clone.querySelectorAll('a[href]').forEach((a) => {
+      const href = a.getAttribute('href')?.trim();
+      if (!href || !href.startsWith('#')) return;
+      const containerId = a.closest('[id]')?.getAttribute('id');
+      if (containerId && href === `#${containerId}`) {
+        a.remove();
+      }
+    });
+
+    return clone;
+  }
+
+  return node;
+}
+
+function removeFollowingSiblings(node: Node): void {
+  let cur = node.nextSibling;
+  while (cur) {
+    const next = cur.nextSibling;
+    cur.parentNode?.removeChild(cur);
+    cur = next;
+  }
 }
 
 function buildPosts(data: HubResult, targetDoc: Document): HTMLElement {
