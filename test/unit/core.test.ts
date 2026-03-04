@@ -442,7 +442,7 @@ test('toMd img without src renders alt only (ignores title)', () => {
 test('toMd img keeps alt even if redundant with filename', () => {
   const html = '<img src="/images/a.png" alt="a.png" title="a.png">';
   const result = toMd(el(html, 'https://example.com/'));
-  const expected = '![](https://example.com/images/a.png)';
+  const expected = '![a.png](https://example.com/images/a.png "a.png")';
   strictEqual(result, expected);
 });
 
@@ -1638,7 +1638,7 @@ test('toMd figure two images and caption', () => {
     '![foo alt](foo.jpg)',
     '![bar alt](bar.jpg)',
     '',
-    'This is a **caption** with a [](/wiki/Link).',
+    'This is a **caption** with a [link](/wiki/Link).',
     '',
     ':::',
   ].join('\n');
@@ -1659,7 +1659,7 @@ test('toMd divs block separation', () => {
 test('toMd anchor with escaped url', () => {
   const html = '<a href="https://en.wikipedia.org/wiki/Stress%E2%80%93energy_tensor" title="Stress–energy tensor">stress–energy tensor</a>';
   const result = toMd(el(html));
-  const expected = '[](https://en.wikipedia.org/wiki/Stress–energy_tensor)';
+  const expected = '[stress–energy tensor](https://en.wikipedia.org/wiki/Stress–energy_tensor "Stress–energy tensor")';
   strictEqual(result, expected);
 });
 

@@ -404,7 +404,7 @@ For an integer \\(n\\), let's seek integral solutions of \\(x^3 + y^3 + z^3 = n\
 (x,y,z) = (8866128975287528, -8778405442862239, -2736111468807040).
 \\]
 
-This was found in 2019 by Andrew Booker. See [](https://people.maths.bris.ac.uk/~maarb/papers/cubesv1.pdf) and [](https://www.youtube.com/watch?v=ASoz_NuIvP0).
+This was found in 2019 by Andrew Booker. See [https://people.maths.bris.ac.uk/~maarb/papers/cubesv1.pdf](https://people.maths.bris.ac.uk/~maarb/papers/cubesv1.pdf) and [https://www.youtube.com/watch?v=ASoz_NuIvP0](https://www.youtube.com/watch?v=ASoz_NuIvP0).
 `.trim();
 
   expect(actual).toBe(expected);

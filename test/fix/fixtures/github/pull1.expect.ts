@@ -30,7 +30,7 @@ export default {
           timestamp: '2025-10-12T14:29:42+05:30',
         },
         bodyHtml: '<div data-view-component="true">          <a data-test-selector="pr-ti',
-        bodyMd: '[](https://github.com/0xFireWolf) and others added 4 commits',
+        bodyMd: '[0xFireWolf](https://github.com/0xFireWolf) and others added 4 commits',
       },
       {
         contributor: {

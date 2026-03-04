@@ -239,9 +239,9 @@ test('toMd tensor preamble', () => {
 </div>`.trim();
   const result = toMd(el(html));
   const expected = `
-For other uses, see [](https://en.wikipedia.org/wiki/Tensor_%28disambiguation%29).
+For other uses, see [Tensor (disambiguation)](https://en.wikipedia.org/wiki/Tensor_%28disambiguation%29).
 
-Not to be confused with [](https://en.wikipedia.org/wiki/Vector_field) or [](https://en.wikipedia.org/wiki/Tensor_field).
+Not to be confused with [Vector field](https://en.wikipedia.org/wiki/Vector_field) or [Tensor field](https://en.wikipedia.org/wiki/Tensor_field).
 `.trim();
   strictEqual(result, expected);
 });
@@ -271,12 +271,12 @@ test('WikiNode.buildFromHTML produces double linefeeds between top-level childre
   const doc = docEl(html);
   const result = WikiNode.buildFromHTML(doc);
   const expectedMd = `
-For other uses, see [](/wiki/Tensor_%28disambiguation%29).
+For other uses, see [Tensor (disambiguation)](/wiki/Tensor_%28disambiguation%29 "Tensor (disambiguation)").
 
-This article is about tensors on a single vector space and is not to be confused with [](/wiki/Vector_field) or [](/wiki/Tensor_field).
+This article is about tensors on a single vector space and is not to be confused with [Vector field](/wiki/Vector_field "Vector field") or [Tensor field](/wiki/Tensor_field "Tensor field").
 
 :::figure  
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [](/wiki/Cauchy_stress_tensor)
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [Cauchy stress tensor](/wiki/Cauchy_stress_tensor "Cauchy stress tensor")
 
 :::`.trim();
   strictEqual(result!.md, expectedMd);
@@ -322,7 +322,7 @@ describe('Extractlet: Parsoid HTML 2.8.0 Spec', () => {
 </figure>`.trim();
     const expectedMd = `
 :::figure  
-[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foo.jpg)](./File:Foo.jpg)
+[![caption](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foo.jpg)](./File:Foo.jpg "caption")
 
 caption
 
@@ -353,7 +353,7 @@ caption
        width="89" height="10">
  </a>
 </span>`.trim();
-    const expectedMd = '[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")'.trim();
+    const expectedMd = '[![caption](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")'.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -366,7 +366,7 @@ caption
        width="50" height="6">
  </a>
 </span>`.trim();
-    const expectedMd = '[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")'.trim();
+    const expectedMd = '[![caption](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")'.trim();
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -463,7 +463,7 @@ caption
 </figure>`.trim();
     const expectedMd = `
 :::figure  
-[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
+[![caption](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")
 
 caption
 
@@ -483,7 +483,7 @@ caption
 </figure>`.trim();
     const expectedMd = `
 :::figure  
-[![](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg)
+[![caption](http://upload.wikimedia.org/wikipedia/commons/3/3a/Foobar.jpg)](./File:Foobar.jpg "caption")
 
 caption
 
@@ -780,7 +780,7 @@ caption
   test('wikilink with identical label', () => {
     // [[Main Page]]
     const html = '<a rel="mw:WikiLink" href="./Main_Page">Main Page</a>'.trim();
-    const expectedMd = '[](./Main_Page)';
+    const expectedMd = '[Main Page](./Main_Page)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -794,21 +794,21 @@ caption
   test('wikilink to non-existing page (red link)', () => {
     // [[Non existing page]]
     const html = '<a href="./Non_existing_page?action=edit&amp;redlink=1" title="Non existing page" rel="mw:WikiLink" class="new" typeof="mw:LocalizedAttrs" data-mw-i18n=\'{"title":{"lang":"x-page","key":"red-link-title","params":["Non existing page"]}}\'>Non existing page</a>'.trim();
-    const expectedMd = '[](./Non_existing_page?action=edit&redlink=1)';
+    const expectedMd = '[Non existing page](./Non_existing_page?action=edit&redlink=1 "Non existing page")';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
   test('media link with default label', () => {
     // [[Media:Foo.jpg]]
     const html = '<a rel="mw:MediaLink" href="//upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg" title="Foo.jpg">Media:Foo.jpg</a>'.trim();
-    const expectedMd = '[Media:Foo.jpg](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg)';
+    const expectedMd = '[Media:Foo.jpg](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg "Foo.jpg")';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
   test('media link with alternate text', () => {
     // [[Media:Foo.jpg|Link text]]
     const html = '<a rel="mw:MediaLink" href="//upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg" title="Foo.jpg">Link text</a>'.trim();
-    const expectedMd = '[Link text](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg)';
+    const expectedMd = '[Link text](https://upload.wikimedia.org/wikipedia/commons/0/06/Foo.jpg "Foo.jpg")';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -822,7 +822,7 @@ caption
   test('autolinked (free) external URL', () => {
     // http://example.com
     const html = '<a rel="mw:ExtLink" class="external free" href="http://example.com">http://example.com/</a>';
-    const expectedMd = '[](http://example.com/)';
+    const expectedMd = '[http://example.com/](http://example.com/)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -858,7 +858,7 @@ caption
         RFC 1945
       </a>
     `.trim();
-    const expectedMd = '[](http://tools.ietf.org/html/rfc1945)';
+    const expectedMd = '[RFC 1945](http://tools.ietf.org/html/rfc1945)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -988,7 +988,7 @@ test('wiki MD uses absolute links within section container', () => {
   if (!root) throw new Error('Failed to build WikiNode from test document');
   const md = root.children[0]?.md ?? root.md;
   // console.log(md);
-  expect(md).toBe('See [Baz](https://en.wikipedia.org/wiki/Foo) and [](https://en.wikipedia.org/wiki/Bar).');
+  expect(md).toBe('See [Foo](https://en.wikipedia.org/wiki/Foo "Baz") and [Bar](https://en.wikipedia.org/wiki/Bar).');
 });
 
 test('parsoid wiki MD uses absolute links within section container', () => {
@@ -1009,7 +1009,7 @@ test('parsoid wiki MD uses absolute links within section container', () => {
   if (!root) throw new Error('Failed to build WikiNode from Parsoid HTML');
 
   const md = root.children[0]?.md ?? root.md;
-  expect(md).toBe('See [Baz](https://en.wikipedia.org/wiki/Foo) and [](https://en.wikipedia.org/wiki/Bar).');
+  expect(md).toBe('See [Foo](https://en.wikipedia.org/wiki/Foo "Baz") and [Bar](https://en.wikipedia.org/wiki/Bar).');
 });
 
 // describe('MediaWiki Math rendering', () => {

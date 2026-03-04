@@ -8,7 +8,7 @@ export default {
     posts: [
       {
         bodyHtml: '<div>\n                \n<p><a href="http://en.wikipedia.org/wiki/Tensor',
-        bodyMd: '[](http://en.wikipedia.org/wiki/Tensor) says that a linear transformat',
+        bodyMd: '[Wikipedia](http://en.wikipedia.org/wiki/Tensor) says that a linear transformation is',
         contributors: [
           {
             contributorType: 'editor',

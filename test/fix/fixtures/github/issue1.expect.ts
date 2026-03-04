@@ -12,7 +12,7 @@ export default {
           timestamp: '2025-06-09T11:33:44.000Z',
         },
         bodyHtml: '<div data-testid="issue-body-viewer"><div data-testid="markdown-body" ',
-        bodyMd: 'Hello! I am using ANTLR to parse [](https://github.com/gscept/GPULang)',
+        bodyMd: 'Hello! I am using ANTLR to parse [https://github.com/gscept/GPULang](https',
         postId: 'issue-3130032756',
       },
       {

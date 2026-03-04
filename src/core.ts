@@ -80,7 +80,7 @@ export const DefaultToMdContext: ToMdContext = {
   skipCustomHandler: false,
   isRoot: true,
   mathFence: 'bracket',
-  filterRedundantLabels: true,
+  filterRedundantLabels: false,
   filterGenericLabels: false,
   deCaption: '',
   inListItem: false,

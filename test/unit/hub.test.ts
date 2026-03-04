@@ -324,7 +324,7 @@ describe('Code Tables', () => {
     expect(md).toBe([
       '[plugins/packages/typescript/src/options/validate.ts](https://github.com/rollup/plugins/blob/92daef00b0da30de172868d4e0792c8686da0045/packages/typescript/src/options/validate.ts#L60-L75)',
       '',
-      'Lines 60 to 75 in [](/rollup/plugins/commit/92daef00b0da30de172868d4e0792c8686da0045)',
+      'Lines 60 to 75 in [92daef0](/rollup/plugins/commit/92daef00b0da30de172868d4e0792c8686da0045)',
       '',
       '```js',
       '  60  // Checks if the given path lies within Rollup output dir ',
