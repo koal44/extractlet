@@ -315,6 +315,9 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
   if (!node || !isElement(node)) return '';
 
+  const inStyle = node.getAttribute('style') ?? '';
+  ctx.wsMode = /\bwhite-space\s*:\s*(pre|pre-wrap)\b/i.test(inStyle) ? 'pre' : ctx.wsMode;
+
   // --- handle site-specific elements ---
   const siteResult = !ctx.skipCustomHandler && ctx.elementHandler
     ? ctx.elementHandler(node, { ...ctx, skipCustomHandler: true }, glueChildren)

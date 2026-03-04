@@ -237,13 +237,16 @@ const ghTable: GhTable  = {
       { sel: 'div[data-testid="issue-viewer-issue-container"] div[data-testid="issue-body-viewer"]' },
     ],
     posts_items: [
+      { sel: 'div[data-testid="issue-timeline-container"] [data-wrapper-timeline-id]' },
       { sel: 'div[data-testid="issue-timeline-container"] > *' },
     ],
     posts_author: [
       { sel: ':scope div[data-testid="comment-header"] a[data-testid="avatar-link"]', attr: 'textContent' },
+      { sel: ':scope .TimelineBody a[data-testid="actor-link"]', attr: 'textContent' },
     ],
     posts_createdAt: [
       { sel: ':scope div[data-testid="comment-header"] relative-time', attr: 'datetime' },
+      { sel: ':scope .TimelineBody relative-time', attr: 'datetime' },
     ],
     posts_postId: [
       { sel: ':scope div[data-testid="comment-header"]', attr: 'id' },
@@ -329,7 +332,9 @@ function scrapePosts(srcDoc: Document, domain: GhDomain, ctxs?: XletContexts): P
     const createdAt = pickVal(getLocators('posts_createdAt',  domain), srcDoc, item);
     const postId    = pickVal(getLocators('posts_postId',     domain), srcDoc, item);
     let bodyEl      =  pickEl(getLocators('posts_bodyViewer', domain), srcDoc, item);
-    bodyEl = normalizeTimeline(bodyEl ?? item);
+    bodyEl ??= item;
+    bodyEl = normalizePullTimeline(bodyEl);
+    bodyEl = normalizeIssueTimeline(bodyEl);
 
     const isComment = author || createdAt || bodyEl;
     if (!isComment) continue;
@@ -493,7 +498,11 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   }
 
   // treat custom els as <div>
-  if (node.matches('task-lists, turbo-frame, details-collapsible, details-toggle, deferred-diff-lines')) return { md: gc(node, 'block') };
+  const divLike = [
+    'task-lists, turbo-frame, details-collapsible, details-toggle, deferred-diff-lines',
+    'section',
+  ];
+  if (node.matches(divLike.join(','))) return { md: gc(node, 'block') };
 
   return {};
 };
@@ -550,7 +559,8 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
   return _toHtml(node, { elementHandler: toHtmlElemHandler, ...opts });
 }
 
-function normalizeTimeline(node?: Element): Element | undefined {
+function normalizePullTimeline(node?: Element): Element | undefined {
+  // TODO(perf): rework
   if (!node) return undefined;
   if (!node.matches('.TimelineItem-body')) return node;
 
@@ -693,6 +703,35 @@ function normalizeTimeline(node?: Element): Element | undefined {
   //   if (!href || seen.has(href)) return href ? void a.remove() : undefined;
   //   seen.add(href);
   // });
+
+  return clone;
+}
+
+function normalizeIssueTimeline(node?: Element): Element | undefined {
+  // TODO(perf): rework
+  if (!node) return undefined;
+  if (!node.closest('[data-testid="issue-timeline-container"]')) return node;
+
+  const clone = node.cloneNode(true) as HTMLElement;
+
+  clone.querySelectorAll('a[data-testid="actor-link"]').forEach((a) => a.remove());
+  clone.querySelectorAll('button').forEach((a) => a.remove());
+
+  clone.querySelectorAll('a').forEach((a) => {
+    if (a.querySelector('relative-time')) a.remove();
+  });
+
+  clone.querySelectorAll('a[href]').forEach((a) => {
+    if (a.textContent?.trim()) return;
+    if (a.querySelector('img, svg')) return;
+    a.remove();
+  });
+
+  clone.querySelectorAll('[data-testid="issue-timeline-load-more-container-load-top"]').forEach((el) => {
+    const label = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    if (!/\bremaining\s+items\b/i.test(label)) return;
+    el.replaceWith(h('div', {}, `[xlet: ${label}; load on GitHub]`));
+  });
 
   return clone;
 }
