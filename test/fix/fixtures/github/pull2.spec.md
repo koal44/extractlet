@@ -8,31 +8,31 @@
 
 related [https://github.com/microsoft/vscode-internalbacklog/issues/6848](https://github.com/microsoft/vscode-internalbacklog/issues/6848)
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 1
 [Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI review requested due to automatic review settings
 
-[[ Copilot on 2026-02-17 (in 12 months) ]]
+[[ Copilot on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 2
 [joshspicer](https://github.com/joshspicer) changed the title ~~Josh/sessions with sdk~~ ++sessions with sdk++
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 3
 **Copilot** [started reviewing](https://github.com/microsoft/vscode/agents/pull/295817?session_id=f7590deb-695d-495f-b6b2-a50c9a70494b "View session") on behalf of [joshspicer](https://github.com/joshspicer)
 
-[[ unknown on 2026-02-17 (in 12 months) ]]
+[[ unknown on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 4
 [vs-code-engineering](https://github.com/apps/vs-code-engineering) bot assigned [joshspicer](https://github.com/joshspicer)
 
-[[ vs-code-engineering on 2026-02-17 (in 12 months) ]]
+[[ vs-code-engineering on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 5
@@ -46,7 +46,7 @@ related [https://github.com/microsoft/vscode-internalbacklog/issues/6848](https:
 ## Comment 6
 [joshspicer](https://github.com/joshspicer) added 8 commits
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 7
@@ -65,7 +65,7 @@ require build system support:
 - next/index.ts: add copilotSdkHost as a utility process entry point
 :::
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 8
@@ -80,7 +80,7 @@ can check whether the SDK backend is active. Browser returns false; native
 reads from the window configuration.
 :::
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 9
@@ -103,13 +103,13 @@ Three-layer architecture for the Copilot SDK integration:
    the bundled CLI binary, builds a clean env, and forwards all events.
 :::
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 10
 [copilot-sdk: add SDK chat widget and session list UI](https://github.com/microsoft/vscode/pull/295817/commits/abce2c0ecddbb5b0bdef1e131af5a9f66f385133 "copilot-sdk: add SDK chat widget and session list UI")
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 11
@@ -125,19 +125,19 @@ service created during normal VS Code usage.
 - sessions.desktop.main.ts: import copilotSdkService renderer proxy
 :::
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 12
 [Align sessions utility process naming](https://github.com/microsoft/vscode/pull/295817/commits/ca9154d717b4046786fb96897acb1f176dc609f9 "Align sessions utility process naming")
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 13
 [Adopt sessions utility process flag](https://github.com/microsoft/vscode/pull/295817/commits/91c48fa7cf4416227e1f2607f9b7f6eb6255076e "Adopt sessions utility process flag")
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 14
@@ -147,25 +147,25 @@ service created during normal VS Code usage.
 …-with-sdk
 :::
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 15
 [joshspicer](https://github.com/joshspicer) [force-pushed](https://github.com/microsoft/vscode/compare/fc19eff9618ef514a5a6bfc410318a656fbfb8b0..96440905fdc4e710f9e45a69f6fa41336336f111) the josh/sessions-with-sdk branch from [`fc19eff`](https://github.com/microsoft/vscode/commit/fc19eff9618ef514a5a6bfc410318a656fbfb8b0) to [`9644090`](https://github.com/microsoft/vscode/commit/96440905fdc4e710f9e45a69f6fa41336336f111) [Compare](https://github.com/microsoft/vscode/compare/fc19eff9618ef514a5a6bfc410318a656fbfb8b0..96440905fdc4e710f9e45a69f6fa41336336f111)
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 16
 [joshspicer](https://github.com/joshspicer) requested a review from [Copilot](https://github.com/apps/copilot-pull-request-reviewer)
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 17
 **Copilot** [started reviewing](https://github.com/microsoft/vscode/agents/pull/295817?session_id=ba6b6584-47f4-4d41-9f05-43fd0d1903c4 "View session") on behalf of [joshspicer](https://github.com/joshspicer)
 
-[[ unknown on 2026-02-17 (in 12 months) ]]
+[[ unknown on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 18
@@ -173,7 +173,7 @@ service created during normal VS Code usage.
 
 [View reviewed changes](https://github.com/microsoft/vscode/pull/295817/files/96440905fdc4e710f9e45a69f6fa41336336f111)
 
-[[ Copilot on 2026-02-17 (in 12 months) ]]
+[[ Copilot on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 19
@@ -226,7 +226,7 @@ Comment on lines 285 to 292
   292 + 		this._refreshSdkSessionList();
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2818785440)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785440)
 
 The delete operation at line 286 doesn't prompt the user for confirmation. Deleting a session could result in permanent data loss. Consider adding a confirmation dialog, especially since this is a UI action triggered by a button click.
 
@@ -241,7 +241,7 @@ The delete operation at line 286 doesn't prompt the user for confirmation. Delet
   351 + 		this._githubToken = token;
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2818785455)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785455)
 
 The GitHub token is stored in plain text in the `_githubToken` field and passed to the SDK. Consider whether this needs to be handled more securely, such as using the existing credential store services in VS Code rather than keeping it in memory.
 
@@ -283,7 +283,7 @@ Comment on lines 32 to 52
   52 + 		}
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2818785467)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785467)
 
 The `execSync` calls in lines 38 and 48 use JSON.stringify for shell escaping, which is not safe on all platforms. On Windows, this won't properly escape paths with spaces or special characters. Use a proper shell escaping library or Node.js's `fs.cpSync` instead.
 
@@ -298,7 +298,7 @@ The `execSync` calls in lines 38 and 48 use JSON.stringify for shell escaping, w
      88 +     "@github/copilot-sdk": "0.1.23",
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2818785489)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785489)
 
 The `@github/copilot-sdk` package requires Node.js >= 24.0.0 (line 1139 in package-lock.json), but VS Code currently ships with and supports Node.js versions lower than 24. This will cause a runtime incompatibility. Verify that the utility process uses Node 24+ or request a version of the SDK compatible with the Node version VS Code uses.
 
@@ -329,7 +329,7 @@ Comment on lines +118 to +126
   126 + 			this._onProcessOutput.fire({ stream: 'stderr', data: '[SDK] CopilotClient created, calling start()...' });
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2818785557)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785557)
 
 The utility process is started with `autoStart: true` and `autoRestart: true` but there's no backoff or rate limiting if it crashes repeatedly. This could lead to a crash loop that consumes resources. Consider implementing exponential backoff or limiting restart attempts.
 
@@ -347,7 +347,7 @@ Comment on lines +270 to +274
   274 + 		}
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2818785576)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785576)
 
 The model preference logic at line 270 looks for 'claude-sonnet-4' first, then 'gpt-4.1', but these model IDs may not exist in the available models list. Consider making this configurable or checking actual model availability rather than hardcoding specific model names that may change over time.
 
@@ -366,7 +366,7 @@ Comment on lines +307 to +312
   312 + 	}
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2818785589)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785589)
 
 The folderHistory management functions don't validate that the path is actually a directory or that it's accessible. Consider adding validation before storing paths to prevent showing invalid entries to the user.
 
@@ -384,7 +384,7 @@ Comment on lines 150 to 154
   154 + 		}
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2818785601)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785601)
 
 The `_sdkListDisposables` store is registered in the constructor but is cleared and reused in `_renderSdkSessionList`. This pattern is correct, but the disposables added to this store won't be automatically disposed when the parent object is disposed unless `clear()` is called. Consider calling `clear()` in the dispose method or using a fresh store each time.
 
@@ -408,41 +408,41 @@ Comment on lines 295 to 305
   305 + 	}
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2818785615)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785615)
 
 The `_relativeTime` function doesn't handle future dates gracefully. If `date` is in the future (e.g., due to clock skew), `diffMs` will be negative and the function will show incorrect results like "-5m ago". Consider adding a check for negative differences and handling them appropriately.
 
-[[ Copilot on 2026-02-17 (in 12 months) ]]
+[[ Copilot on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 21
 [joshspicer](https://github.com/joshspicer) added 2 commits
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 22
 [code review](https://github.com/microsoft/vscode/pull/295817/commits/abecd693388f366ff48f854fd6824a6c36c37279 "code review")
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 23
 [merge](https://github.com/microsoft/vscode/pull/295817/commits/d823b474c95e4a3667d6b33fde4c5ea1b0bacf94 "merge")
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 24
 [joshspicer](https://github.com/joshspicer) requested a review from [Copilot](https://github.com/apps/copilot-pull-request-reviewer)
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 25
 **Copilot** [started reviewing](https://github.com/microsoft/vscode/agents/pull/295817?session_id=ccf5cb41-9d4d-4b2a-a3e9-d175d50d1ebe "View session") on behalf of [joshspicer](https://github.com/joshspicer)
 
-[[ unknown on 2026-02-17 (in 12 months) ]]
+[[ unknown on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 26
@@ -450,7 +450,7 @@ The `_relativeTime` function doesn't handle future dates gracefully. If `date` i
 
 [View reviewed changes](https://github.com/microsoft/vscode/pull/295817/files/d823b474c95e4a3667d6b33fde4c5ea1b0bacf94)
 
-[[ Copilot on 2026-02-17 (in 12 months) ]]
+[[ Copilot on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 27
@@ -535,7 +535,7 @@ Comment on lines +171 to +189
   189 + 		'get_errors': 'Check errors',
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2819414286)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414286)
 
 These tool labels are user-facing but are hard-coded English strings. Please externalize them via `localize(...)` (or derive them from existing localized chat/tool UI labels) so they participate in localization and remain consistent with the rest of the workbench.
 
@@ -598,7 +598,7 @@ Comment on lines +50 to +56
   56 + 		this._register(dom.addDisposableListener(clearBtn, 'click', () => {
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2819414299)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414299)
 
 This debug panel UI introduces multiple hard-coded, user-visible strings (e.g. header/title and button labels). Even if intended as a temporary/debug feature, these strings still surface in-product when the flag is enabled; please externalize them with `localize(...)` for consistency and to avoid shipping non-localized UI.
 
@@ -613,7 +613,7 @@ This debug panel UI introduces multiple hard-coded, user-visible strings (e.g. h
       458 + 				'**/@github/copilot-*/**',
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2819414310)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414310)
 
 The ASAR unpack pattern `**/@github/copilot-*/**` will unpack entire platform packages, which can significantly increase unpacked size and packaging time. If only the CLI executable needs to be unpacked, consider narrowing this to the specific binary path(s) (e.g. `**/@github/copilot-*/copilot*`) and keep the rest inside the ASAR.
 
@@ -653,7 +653,7 @@ Comment on lines 32 to 51
   51 + 			execSync(`cp -R ${JSON.stringify(inArm64U)} ${JSON.stringify(inX64U)}`);
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2819414321)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414321)
 
 Using `execSync('cp -R ...')` here makes the build depend on shelling out and is more brittle across environments (spaces, permissions, missing `cp`, error handling). Prefer `fs.cpSync`/`fs.promises.cp` with `{ recursive: true }` and explicit error handling so the universal build step is safer and easier to maintain.
 
@@ -727,17 +727,17 @@ Comment on lines +231 to +236
   236 + 			if (session.sessionId === this._sdkSelectedSessionId) { item.classList.add('selected'); }
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2819414332)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414332)
 
 The SDK sessions list renders clickable `div` elements with `role="listitem"`, but there’s no parent `role="list"` and selection state is only represented via CSS class. For accessibility, please use an actual list structure (or add `role="list"` on the container) and expose selection via `aria-selected` (and/or use a button element / `role="button"` for the clickable row).
 
-[[ Copilot on 2026-02-17 (in 12 months) ]]
+[[ Copilot on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 29
 [fix fs usage](https://github.com/microsoft/vscode/pull/295817/commits/057e8424a6926a3a4d2acfe23cd20ebe374e58e4 "fix fs usage")
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 30
@@ -777,25 +777,25 @@ All actionable feedback has been fixed. Resolving threads now.
 - Hardcoded model preferences: intentional experiment default
 - Folder history validation: low priority, paths from picker/SDK
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 31
 [Merge branch 'main' into josh/sessions-with-sdk](https://github.com/microsoft/vscode/pull/295817/commits/481e91ab26f92066410de7778b1e10422d185fcb "Merge branch 'main' into josh/sessions-with-sdk")
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 32
 [joshspicer](https://github.com/joshspicer) requested a review from [Copilot](https://github.com/apps/copilot-pull-request-reviewer)
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 33
 **Copilot** [started reviewing](https://github.com/microsoft/vscode/agents/pull/295817?session_id=67b6503f-a961-4574-ab33-5d2998acc8dc "View session") on behalf of [joshspicer](https://github.com/joshspicer)
 
-[[ unknown on 2026-02-17 (in 12 months) ]]
+[[ unknown on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 34
@@ -803,7 +803,7 @@ All actionable feedback has been fixed. Resolving threads now.
 
 [View reviewed changes](https://github.com/microsoft/vscode/pull/295817/files/481e91ab26f92066410de7778b1e10422d185fcb)
 
-[[ Copilot on 2026-02-17 (in 12 months) ]]
+[[ Copilot on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 35
@@ -873,7 +873,7 @@ Progress messages "Compacting context..." and "Context compacted" are user-visib
   179 + 					terminalGroupService.showPanel(true);
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (14 days ago)](#discussion_r2819502261)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819502261)
 
 The terminal creation promise isn’t handled (`createTerminal(...).then(...)` without a rejection handler). If terminal creation fails, this can surface as an unhandled rejection from a UI event. Please add explicit error handling (e.g. `.catch(onUnexpectedError)` or equivalent pattern used in this codebase).
 
@@ -886,25 +886,25 @@ Suggested change
   178 + 					this._logService.error(error);
 ```
 
-[[ Copilot on 2026-02-17 (in 12 months) ]]
+[[ Copilot on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 37
 [joshspicer](https://github.com/joshspicer) added 2 commits
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 38
 [implement auto generation from copiot sdk d.ts and layer of abstraction](https://github.com/microsoft/vscode/pull/295817/commits/4592ab1bf23ea1b82a3174363bfe980e0a898463 "implement auto generation from copiot sdk d.ts and layer of abstraction")
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 39
 [resolve code review](https://github.com/microsoft/vscode/pull/295817/commits/1c27c3b44088881a5d7b33243e83923d2c1f52c7 "resolve code review")
 
-[[ joshspicer on 2026-02-17 (in 12 months) ]]
+[[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 40
@@ -912,7 +912,7 @@ Suggested change
 
 [View reviewed changes](https://github.com/microsoft/vscode/pull/295817/files/8baa674e456bf5fc32732b61e5c85cf90f9add91)
 
-[[ roblourens on 2026-02-18 (in 12 months) ]]
+[[ roblourens on 2026-02-18 (12 days ago) ]]
 
 
 ## Comment 41
@@ -924,7 +924,7 @@ Suggested change
 ## Comment 42
 [joshspicer](https://github.com/joshspicer) requested a review from [DonJayamanne](https://github.com/DonJayamanne)
 
-[[ joshspicer on 2026-02-18 (in 12 months) ]]
+[[ joshspicer on 2026-02-18 (12 days ago) ]]
 
 
 ## Comment 43
@@ -932,7 +932,7 @@ Suggested change
 
 [View reviewed changes](https://github.com/microsoft/vscode/pull/295817/files/8baa674e456bf5fc32732b61e5c85cf90f9add91)
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 44
@@ -945,7 +945,7 @@ On a high level I feel the direction of mixing both the architectural change (to
 - have 1 PR with the architectural change of a utility process and using SDK compatible with the old UI
 - have 1 PR with exploring to recreate the chat rendering UI on top of the architectural changes
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 45
@@ -1048,73 +1048,73 @@ due to merge conflicts
 
 [xlet: thread content not loaded; load on GitHub]
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 46
 [Merge branch 'main' into josh/sessions-with-sdk](https://github.com/microsoft/vscode/pull/295817/commits/6ff5b71b882f6a81594f038e60f233389fe236c3 "Merge branch 'main' into josh/sessions-with-sdk")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 47
 [bpasero](https://github.com/bpasero) dismissed [roblourens](https://github.com/roblourens)’s [stale review](#pullrequestreview-3821211211) via
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 48
 [bpasero](https://github.com/bpasero) added 6 commits
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 49
 [feedback](https://github.com/microsoft/vscode/pull/295817/commits/3bda41c22304d9131a315c8d5fa7e63ee6b6f04c "feedback")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 50
 [feedback](https://github.com/microsoft/vscode/pull/295817/commits/24134c3c8bc6dfcd0d0daecb545dbfc0ce178f11 "feedback")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 51
 [refactor](https://github.com/microsoft/vscode/pull/295817/commits/478f81446689833465f901a3308c6d28c90a0f2e "refactor")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 52
 [fix css reference](https://github.com/microsoft/vscode/pull/295817/commits/a6a5e2d96f39507979326253712422fda92a5cbf "fix css reference")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 53
 [.](https://github.com/microsoft/vscode/pull/295817/commits/6dc2411f1ea6dff3a109358648db4876804d44ae ".")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 54
 [fix it](https://github.com/microsoft/vscode/pull/295817/commits/0fdb2ef1a7692963e5ed278822290d8b31a60f2e "fix it")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 55
 [bpasero](https://github.com/bpasero) requested a review from [Copilot](https://github.com/apps/copilot-pull-request-reviewer)
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 56
 **Copilot** [started reviewing](https://github.com/microsoft/vscode/agents/pull/295817?session_id=3a1aebec-ebcf-4473-a749-e548c77b76a8 "View session") on behalf of [bpasero](https://github.com/bpasero)
 
-[[ unknown on 2026-02-20 (in 12 months) ]]
+[[ unknown on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 57
@@ -1122,7 +1122,7 @@ due to merge conflicts
 
 [View reviewed changes](https://github.com/microsoft/vscode/pull/295817/files/0fdb2ef1a7692963e5ed278822290d8b31a60f2e)
 
-[[ Copilot on 2026-02-20 (in 12 months) ]]
+[[ Copilot on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 58
@@ -1146,19 +1146,19 @@ Copilot reviewed 33 out of 36 changed files in this pull request and generated 1
 ## Comment 60
 [leaks](https://github.com/microsoft/vscode/pull/295817/commits/08d444a8ef605e9d867d98a363894cae06449757 "leaks")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 61
 [bpasero](https://github.com/bpasero) requested a review from [Copilot](https://github.com/apps/copilot-pull-request-reviewer)
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 62
 **Copilot** [started reviewing](https://github.com/microsoft/vscode/agents/pull/295817?session_id=04c4d8e9-6229-4c67-a024-5126e7884a6e "View session") on behalf of [bpasero](https://github.com/bpasero)
 
-[[ unknown on 2026-02-20 (in 12 months) ]]
+[[ unknown on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 63
@@ -1166,7 +1166,7 @@ Copilot reviewed 33 out of 36 changed files in this pull request and generated 1
 
 [View reviewed changes](https://github.com/microsoft/vscode/pull/295817/files/08d444a8ef605e9d867d98a363894cae06449757)
 
-[[ Copilot on 2026-02-20 (in 12 months) ]]
+[[ Copilot on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 64
@@ -1223,7 +1223,7 @@ Suggested change
   173 + 		};
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (12 days ago)](#discussion_r2833208107)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (10 days ago)](#discussion_r2833208107)
 
 Monkey-patching `process.stderr.write` is risky and could interfere with other code or error reporting. If the SDK client fails to start after this patch is applied, error messages may be duplicated or lost. Consider registering this stderr interception as a disposable and ensure it's properly restored in all error paths (line 157 sets `_client = undefined` but doesn't restore stderr).
 
@@ -1253,7 +1253,7 @@ Comment on lines 148 to 151
   151 + 			await Promise.race([startPromise, timeoutPromise]);
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (12 days ago)](#discussion_r2833208119)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (10 days ago)](#discussion_r2833208119)
 
 The timeout promise (line 148-150) creates a timer that's never cancelled if `startPromise` resolves first, causing the timer to leak. Use `Promise.race` with proper cleanup or wrap in a utility that cancels the losing promise's resources.
 
@@ -1295,7 +1295,7 @@ Comment on lines 239 to 245
   245 + 		this._refreshSdkSessionList();
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (12 days ago)](#discussion_r2833208135)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (10 days ago)](#discussion_r2833208135)
 
 After deleting a session (line 239), the widget immediately calls `newSession()` if the deleted session was selected (lines 240-244), then calls `_refreshSdkSessionList()` (line 245). This creates a race condition: if `newSession()` is async and takes time, the session list refresh might render before the new session UI is ready, causing visual inconsistencies. Consider awaiting `newSession()` or ensuring proper sequencing.
 
@@ -1310,7 +1310,7 @@ Comment on lines +1299 to +1300
   1300 + 			mainProcessElectronServer.registerChannel(CopilotSdkChannel, copilotSdkMainService.getServerChannel());
 ```
 
-### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (12 days ago)](#discussion_r2833208144)
+### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (10 days ago)](#discussion_r2833208144)
 
 The service registration (lines 1136-1138) and channel registration (lines 1298-1301) both check the same configuration flag independently. If the configuration changes between service initialization and channel registration, or if `accessor.get(ICopilotSdkMainService)` is called when the service wasn't registered, this will throw. Consider consolidating the logic or adding a guard to handle the case where the service isn't available.
 
@@ -1330,13 +1330,13 @@ Suggested change
   1307 + 			}
 ```
 
-[[ Copilot on 2026-02-20 (in 12 months) ]]
+[[ Copilot on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 66
 [refactor](https://github.com/microsoft/vscode/pull/295817/commits/cf33c65b8ab1ad7fb7c5c1c571e66c48b0b60b22 "refactor")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 67
@@ -1344,7 +1344,7 @@ Suggested change
 
 [View reviewed changes](https://github.com/microsoft/vscode/pull/295817/files/cf33c65b8ab1ad7fb7c5c1c571e66c48b0b60b22)
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 68
@@ -1367,19 +1367,19 @@ Many unresolved Copilot code feedback comments and 1 comment from me.
 
 Are we certain this works? At this moment the process is stopping and you are calling a long running operation?
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 70
 [bpasero](https://github.com/bpasero) and others added 5 commits
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 71
 [teardown on exit or crash](https://github.com/microsoft/vscode/pull/295817/commits/4d6986e0cda85df1d419102ea14432e31541d328 "teardown on exit or crash")
 
-[[ bpasero on 2026-02-20 (in 12 months) ]]
+[[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 72
@@ -1415,7 +1415,7 @@ Are we certain this works? At this moment the process is stopping and you are ca
 
 [View reviewed changes](https://github.com/microsoft/vscode/pull/295817/files/6fef58cfbebb6e85233d8089a80c8d7d61021032)
 
-[[ deepak1556 on 2026-02-20 (in 12 months) ]]
+[[ deepak1556 on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 77
@@ -1488,7 +1488,7 @@ Comment on lines 123 to 124
 
 `APP_SANDBOX_CONTAINER_ID` is for apps from mac app store relying on the mac container sandbox, which our app doesn't, can be removed
 
-[[ deepak1556 on 2026-02-20 (in 12 months) ]]
+[[ deepak1556 on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 79
@@ -1504,10 +1504,10 @@ Comment on lines 123 to 124
 
 Open
 
-[[ austindyoung on 2026-02-26 (in 12 months) ]]
+[[ austindyoung on 2026-02-26 (5 days ago) ]]
 
 
 ## Comment 81
 [rzhao271](https://github.com/rzhao271) modified the milestones: [February 2026](https://github.com/microsoft/vscode/milestone/357), [March 2026](https://github.com/microsoft/vscode/milestone/376)
 
-[[ rzhao271 on 2026-02-27 (in 12 months) ]]
+[[ rzhao271 on 2026-02-27 (3 days ago) ]]

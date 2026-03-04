@@ -74,6 +74,7 @@ export type ToMdContext = {
   prettyTables: boolean;                // pretty-print tables with padded columns (default: false)
   subSupMode: SubSupMode;               // how to render sub/superscripts
   inTex: boolean;                       // when generating TeX ($...$), suppress markdown formatting and prefer TeX-safe output
+  now: Date | null;                     // current time for resolving relative timestamps, etc.
 };
 
 export const DefaultToMdContext: ToMdContext = {
@@ -94,6 +95,7 @@ export const DefaultToMdContext: ToMdContext = {
   prettyTables: false,
   subSupMode: 'html',
   inTex: false,
+  now: null,
 };
 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {

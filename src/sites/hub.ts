@@ -384,7 +384,8 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   }
   if (node.matches('relative-time')) {
     const dt = node.getAttribute('datetime');
-    return { md: dt ? formatDateWithRelative(dt) : (node.textContent?.trim() ?? '') };
+    const now = _ctx.now ?? undefined;
+    return { md: dt ? formatDateWithRelative(dt, { now }) : (node.textContent?.trim() ?? '') };
   }
 
   // GitHub code table (line-numbered snippet)

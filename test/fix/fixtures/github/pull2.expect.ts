@@ -32,5 +32,5 @@ export default {
     const ids = r.posts.map((p) => p.postId ?? '');
     expect(ids.some((id) => id.startsWith('pullrequestreview-'))).toBe(true);
   },
-  now: new Date('2025-03-03T00:00:00Z'),
+  now: new Date('2026-03-03T00:00:00Z'),
 } satisfies HubSidecar;

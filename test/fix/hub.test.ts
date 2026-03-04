@@ -20,7 +20,7 @@ describe('github: extractFromDoc', () => {
   for (const f of allCases) {
     it(f.name, async () => {
       if (f.test) await f.test(f.dom);
-      const r = extractFromDoc(f.dom);
+      const r = extractFromDoc(f.dom, { md: { now: f.now }, html: {} });
       expect(r).toBeDefined();
       if (!r) return; // for TS
       const e = f.expect;
