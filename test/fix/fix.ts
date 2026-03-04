@@ -7,6 +7,7 @@ export type BaseSidecar<TExpect> = {
   baseUrl: string;
   expect: TExpect;
   test?: (dom: Document) => void | Promise<void>;
+  now?: Date; // for time-sensitive tests, passed to getCopyText as "now"
 };
 
 export type FixtureCase<TExpect> = BaseSidecar<TExpect> & {
@@ -15,6 +16,7 @@ export type FixtureCase<TExpect> = BaseSidecar<TExpect> & {
   htmlPath: string;      // absolute html path
   html: string;          // file contents
   dom: Document;         // parsed DOM
+  specMd?: string;       // optional markdown spec (from *.spec.md)
 };
 
 export function readHtmlFile(fullPath: string, { baseUrl = 'https://example.com' } = {}): Document {
@@ -48,11 +50,15 @@ export async function loadFixtures<TExpect>(rootDir: string): Promise<FixtureCas
     const html = fs.readFileSync(htmlPath, 'utf8');
     const dom = readHtmlFile(htmlPath, { baseUrl: meta.baseUrl });
 
+    const specMdPath = path.join(path.dirname(htmlPath), `${name}.spec.md`);
+    const specMd = fs.existsSync(specMdPath) ? fs.readFileSync(specMdPath, 'utf8') : undefined;
+
     cases.push({
-      name, sidePath, htmlPath, html, dom,
+      name, sidePath, htmlPath, html, dom, specMd,
       baseUrl: meta.baseUrl,
       expect: meta.expect,
       test: meta.test,
+      now: meta.now,
     });
 
   }

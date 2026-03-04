@@ -106,8 +106,8 @@ const ghTable: GhTable  = {
       // { sel: 'react-app[initial-path]', attr: 'initial-path' }, // unverified
     ],
     title: [
-      { sel: 'h1.gh-header-title > bdi.markdown-title', attr: 'textContent' },
       { sel: 'head > title', attr: 'textContent' },
+      { sel: 'h1.gh-header-title > bdi.markdown-title', attr: 'textContent' },
     ],
     firstPost_author: [
     ],
@@ -740,22 +740,45 @@ function buildPostView(post: Post, viewMode: 'html' | 'md', targetDoc: Document)
   return h('div', { class: mode.class }, bodyDiv, contribLine(post));
 }
 
-function contribLine(p: Post): string {
-  const a = p.contributor?.author ?? 'unknown';
+function contribLine(p: Post, now?: Date): string {
+  const author = p.contributor?.author ?? 'unknown';
   const t = p.contributor?.timestamp ?? null;
   // const edited = p.contributor?.editor ? `; edited by ${p.contributor.editor}` : '';
   const edited = ''; // Omitted for now (seems unnecessary clutter)
-  const when = t ? formatDateWithRelative(t) : 'unknown time';
-  return `[[ ${a} on ${when}${edited} ]]`;
+  const when = t ? ` on ${formatDateWithRelative(t, { now })}` : '';
+  return `[[ ${author}${when}${edited} ]]`;
+}
+
+export function getCopyText(pageData: HubResult, postIdx: number, now?: Date): string {
+  const allPosts = pageData.posts;
+  const isAll = postIdx === -1;
+  const copyArr: string[] = [];
+
+  const url = isAll ? pageData.permalink : allPosts[postIdx].postId ? `${pageData.permalink}#${allPosts[postIdx].postId}` : pageData.permalink;
+  if (isAll) copyArr.push('<!-- Extractlet · GitHub -->');
+  if (pageData.title) copyArr.push(`<!-- ${pageData.title} -->`);
+  if (url) copyArr.push(`<!-- ${url} -->`, '');
+
+  allPosts.forEach((post, idx) => {
+    if (!isAll && idx !== postIdx) return;
+    copyArr.push(''); // postN \n postN+1
+
+    const postType = idx === 0 ? 'Post' : `Comment ${idx}`;
+    const heading = isAll ? `## ${postType}` : `# ${postType}`;
+
+    copyArr.push(heading);
+    copyArr.push((post.bodyMd ?? '').trim());
+
+    const cl = contribLine(post, now);
+    if (cl) copyArr.push('', cl);
+
+    copyArr.push('');
+  });
+
+  return `${copyArr.join('\n').trim()}\n`;
 }
 
 function buildCopyButton(targetDoc: Document, pageData: HubResult, postIdx = -1) {
-  const allPosts = pageData.posts;
-
-  if (postIdx < -1 || postIdx >= allPosts.length) {
-    throw new Error(`Invalid postIdx: ${postIdx}`);
-  }
-
   const isAll = postIdx === -1;
   const isOp = postIdx === 0;
   const isComment = postIdx >= 1;
@@ -770,33 +793,7 @@ function buildCopyButton(targetDoc: Document, pageData: HubResult, postIdx = -1)
     isOp       ? 'Copy post' :
     isComment  ? `Copy comment ${postIdx}` : '';
 
-  const copyArr: string[] = [];
-
-  if (isAll) {
-    copyArr.push('<!-- Extractlet · GitHub -->');
-  }
-
-  if (pageData.title) copyArr.push(`<!-- ${pageData.title} -->`);
-  const url = isAll ? pageData.permalink : allPosts[postIdx].postId ? `${pageData.permalink}#${allPosts[postIdx].postId}` : pageData.permalink;
-  if (url) copyArr.push(`<!-- ${url} -->`, '');
-
-  allPosts.forEach((post, idx) => {
-    if (!isAll && idx !== postIdx) return;
-    copyArr.push(''); // postN \n postN+1
-
-    const postType = idx === 0 ? 'Post' : `Comment ${idx}`;
-    const heading = isAll ? `## ${postType}` : `# ${postType}`;
-
-    copyArr.push(heading);
-    copyArr.push((post.bodyMd ?? '').trim());
-
-    const cl = contribLine(post);
-    if (cl) copyArr.push('', cl);
-
-    copyArr.push('');
-  });
-
-  const copyTxt = `${copyArr.join('\n').trim()}\n`;
+  const copyTxt = getCopyText(pageData, postIdx);
   return createCopyButton(() => copyTxt, () => responseTxt, () => hintTxt, { doc: targetDoc });
 }
 

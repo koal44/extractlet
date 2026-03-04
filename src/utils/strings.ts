@@ -164,7 +164,10 @@ export function isLabelGeneric(label?: string): boolean {
   // return isLabelRedundant(content, reference);
 }
 
-export function formatDateWithRelative(iso?: string | null, opts?: { utc?: boolean; }): string {
+export function formatDateWithRelative(
+  iso?: string | null,
+  opts?: { utc?: boolean; now?: Date; },
+): string {
   if (!iso) return 'unknown-date';
 
   const d = new Date(iso);
@@ -172,6 +175,7 @@ export function formatDateWithRelative(iso?: string | null, opts?: { utc?: boole
   if (Number.isNaN(t)) return 'invalid-date';
 
   const utc = opts?.utc ?? false;
+  const nowMs = opts?.now?.getTime() ?? Date.now();
 
   const pad = (n: number) => String(n).padStart(2, '0');
   const y = utc ? d.getUTCFullYear() : d.getFullYear();
@@ -179,7 +183,7 @@ export function formatDateWithRelative(iso?: string | null, opts?: { utc?: boole
   const day = utc ? d.getUTCDate() : d.getDate();
   const ymd = `${y}-${pad(m)}-${pad(day)}`;
 
-  const diffMs = Date.now() - t;  // positive => past
+  const diffMs = nowMs - t;  // positive => past
   const absMs = Math.abs(diffMs);
 
   const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
