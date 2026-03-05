@@ -2,13 +2,27 @@ import browser from 'webextension-polyfill';
 import { repr, warn } from './utils/logging';
 import { type XletSnapshot, isXletSnapshot } from './extractlet';
 import { isError } from './utils/typing';
+import { loadSettings } from './settings';
 
 export const SNAPSHOT_KEY_PREFIX = 'xlet:snap:';
 const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_SNAPSHOT_ENTRIES = 10;
+const MEMORY_SNAPSHOT_TTL_MS = 60_000;
+const MAX_MEMORY_SNAPSHOTS = 3;
+const memorySnapshots = new Map<string, XletSnapshot>();
 
 export async function tryStoreSnapshot(uuid: string, msg: XletSnapshot): Promise<boolean> {
   const key = `${SNAPSHOT_KEY_PREFIX}${uuid}`;
+
+  const settings = await loadSettings();
+  const useStorage = settings.useStorage;
+
+  if (!useStorage) {
+    pruneStaleMemory();
+    memorySnapshots.set(uuid, msg);
+    return true;
+  }
+
   await pruneStaleStorage();
 
   try {
@@ -58,7 +72,32 @@ async function pruneStaleStorage() {
   }
 }
 
+function pruneStaleMemory() {
+  const now = Date.now();
+
+  for (const [uuid, snap] of memorySnapshots.entries()) {
+    if (now - snap.timestamp > MEMORY_SNAPSHOT_TTL_MS) {
+      memorySnapshots.delete(uuid);
+    }
+  }
+
+  while (memorySnapshots.size > MAX_MEMORY_SNAPSHOTS) {
+    const oldest = [...memorySnapshots.entries()]
+      .reduce((a, b) => a[1].timestamp < b[1].timestamp ? a : b)[0];
+    memorySnapshots.delete(oldest);
+  }
+}
+
 export async function loadSnapshot(uuid: string): Promise<XletSnapshot | null> {
+  const settings = await loadSettings();
+  const useStorage = settings.useStorage;
+
+  if (!useStorage) {
+    const snap = memorySnapshots.get(uuid);
+    if (snap) memorySnapshots.delete(uuid);
+    return snap ?? null;
+  }
+
   const key = `${SNAPSHOT_KEY_PREFIX}${uuid}`;
   const data = await browser.storage.local.get(key);
   const raw = data[key];

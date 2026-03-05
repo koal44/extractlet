@@ -1,6 +1,6 @@
 import browser from 'webextension-polyfill';
 import { isXletContentMsg } from './extractlet';
-import { tryStoreSnapshot } from './snapshot-store';
+import { loadSnapshot, tryStoreSnapshot } from './snapshot-store';
 import { repr } from './utils/logging';
 import { toKebabCase } from './utils/strings';
 
@@ -66,6 +66,11 @@ browser.runtime.onMessage.addListener(async (msg: unknown, sender: browser.Runti
       }
       await disableIcon(sender.tab);
       return;
+    }
+
+    case 'loadSnapshot': {
+      const snap = loadSnapshot(msg.uuid);
+      return snap;
     }
 
     default:

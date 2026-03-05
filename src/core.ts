@@ -41,10 +41,12 @@ export const DefaultToHtmlContext: ToHtmlContext = {
 
 export type GeneralContext = {
   fetchMissingContent: boolean;
+  useStorage: boolean;
 };
 
 export const DefaultGeneralContext: GeneralContext = {
   fetchMissingContent: true,
+  useStorage: true,
 };
 
 type GlueMode = 'block' | 'list' | 'listItem' | 'inline';

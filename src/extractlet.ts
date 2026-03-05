@@ -44,7 +44,7 @@ export function isXletSnapshot(msg: unknown): msg is XletSnapshot {
   return true;
 }
 
-const _msgTypes = ['xlet-snapshot', 'unsupported-page'] as const;
+const _msgTypes = ['xlet-snapshot', 'unsupported-page', 'loadSnapshot'] as const;
 export type XletMsgType = typeof _msgTypes[number];
 type MsgType<T extends XletMsgType> = T
 
@@ -80,9 +80,26 @@ function isUnsupportedPageMsg(msg: unknown): msg is UnsupportedPageMsg {
   return true;
 }
 
+export type LoadSnapshotMsg = {
+  type: MsgType<'loadSnapshot'>;
+  uuid: string;
+}
+
+function isloadSnapshotMsg(msg: unknown): msg is LoadSnapshotMsg {
+  if (!hasOfType(msg, 'type', (v): v is MsgType<'loadSnapshot'> => v === 'loadSnapshot')) {
+    return warn(false, `[xlet:msg] Message.type is invalid: ${repr(msg)}`);
+  }
+  if (!hasOfType(msg, 'uuid', isString)) {
+    return warn(false, `[xlet:msg] LoadSnapshotMsg.uuid is not a string: ${repr(msg)}`);
+  }
+  msg satisfies LoadSnapshotMsg;
+  return true;
+}
+
 export type XletContentMsg =
   | XletSnapshotMsg
-  | UnsupportedPageMsg;
+  | UnsupportedPageMsg
+  | LoadSnapshotMsg;
 
 export function isXletMsgType(v: unknown): v is XletMsgType {
   return isString(v) && _msgTypes.includes(v as XletMsgType);
@@ -99,6 +116,9 @@ export function isXletContentMsg(msg: unknown): msg is XletContentMsg {
       break;
     case 'unsupported-page':
       if (!isUnsupportedPageMsg(msg)) return false;
+      break;
+    case 'loadSnapshot':
+      if (!isloadSnapshotMsg(msg)) return false;
       break;
     default:
       throw new Error(`unhandled message type: ${(String(msg.type satisfies never))}`);

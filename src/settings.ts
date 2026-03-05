@@ -74,7 +74,7 @@ export const XLET_SETTINGS = {
     settingLabel: 'Math delimiters',
     ctx: 'markdown',
     preview: {
-      content: () => '<mjx-container class="MathJax" data-xlet-tex="ax^2 + bx + c = 0" display="true" data-xlet-mathml="boo!"></mjx-container>',
+      content: () => '<mjx-container class="MathJax" data-xlet-tex="ax^2 + bx + c = 0" display="true" data-xlet-mathml="&lt;math&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/math&gt;"></mjx-container>',
     },
   }),
   brMode: stringSpec({
@@ -140,6 +140,37 @@ export const XLET_SETTINGS = {
       },
     },
     fallback: DefaultGeneralContext.fetchMissingContent,
+  }),
+  useStorage: boolSpec({
+    values: [false, true] as const,
+    valueLabels: ['Forbid', 'Allow'] as const,
+    settingLabel: 'Use local storage',
+    ctx: 'general',
+    preview: {
+      label: 'Info',
+      content: () => `
+        <div class="storage-info">
+          <table><tbody>
+            <tr><td>User settings</td><td data-storage-settings-status>✓</td></tr>
+            <tr><td>Page snapshots</td><td data-storage-snapshots-status>—</td></tr>
+          </tbody></table>
+        </div>`,
+      wire: (root, contexts) => {
+        const enabled = contexts.general?.useStorage !== false;
+        const statusVal = enabled ? '✓' : '✗';
+
+        // Explicitly always enabled (this toggle does not govern settings persistence)
+        root.querySelectorAll<HTMLElement>('[data-storage-settings-status]').forEach((el) => {
+          el.textContent = '✓';
+        });
+
+        // Governed by the useStorage setting
+        root.querySelectorAll<HTMLElement>('[data-storage-snapshots-status]').forEach((el) => {
+          el.textContent = statusVal;
+        });
+      },
+    },
+    fallback: DefaultGeneralContext.useStorage,
   }),
 } as const satisfies Partial<Record<AllowedSettingKey, SettingSpec>>;
 
@@ -222,6 +253,7 @@ export function settingsToContexts(settings: Partial<XletSettings>): XletContext
 
       // general settings
       case 'fetchMissingContent': genCtx.fetchMissingContent = val as boolean; break;
+      case 'useStorage': genCtx.useStorage = val as boolean; break;
 
       // no default case
       default: throw new Error(`[xlet:settings] Unhandled setting key "${String(key satisfies never)}"`);

@@ -1,7 +1,9 @@
-import { loadSnapshot } from './snapshot-store';
+import browser from 'webextension-polyfill';
+// import { loadSnapshot } from './snapshot-store';
 import { loadSettings, observeSettings, settingsToContexts, type XletContexts } from './settings';
 import { repr } from './utils/logging';
 import { h } from './utils/dom';
+import { isXletSnapshot } from './extractlet';
 
 export type PageState = {
   viewIdx: number;
@@ -57,7 +59,13 @@ export async function loadResultsPage(
     return console.warn('[xlet:snap-loader] No UUID provided in URL');
   }
 
-  const msg = await loadSnapshot(uuid);
+  const snap = await browser.runtime.sendMessage({
+    type: 'loadSnapshot',
+    uuid,
+  });
+  const msg = isXletSnapshot(snap) ? snap : null;
+
+  // const msg = await loadSnapshot(uuid);
   if (!msg) {
     return console.warn(`[xlet:snap-loader] No snapshot found in storage for UUID "${uuid}"`);
   }
