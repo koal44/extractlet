@@ -822,7 +822,7 @@ export const createPage: CreatePage = async (
   type ViewKey = keyof typeof views;
   const viewKeys: ViewKey[] = Object.keys(views) as ViewKey[];
 
-  let currentSectionNum: number | null = null;
+  let sectionNum: number | null = null;
   let currentView = viewKeys[state.viewIdx];
 
   const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · Wiki');
@@ -842,51 +842,23 @@ export const createPage: CreatePage = async (
     labels: viewKeys.map((vk) => views[vk].label),
     labelSide: 'right',
     onToggle: (newIdx) => {
-      state.viewIdx = newIdx;
-      const prevView = views[currentView];
-      currentView = viewKeys[newIdx];
-
-      // Determine visible section in previous view
+      // Find the section closest to somewhere near the toggle bar
       const toggleBar = targetDoc.querySelector<HTMLElement>('.view-toggle');
       if (!toggleBar) return console.warn('[xlet:wiki-toggle] .view-toggle not found: UI may not be fully rendered');
-
       const focusLine = toggleBar.getBoundingClientRect().bottom + 10;
 
-      const headings = targetDoc.querySelectorAll(`.${prevView.observeClass}`);
-      if (headings.length === 0) return console.warn(`[xlet:wiki-toggle] No headings found with class ${prevView.observeClass}. View state: ${currentView}.`);
-
-      let bestHeading: HTMLElement | null = null;
-      let bestDelta = Infinity;
-
-      for (const el of headings) {
-        const rect = el.getBoundingClientRect();
-        const delta = Math.abs(focusLine - rect.top);
-        if (delta < bestDelta) {
-          bestHeading = el as HTMLElement;
-          bestDelta = delta;
-        }
-      }
-
-      if (!bestHeading) return console.warn('[xlet:wiki-toggle] No bestHeading found despite non-empty headings list. Possible DOM error.');
-      const titlebar = bestHeading.parentElement;
-      if (!titlebar || !isDiv(titlebar)) return console.warn('[xlet:wiki-toggle] Best heading\'s parent is not a div. Possible DOM structure change.');
-      const sectionDiv = titlebar.parentElement;
-      if (!sectionDiv || !isDiv(sectionDiv)) return console.warn('[xlet:wiki-toggle] Best heading\'s grandparent is not a div. Possible DOM structure change.');
-      const activeSectionNum = sectionDiv.id.match(/-(\d+)$/)?.[1];
-      if (!activeSectionNum) return console.warn('[xlet:wiki-toggle] Active section number not found in sectionDiv ID:', sectionDiv.id, sectionDiv);
-      const mainContainer = targetDoc.querySelector<HTMLElement>(`.${prevView.containerClass}`);
-      if (!mainContainer) return console.warn(`[xlet:wiki-toggle] Main container not found with class ${prevView.containerClass}. Possible DOM structure change.`);
-      const isPreambleActive = mainContainer.getBoundingClientRect().top > focusLine;
-      currentSectionNum = !isPreambleActive ? +activeSectionNum : null;
+      sectionNum = findClosestSection(currentView, focusLine);
 
       // Switch view
+      state.viewIdx = newIdx;
+      currentView = viewKeys[newIdx];
       const nextView = views[currentView];
       root.classList.remove(...viewKeys.map((vk) => views[vk].showClass));
       root.classList.add(nextView.showClass);
 
       // Scroll to equivalent section
-      if (currentSectionNum !== null) {
-        const targetId = `${nextView.idPrefix}${currentSectionNum}`;
+      if (sectionNum !== null) {
+        const targetId = `${nextView.idPrefix}${sectionNum}`;
         const targetEl = targetDoc.getElementById(targetId);
         if (targetEl) {
           const sectionTop = targetEl.getBoundingClientRect().top;
@@ -896,6 +868,37 @@ export const createPage: CreatePage = async (
       }
     },
   });
+
+  function findClosestSection(view: ViewKey, focusLine: number): number | null {
+    const prevView = views[view];
+    const headings = targetDoc.querySelectorAll(`.${prevView.observeClass}`);
+    if (headings.length === 0) return null; // warn(null, `[xlet:wiki-toggle] No headings found with class ${prevView.observeClass}. View state: ${currentView}.`);
+
+    let bestHeading: HTMLElement | null = null;
+    let bestDelta = Infinity;
+
+    for (const el of headings) {
+      const rect = el.getBoundingClientRect();
+      const delta = Math.abs(focusLine - rect.top);
+      if (delta < bestDelta) {
+        bestHeading = el as HTMLElement;
+        bestDelta = delta;
+      }
+    }
+
+    if (!bestHeading) return warn(null, '[xlet:wiki-toggle] No bestHeading found despite non-empty headings list. Possible DOM error.');
+    const titlebar = bestHeading.parentElement;
+    if (!titlebar || !isDiv(titlebar)) return warn(null, '[xlet:wiki-toggle] Best heading\'s parent is not a div. Possible DOM structure change.');
+    const sectionDiv = titlebar.parentElement;
+    if (!sectionDiv || !isDiv(sectionDiv)) return warn(null, '[xlet:wiki-toggle] Best heading\'s grandparent is not a div. Possible DOM structure change.');
+    const activeSectionNum = sectionDiv.id.match(/-(\d+)$/)?.[1];
+    if (!activeSectionNum) return warn(null, '[xlet:wiki-toggle] Active section number not found in sectionDiv ID:', sectionDiv.id, sectionDiv);
+    const mainContainer = targetDoc.querySelector<HTMLElement>(`.${prevView.containerClass}`);
+    if (!mainContainer) return warn(null, `[xlet:wiki-toggle] Main container not found with class ${prevView.containerClass}. Possible DOM structure change.`);
+    const isPreambleActive = mainContainer.getBoundingClientRect().top > focusLine;
+    sectionNum = !isPreambleActive ? +activeSectionNum : null;
+    return sectionNum;
+  }
 
   attachStickyHeader(root, viewToggle);
 
