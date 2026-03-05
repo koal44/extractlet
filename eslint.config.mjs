@@ -135,6 +135,14 @@ export default tseslint.config(
           selector: 'CallExpression[callee.property.name="toggleAttribute"]',
           message: '[DOM-NORMALIZE] Avoid Element#toggleAttribute(). Use the normalization helpers from normalize.ts instead.',
         },
+        {
+          selector: 'CallExpression[callee.type="Identifier"][callee.name="fetch"]',
+          message: '[XLET-FETCH] Avoid direct fetch() in site/extraction code. Use `safeFetch` so fetchMissingContent policy can be enforced.',
+        },
+        {
+          selector: 'CallExpression[callee.type="MemberExpression"][callee.property.name="fetch"]',
+          message: '[XLET-FETCH] Avoid direct *.fetch() in site/extraction code. Use `safeFetch` helper so fetchMissingContent policy can be enforced.',
+        },
       ],
     },
   },

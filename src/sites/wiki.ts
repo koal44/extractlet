@@ -39,7 +39,7 @@
 
 
 import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandler } from '../core';
-import { toHtml as _toHtml, toMd as _toMd } from '../core';
+import { toHtml as _toHtml, toMd as _toMd, safeFetch } from '../core';
 import { frameMath, mathReprToHtml, mathReprToMd, normalizeTex, type MathRepr } from '../math-vendor';
 import type { XletContexts } from '../settings';
 import type { CreatePage } from '../snapshot-loader';
@@ -556,9 +556,10 @@ export function parseRawIntoSections(rawText: string): {level: number; sectionNu
 
 export function populateWikiNodeWithRaw(
   root: WikiNode,
-  rawText: string,
+  rawText: string | undefined,
   opts: { similarityFn?: (a: string, b: string) => number; } = {}
 ) {
+  if (!rawText) return; // nothing to populate
   const similarityFn = opts.similarityFn || jaroWinklerSimilarity;
   const nodes = [...root];
   const sections = parseRawIntoSections(rawText);
@@ -701,7 +702,7 @@ export function normalizeWikitext(raw: string): string {
   return raw.trim();
 }
 
-async function fetchRawPage(rawUrl: string): Promise<string> {
+async function fetchRawPage(rawUrl: string, ctxs?: XletContexts): Promise<string | undefined> {
   // override for local testing
   if (location.protocol === 'file:' && typeof window['exampleRaw'] === 'string') {
     log('[fetchRawPage] Using local override for exampleRaw');
@@ -709,7 +710,11 @@ async function fetchRawPage(rawUrl: string): Promise<string> {
   }
 
   try {
-    const res = await fetch(rawUrl);
+    const res = await safeFetch(rawUrl, ctxs);
+    if (!res) {
+      // blocked by settings (fetchMissingContent = false)
+      return undefined;
+    }
     if (!res.ok) {
       return warn('', `[xlet:wik-fetch] HTTP ${res.status} for "${rawUrl}"`);
     }
@@ -776,7 +781,7 @@ export const createPage: CreatePage = async (
 
   // --- fetch raw wikitext and add it to the tree ---
   if (!state.rawText) {
-    state.rawText = await fetchRawPage(rawUrl);
+    state.rawText = await fetchRawPage(rawUrl, ctxs);
   }
   populateWikiNodeWithRaw(tree, state.rawText);
 
@@ -808,7 +813,7 @@ export const createPage: CreatePage = async (
       idPrefix: 'raw-section-',
       observeClass: 'raw-wikinode-title',
       containerClass: 'raw-view',
-      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${[...tree].map((n) => n.raw).join('\n\n')}`,
+      getCopyAllText: () => !state.rawText ? '' : `${getCopyPreamble(baseUrl)}\n\n${[...tree].map((n) => n.raw).join('\n\n')}`,
       getCopyAllResponse: () => 'Copied all sections as Wikitext!',
       getCopyAllHint: () => 'Copy all sections as Wikitext',
     },
@@ -897,7 +902,10 @@ export const createPage: CreatePage = async (
   // --- Render views ---
   const html = h('div', { class: 'html-view' }, renderHtml(tree));
   const md = h('div', { class: 'md-view' }, renderMd(tree));
-  const raw = h('div', { class: 'raw-view' }, renderRaw(tree));
+  const rawUnavailableMsg = `Raw wikitext view is unavailable${ctxs?.general?.fetchMissingContent === false ? ' due to fetch settings' : ''}.`;
+  const raw = state.rawText
+    ? h('div', { class: 'raw-view' }, renderRaw(tree))
+    : h('div', { class: 'raw-view' }, h('p', {}, rawUnavailableMsg));
   const contentBox = h('div', { class: 'content-box' }, html, md, raw);
   root.appendChild(contentBox);
   viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present

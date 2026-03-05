@@ -1,21 +1,22 @@
 import browser from 'webextension-polyfill';
 import type {
   BrMode, MathFenceStyle, MathView, SubSupMode,
-  ToMdContext, ToHtmlContext,
+  ToMdContext, ToHtmlContext, GeneralContext,
 } from './core';
-import { DefaultToHtmlContext, DefaultToMdContext } from './core';
+import { DefaultToHtmlContext, DefaultToMdContext, DefaultGeneralContext } from './core';
 import type { Permutations } from './utils/typing';
 import { isBoolean, isString } from './utils/typing';
 import { warn } from './utils/logging';
 import { type HAttrs } from './utils/dom';
 
 type SpecValueType = string | boolean | number;
-type ContextKind = 'markdown' | 'html';
+type ContextKind = 'markdown' | 'html' | 'general';
 
 type Preview = {
-  content: (() => Promise<string>) | (() => string);
+  content: () => string | Node | Promise<string | Node>;
   wire?: (root: HTMLElement, contexts: XletContexts) => void;
   attrs?: HAttrs;
+  label?: 'Preview' | 'Info';
 };
 
 type BoolSettingSpec = {
@@ -40,7 +41,10 @@ type StringSettingSpec = {
 
 type SettingSpec = BoolSettingSpec | StringSettingSpec;
 
-type AllowedSettingKey = keyof typeof DefaultToMdContext | keyof typeof DefaultToHtmlContext;
+type AllowedSettingKey =
+  keyof typeof DefaultToMdContext |
+  keyof typeof DefaultToHtmlContext |
+  keyof typeof DefaultGeneralContext;
 
 export const XLET_SETTINGS = {
   filterRedundantLabels: boolSpec({
@@ -114,6 +118,29 @@ export const XLET_SETTINGS = {
       content: () => loadSnippet('mathview-preview.html'),
     },
   }),
+  fetchMissingContent: boolSpec({
+    values: [false, true] as const,
+    valueLabels: ['Forbid', 'Allow'] as const,
+    settingLabel: 'Fetch missing content',
+    ctx: 'general',
+    preview: {
+      label: 'Info',
+      content: () => `
+        <div class="fetch-info">
+          <table><tbody>
+            <tr><td>WikiText</td><td data-fetch-status>—</td></tr>
+          </tbody></table>
+        </div>`,
+      wire: (root, contexts) => {
+        const enabled = contexts.general?.fetchMissingContent !== false;
+        const statusVal = enabled ? '✓' : '✗'; // ✓/✗, ✔/✖, 🟢/🔴, ✅/❌, Allowed/Blocked
+        root.querySelectorAll<HTMLElement>('[data-fetch-status]').forEach((el) => {
+          el.textContent = statusVal;
+        });
+      },
+    },
+    fallback: DefaultGeneralContext.fetchMissingContent,
+  }),
 } as const satisfies Partial<Record<AllowedSettingKey, SettingSpec>>;
 
 async function loadSnippet(name: string): Promise<string> {
@@ -168,8 +195,14 @@ function coerceSetting(key: XletSettingKey, val: unknown) {
   return XLET_SETTINGS[key].coerce(val);
 }
 
-export type XletContexts = { md: Partial<ToMdContext>; html: Partial<ToHtmlContext>; };
+export type XletContexts = {
+  md?: Partial<ToMdContext>;
+  html?: Partial<ToHtmlContext>;
+  general?: Partial<GeneralContext>;
+};
+
 export function settingsToContexts(settings: Partial<XletSettings>): XletContexts {
+  const genCtx: Partial<GeneralContext> = {};
   const mdCtx: Partial<ToMdContext> = {};
   const htmlCtx: Partial<ToHtmlContext> = {};
   for (const [key, optVal] of Object.entries(settings) as [XletSettingKey, SpecValueType][]) {
@@ -186,10 +219,15 @@ export function settingsToContexts(settings: Partial<XletSettings>): XletContext
 
       // html settings
       case 'mathView': htmlCtx.mathView = val as MathView; break;
-      default: throw new Error(`[xlet:settings] Unhandled markdown setting key "${String(key satisfies never)}"`);
+
+      // general settings
+      case 'fetchMissingContent': genCtx.fetchMissingContent = val as boolean; break;
+
+      // no default case
+      default: throw new Error(`[xlet:settings] Unhandled setting key "${String(key satisfies never)}"`);
     }
   }
-  return { md: mdCtx, html: htmlCtx };
+  return { md: mdCtx, html: htmlCtx, general: genCtx };
 }
 
 const areas: Partial<Record<'local' | 'sync' | 'managed', browser.Storage.StorageArea>> = {

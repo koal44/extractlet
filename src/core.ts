@@ -12,6 +12,7 @@ import {
 import {
   alphaLabel, filterGenericLabel, isLabelGeneric, isLabelRedundant, sanitizeMdLinks as sanitizeMdLinkUrl, toPascalCase,
 } from './utils/strings.js';
+import type { XletContexts } from './settings.js';
 
 void log; // lint hack
 void nodeName; // lint hack
@@ -36,6 +37,14 @@ export const DefaultToHtmlContext: ToHtmlContext = {
   allowStyles: false,
   mathView: 'tex',
   isRoot: true,
+};
+
+export type GeneralContext = {
+  fetchMissingContent: boolean;
+};
+
+export const DefaultGeneralContext: GeneralContext = {
+  fetchMissingContent: true,
 };
 
 type GlueMode = 'block' | 'list' | 'listItem' | 'inline';
@@ -918,3 +927,12 @@ function frameMd(md: string, glueMode: GlueMode, fcx: ToMdContext ): string {
   if (trimEnd) out = out.trimEnd();
   return out ? `${prefix}${out}${suffix}` : '';
 };
+
+/**
+ * Policy-aware fetch for site extraction code.
+ */
+export async function safeFetch(input: RequestInfo | URL, ctxs?: XletContexts, init?: RequestInit): Promise<Response | undefined> {
+  const fetchMissing = ctxs?.general?.fetchMissingContent ?? DefaultGeneralContext.fetchMissingContent;
+  if (!fetchMissing) return undefined;
+  return fetch(input, init);
+}

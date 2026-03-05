@@ -107,6 +107,16 @@
       margin-bottom: 0.5rem;
       justify-content: unset;
     }
+
+    .fetch-info table {
+      width: 80%;
+      table-layout: fixed;
+      margin-inline: auto;
+    }
+    .fetch-info td:last-child {
+      width: 40px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -130,6 +140,11 @@
       <!-- Middle: Form (JS populates into the section containers) -->
       <form id="settings-form" novalidate>
         <fieldset class="sticky-fs">
+          <legend><span>General options</span></legend>
+          <div id="general-settings" class="settings-group"></div>
+        </fieldset>
+
+        <fieldset class="sticky-fs">
           <legend><span>Markdown options</span></legend>
           <div id="md-settings" class="settings-group"></div>
         </fieldset>
@@ -143,7 +158,7 @@
       <!-- Right: Preview -->
       <aside class="settings-sidebar preview" aria-label="Preview of settings effect">
         <fieldset class="sticky-fs" role="group" aria-labelledby="preview-legend">
-          <legend id="preview-legend"><span>Preview</span></legend>
+          <legend id="preview-legend"><span id="preview-label">Preview</span></legend>
           <div id="preview-box"></div>
         </fieldset>
       </aside>

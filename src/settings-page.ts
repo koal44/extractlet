@@ -98,12 +98,27 @@ async function showPreview(key: XletSettingKey, row: HTMLElement) {
   if (!previewBox) return console.warn('[xlet:opt] Preview box not found');
   previewBox.innerHTML = '';
 
+  const label = document.querySelector<HTMLElement>('#preview-label');
+  if (label) label.textContent = spec.preview.label ?? 'Preview';
+
   const contexts = settingsToContexts(_settings);
-  const previewNode = htmlToElement(await spec.preview.content(), document);
-  if (!previewNode) return console.warn(`[xlet:opt] Failed to parse preview for key "${String(key)}"`);
+
+  const rawPreview = await spec.preview.content();
+  let previewNode: Node;
+  if (typeof rawPreview === 'string') {
+    const el = htmlToElement(rawPreview, document);
+    if (!el) return console.warn(`[xlet:opt] Failed to parse preview HTML for key "${String(key)}"`);
+    previewNode = el;
+  } else {
+    previewNode = rawPreview.cloneNode(true);
+  }
 
   let previewEl: HTMLElement;
   switch (spec.ctx) {
+    case 'general': {
+      previewEl = h('div', { class: 'html-view', ...spec.preview.attrs }, previewNode);
+      break;
+    }
     case 'html': {
       previewEl = h('div', { class: 'html-view', ...spec.preview.attrs }, toHtml(previewNode, contexts.html));
       break;
@@ -119,9 +134,11 @@ async function showPreview(key: XletSettingKey, row: HTMLElement) {
 }
 
 async function initForm(form: HTMLFormElement) {
+  const generalContainer = form.querySelector<HTMLElement>('#general-settings');
   const mdContainer = form.querySelector<HTMLElement>('#md-settings');
   const htmlContainer = form.querySelector<HTMLElement>('#html-settings');
-  if (!mdContainer || !htmlContainer) return console.warn('[xlet:opt] Settings containers not found');
+  if (!mdContainer || !htmlContainer || !generalContainer) return console.warn('[xlet:opt] Settings containers not found');
+  generalContainer.innerHTML = '';
   mdContainer.innerHTML = '';
   htmlContainer.innerHTML = '';
 
@@ -129,6 +146,7 @@ async function initForm(form: HTMLFormElement) {
   for (const key of Object.keys(XLET_SETTINGS) as XletSettingKey[]) {
     const spec = XLET_SETTINGS[key];
     switch (spec.ctx) {
+      case 'general': appendSettingRow(generalContainer, key, _settings[key]); break;
       case 'markdown': appendSettingRow(mdContainer, key, _settings[key]); break;
       case 'html': appendSettingRow(htmlContainer, key, _settings[key]); break;
       default: throw new Error(`Unknown setting ctx for key "${String(spec.ctx satisfies never)}"`);
