@@ -1,4 +1,4 @@
-import { isDoc, isElement, isNode, isNodeList } from './dom';
+import { isAttr, isDoc, isElement, isNode, isNodeList } from './dom';
 import {
   isArray, isBigInt, isBoolean, isDate, isError, isErrorEvent, isEvent,
   isFunction, isMap, isNumber, isObjectRecord, isPromise, isRegExp,
@@ -118,6 +118,9 @@ export function repr(obj: unknown, max = 80): string {
       out = obj.nodeType === Node.COMMENT_NODE
         ? 'CommentNode'
         : `[${obj.nodeName} type=${obj.nodeType}]`;
+    }
+    else if (isAttr(obj)) {
+      out = `@${obj.name}=${JSON.stringify(obj.value)}`;
     }
     else if (isObjectRecord(obj)) {
       const ctor = obj.constructor.name;

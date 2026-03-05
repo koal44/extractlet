@@ -56,26 +56,17 @@ export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(html: stri
 export function htmlToElementK(
   html: string, tag: string, windowDoc: Document = document
 ): Element | null {
-  if (!windowDoc.defaultView) {
-    console.warn(null, `[xlet] htmlToElementK(): provided document has no defaultView`);
-    return null;
-  }
 
-  const purify = DOMPurify(windowDoc.defaultView);
-  const cleanHtml = purify.sanitize(html.trim(), { RETURN_DOM: true });
-  if (!isHTML(cleanHtml) || cleanHtml.childElementCount !== 1) {
-    // return warn(null, `[xlet] html must contain exactly one element: ${html.slice(0, 1000)}`);
-    return null;
-  }
-  const el = cleanHtml.firstElementChild;
+  const el = htmlToElement(html, windowDoc);
+  if (!el) return null;
 
   const expectedTag =
     tag.startsWith('math:') ? tag.slice(5) :
     tag.startsWith('svg:') ? tag.slice(4) :
     tag;
 
-  if (el?.tagName.toLowerCase() !== expectedTag.toLowerCase()) {
-    // warn(null, `[xlet] No element found for tag ${tag} in HTML: ${html.slice(0, 1000)}`);
+  if (el.tagName.toLowerCase() !== expectedTag.toLowerCase()) {
+    console.warn(`[xlet] htmlToElementK(): expected root <${expectedTag}>, got <${el.tagName.toLowerCase()}>: ${html.slice(0, 1000)}`);
     return null;
   }
   return el;
@@ -89,13 +80,88 @@ export function htmlToElement(str?: string, targetDoc: Document = document): Ele
   }
 
   const purify = DOMPurify(targetDoc.defaultView);
-  const cleanHtml = purify.sanitize(str.trim(), { RETURN_DOM: true });
+
+  // <use> is white-listed so guard against XSS via its href attributes with a custom hook
+  purify.addHook('afterSanitizeAttributes', (node) => {
+    if (!(node instanceof Element) || node.tagName.toLowerCase() !== 'use') return;
+    const isSafeUseRef = (v: string | null) => /^#[A-Za-z0-9_-]+$/.test((v ?? '').trim());
+    if (!isSafeUseRef(node.getAttribute('href'))) node.removeAttribute('href');
+    if (!isSafeUseRef(node.getAttribute('xlink:href'))) node.removeAttribute('xlink:href');
+  });
+
+  const allowed = new Map<string, Set<string>>([
+    ['mjx-container', new Set(['jax'])],
+  ]);
+
+  const cleanHtml = purify.sanitize(
+    str.trim(),
+    {
+      RETURN_DOM: true,
+      CUSTOM_ELEMENT_HANDLING: {
+        tagNameCheck: (tagName) =>
+          allowed.has(tagName.toLowerCase()),
+        attributeNameCheck: (attrName, tagName) =>
+          !!tagName && !!allowed.get(tagName.toLowerCase())?.has(attrName.toLowerCase()),
+      },
+      ADD_TAGS: ['use'], // , '#comment'
+      ADD_ATTR: ['xmlns:math', 'xmlns:svg'],
+    }
+  );
+
+  warnPurifyRemoved(purify, str);
+
   if (!isHTML(cleanHtml) || cleanHtml.childElementCount !== 1) {
-    // return warn(null, `[xlet] html must contain exactly one element: ${str.slice(0, 1000)}`);
+    console.warn(`[xlet] htmlToElement(): HTML must contain exactly one element: ${str.slice(0, 1000)}`);
     return null;
   }
+
   return cleanHtml.firstElementChild;
 }
+
+function warnPurifyRemoved(purify: DOMPurify.DOMPurify, html: string): void {
+  const removed = purify.removed.filter((item) => {
+    if ('element' in item && isComment(item.element)) return false;
+
+    if ('attribute' in item) {
+      const name = item.attribute?.name ?? '';
+      const ignoreAttrs = new Set([
+        'columnspacing', 'columnalign', 'focusable', 'ctxtmenu_counter',
+      ]);
+      if (ignoreAttrs.has(name)) return false;
+    }
+
+    return true;
+  });
+
+  if (!removed.length) return;
+
+  const counts = new Map<string, number>();
+
+  const nodeLabel = (node: Node | null | undefined): string => {
+    if (!node) return '(null)';
+    if (node.nodeType === Node.ELEMENT_NODE) return `<${(node as Element).tagName.toLowerCase()}>`;
+    if (node.nodeType === Node.TEXT_NODE) return '#text';
+    if (node.nodeType === Node.COMMENT_NODE) return '#comment';
+    return `#node(${node.nodeType})`;
+  };
+
+  for (const item of removed) {
+    const key = 'attribute' in item
+      ? `attr ${item.attribute?.name ?? '(null-attr)'} from ${nodeLabel(item.from)}`
+      : `element ${nodeLabel(item.element)}`;
+
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  const summary = [...counts.entries()]
+    .map(([k, n]) => (n === 1 ? k : `${k} ×${n}`))
+    .join('; ');
+
+  console.warn(
+    `[xlet] htmlToElement(): removed disallowed content from HTML:\n${summary}\nOriginal HTML: ${html.slice(0, 1000)}`
+  );
+}
+void warnPurifyRemoved; // shush linters
 
 export function injectCss(
   css: string,
@@ -422,4 +488,7 @@ export function isSup(x: unknown): x is HTMLElement {
 }
 export function isSub(x: unknown): x is HTMLElement {
   return isElement(x) && x.tagName.toUpperCase() === 'SUB';
+}
+export function isAttr(x: unknown): x is Attr {
+  return !!x && typeof Attr !== 'undefined' && x instanceof Attr;
 }

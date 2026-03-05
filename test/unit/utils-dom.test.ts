@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test, vi } from 'vitest';
 import { docEl, setupDom } from '../utils/test-utils';
 import { addStyle, h, htmlToElementK } from '../../src/utils/dom';
 
@@ -85,14 +85,20 @@ describe('htmlToElementK', () => {
   });
 
   it('returns null when there is more than one root element', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const html = '<div></div><span></span>';
     const el = htmlToElementK(html, 'div');
     expect(el).toBeNull();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('must contain exactly one element'));
+    warnSpy.mockRestore();
   });
 
   it('returns null when the tag does not match', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const el = htmlToElementK('<span>oops</span>', 'div');
     expect(el).toBeNull();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('expected root <div>'));
+    warnSpy.mockRestore();
   });
 });
 
