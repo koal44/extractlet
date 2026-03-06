@@ -1,10 +1,14 @@
 import type { XletSettingKey, XletSettings } from './settings';
-import { loadSettings, observeSettings, saveSettings, settingsToContexts, XLET_SETTINGS } from './settings';
+import {
+  loadSettings, observeSettings, resetSettings, saveSettings, settingsToContexts,
+  XLET_SETTINGS,
+} from './settings';
 import { createMultiToggle, multiToggleCss, type MultiToggleDiv } from './ui/multi-toggle';
 import { h, htmlToElement, injectCss, isForm } from './utils/dom';
 import { toHtml, toMd } from './core';
 import browser from 'webextension-polyfill';
 import { repr } from './utils/logging';
+import { clearSnapshotStorage, getSnapshotStorageUsage } from './snapshot-store';
 
 let _settings: XletSettings | null = null;
 let _activePreviewKey: XletSettingKey | null = null;
@@ -157,18 +161,34 @@ async function initForm(form: HTMLFormElement) {
 async function initSettingsPage() {
   injectCss(multiToggleCss, { id: 'multi-toggle-css', doc: document });
 
-  // setup form
+  // form
   const form = document.getElementById('settings-form');
   if (!isForm(form)) return console.warn('[xlet:settings] Settings form not found');
   await initForm(form);
 
-  // set app-version
+  // app-version
   const verEl = document.getElementById('app-version');
   if (verEl) {
     const manifest = browser.runtime.getManifest();
     verEl.textContent = manifest.version || '0.0.0';
   }
 
+  // storage usage info/button
+  browser.storage.local.onChanged.addListener(() => { void updateStorageDisplay(); });
+  await updateStorageDisplay();
+  document.getElementById('clear-storage')?.addEventListener('click', async () => {
+    if (!confirm('Clear all snapshots from storage?')) return;
+    await clearSnapshotStorage();
+    await updateStorageDisplay();
+  });
+
+  // reset settings button
+  document.getElementById('reset-settings')?.addEventListener('click', async () => {
+    if (!confirm('Reset all settings to defaults?')) return;
+    await resetSettings();
+  });
+
+  // observe settings changes to update toggles and preview
   observeSettings(async (settings, diff) => {
     _settings = settings;
 
@@ -202,3 +222,19 @@ async function initSettingsPage() {
 void initSettingsPage().catch((err) => {
   console.error(`[xlet:opt] Failed to initialize settings page: ${repr(err)}`);
 });
+
+async function updateStorageDisplay() {
+  const el = document.getElementById('storage-used');
+  if (!el) return;
+
+  const bytes = await getSnapshotStorageUsage();
+  el.textContent = formatMB(bytes);
+
+  function formatMB(bytes: number) {
+    const mb = bytes / (1024 * 1024);
+    if (bytes === 0) return '0';
+    if (mb < 0.1) return mb.toFixed(2);
+    if (mb < 10) return mb.toFixed(1);
+    return mb.toFixed(0);
+  }
+}

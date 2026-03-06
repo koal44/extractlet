@@ -35,6 +35,38 @@
       color:#666;
     }
 
+    /* Sidebar controls (under robot) */
+    .controls-sidebar {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+    .control-section {
+      margin-top: 1.5rem;
+    }
+    .control-label {
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: .03em;
+      margin-bottom: 0.1rem;
+    }
+    .control-info {
+      font-size: 0.85rem;
+      color: #555;
+    }
+    .controls-sidebar button {
+      margin: 0; padding: 0; border: 0; background: none;
+      color: #3d79f9;
+      font-size: 0.85rem;
+    }
+    .controls-sidebar button:hover {
+      color: #3a63d1;
+      text-decoration: underline;
+    }
+    .control-section hr {
+      opacity: 0.4;
+      margin-right: 20px;
+    }
+
     /* Form + sections */
     .settings-group {
       display: flex;
@@ -127,7 +159,7 @@
 
   <main>
     <section class="settings-layout">
-      <!-- Left: Icon / branding -->
+      <!-- Left: Icon / branding / ctrl btns -->
       <aside class="settings-sidebar app-info" aria-label="Extension icon">
         <img
           id="app-icon"
@@ -137,6 +169,25 @@
           width="128" height="128"
         />
         <div class="app-version"><small>v<span id="app-version">—</span></small></div>
+
+        <div class="controls-sidebar">
+          <div class="control-section">
+            <hr />
+            <div class="control-label">Storage</div>
+            <div class="control-info"><span id="storage-used">—</span> MB used</div>
+            <button type="button" id="clear-storage" title="Clear stored page snapshots from local storage">
+              Clear cache
+            </button>
+          </div>
+          <div class="control-section">
+            <hr />
+            <div class="control-label">Settings</div>
+            <button class="reset-btn" id="reset-settings" title="Reset settings">
+              Reset to defaults
+            </button>
+          </div>
+        </div>
+
       </aside>
 
       <!-- Middle: Form (JS populates into the section containers) -->

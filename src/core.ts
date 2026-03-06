@@ -35,7 +35,7 @@ export type ToHtmlContext = {
 export const DefaultToHtmlContext: ToHtmlContext = {
   skipCustomHandler: false,
   allowStyles: false,
-  mathView: 'tex',
+  mathView: 'svg',
   isRoot: true,
 };
 
@@ -91,7 +91,7 @@ export type ToMdContext = {
 export const DefaultToMdContext: ToMdContext = {
   skipCustomHandler: false,
   isRoot: true,
-  mathFence: 'bracket',
+  mathFence: 'dollar',
   filterRedundantLabels: false,
   filterGenericLabels: false,
   deCaption: '',
@@ -104,7 +104,7 @@ export const DefaultToMdContext: ToMdContext = {
   wsMode: 'normal',
   brMode: 'soft',
   prettyTables: false,
-  subSupMode: 'html',
+  subSupMode: 'tex',
   inTex: false,
   now: null,
 };

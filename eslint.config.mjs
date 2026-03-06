@@ -120,6 +120,20 @@ export default tseslint.config(
       }],
       
       // 'no-duplicate-imports': ['warn', { allowSeparateTypeImports: true }],
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        {
+          checksConditionals: true,
+          checksSpreads: true,
+          checksVoidReturn: {
+            arguments: false
+          }
+        }
+      ],
+      '@typescript-eslint/no-floating-promises': [
+        'error',
+        { ignoreVoid: true }
+      ],
     }
   },
   {

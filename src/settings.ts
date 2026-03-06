@@ -347,3 +347,13 @@ export function observeSettings(
 
   return () => browser.storage.onChanged.removeListener(listener);
 }
+
+export async function resetSettings(): Promise<void> {
+  const patch: Partial<XletSettings> = {};
+
+  for (const [key, spec] of Object.entries(XLET_SETTINGS) as [XletSettingKey, typeof XLET_SETTINGS[XletSettingKey]][]) {
+    patch[key] = spec.coerce(undefined);
+  }
+
+  await saveSettings(patch);
+}

@@ -98,10 +98,9 @@ export function htmlToElement(str?: string, targetDoc: Document = document): Ele
     {
       RETURN_DOM: true,
       CUSTOM_ELEMENT_HANDLING: {
-        tagNameCheck: (tagName) =>
-          allowed.has(tagName.toLowerCase()),
+        tagNameCheck: (tagName) => /^[a-z-]+$/.test(tagName), // (e.g. <mjx-container>)
         attributeNameCheck: (attrName, tagName) =>
-          !!tagName && !!allowed.get(tagName.toLowerCase())?.has(attrName.toLowerCase()),
+          !!tagName && !!allowed.get(tagName)?.has(attrName),
       },
       ADD_TAGS: ['use'], // , '#comment'
       ADD_ATTR: ['xmlns:math', 'xmlns:svg'],

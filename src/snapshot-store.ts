@@ -30,7 +30,7 @@ export async function tryStoreSnapshot(uuid: string, msg: XletSnapshot): Promise
     return true;
   } catch (err) {
     if (isError(err) && /quota/i.test(err.message)) {
-      await browser.storage.local.clear();
+      await clearSnapshotStorage();
       await browser.notifications.create({
         type: 'basic',
         iconUrl: browser.runtime.getURL('icons/icon-head-48.png'),
@@ -103,4 +103,36 @@ export async function loadSnapshot(uuid: string): Promise<XletSnapshot | null> {
   const raw = data[key];
   if (!isXletSnapshot(raw)) return null;
   return raw;
+}
+
+const te = new TextEncoder();
+export async function getSnapshotStorageUsage(): Promise<number> {
+  try {
+    const records = await browser.storage.local.get(null);
+
+    let bytes = 0;
+    for (const [k, v] of Object.entries(records)) {
+      if (!k.startsWith(SNAPSHOT_KEY_PREFIX)) continue;
+      bytes += te.encode(JSON.stringify(v)).length;
+    }
+
+    return bytes;
+  } catch (err) {
+    warn(false, `[xlet:store] Failed to compute snapshot storage usage: ${repr(err)}`);
+    return 0;
+  }
+}
+
+export async function clearSnapshotStorage(): Promise<void> {
+  try {
+    const records = await browser.storage.local.get(null);
+    const keys = Object.keys(records).filter((k) =>
+      k.startsWith(SNAPSHOT_KEY_PREFIX)
+    );
+
+    if (keys.length) await browser.storage.local.remove(keys);
+    memorySnapshots.clear();
+  } catch (err) {
+    warn(false, `[xlet:store] Failed to clear snapshot storage: ${repr(err)}`);
+  }
 }
