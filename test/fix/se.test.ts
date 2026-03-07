@@ -21,7 +21,7 @@ describe('stackexchange: extractFromDoc', () => {
   for (const f of allCases) {
     it(f.name, async () => {
       if (f.test) return await f.test(f.dom);
-      const r = extractFromDoc(f.dom);
+      const r = extractFromDoc(f.dom, { html: { mathView: 'tex' }, md: { subSupMode: 'html', mathFence: 'bracket' } });
       expect(r).toBeDefined();
       if (!r) return; // narrow for TS
 

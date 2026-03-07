@@ -1,9 +1,9 @@
-<!-- Extractlet · GitHub -->
+<!-- Extractlet -->
 <!-- sessions with sdk by joshspicer · Pull Request #295817 · microsoft/vscode · GitHub -->
 <!-- https://github.com/microsoft/vscode/pull/295817 -->
 
 
-## Post
+## Initial Post
 ~~launch with `code --sessions-utility-process`~~
 
 related [https://github.com/microsoft/vscode-internalbacklog/issues/6848](https://github.com/microsoft/vscode-internalbacklog/issues/6848)
@@ -916,7 +916,6 @@ Suggested change
 
 
 ## Comment 41
-
 
 [[ unknown ]]
 

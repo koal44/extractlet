@@ -105,7 +105,7 @@ test('toMd mathjax script', () => {
       </p>
     </div>`;
   const result = toMd(el(html));
-  const expected = 'Result: \\((x+y)^2\\) is the formula.';
+  const expected = 'Result: $(x+y)^2$ is the formula.';
   strictEqual(result, expected);
 });
 
@@ -1274,7 +1274,7 @@ test('toMd kbd with styling', () => {
 test('toMd sub sup', () => {
   const html = '<div><p>H<sub>2</sub>O, and E = mc<sup>2</sup></p></div>';
 
-  const expected = 'H<sub>2</sub>O, and E = mc<sup>2</sup>';
+  const expected = 'H_2O, and E = mc^2';
 
   const result = toMd(el(html));
   strictEqual(result, expected);

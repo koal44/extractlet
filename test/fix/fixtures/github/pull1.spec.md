@@ -1,9 +1,9 @@
-<!-- Extractlet · GitHub -->
+<!-- Extractlet -->
 <!-- Add fixed grammars by sumittlearnbay · Pull Request #4894 · antlr/antlr4 · GitHub -->
 <!-- https://github.com/antlr/antlr4/pull/4894 -->
 
 
-## Post
+## Initial Post
 _No description provided. _
 
 [[ sumittlearnbay on 2025-10-12 (5 months ago) ]]

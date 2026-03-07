@@ -433,7 +433,7 @@ describe('handling subscripts and superscripts in Markdown tables', () => {
   it('preserves inline subscripts such as H₂O', () => {
     const html = createTable('H<sub>2</sub>O');
     const md = toMd(el(html));
-    const expected = `| H<sub>2</sub>O |`;
+    const expected = `| H_2O |`;
     expect(md).toContain(expected);
   });
 

@@ -1,9 +1,9 @@
-<!-- Extractlet · GitHub -->
+<!-- Extractlet -->
 <!-- [rollup-plugin-typescript] Re-enable declarationDir outside output file/dir -->
 <!-- https://github.com/rollup/plugins/issues/1772 -->
 
 
-## Post
+## Initial Post
 - Rollup Plugin Name: rollup-plugin-typescript
 - Rollup Plugin Version: 12.1.0
 - Rollup Version: 4.22.4
