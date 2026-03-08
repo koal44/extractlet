@@ -1,7 +1,9 @@
+
+<!-- XLET-BEGIN -->
+
 <!-- Extractlet -->
 <!-- sessions with sdk by joshspicer · Pull Request #295817 · microsoft/vscode · GitHub -->
 <!-- https://github.com/microsoft/vscode/pull/295817 -->
-
 
 ## Initial Post
 ~~launch with `code --sessions-utility-process`~~
@@ -1510,3 +1512,6 @@ Open
 [rzhao271](https://github.com/rzhao271) modified the milestones: [February 2026](https://github.com/microsoft/vscode/milestone/357), [March 2026](https://github.com/microsoft/vscode/milestone/376)
 
 [[ rzhao271 on 2026-02-27 (3 days ago) ]]
+
+<!-- XLET-END -->
+

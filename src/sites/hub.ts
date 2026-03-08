@@ -60,16 +60,14 @@ import {
   type Locator,
 } from '../utils/locator';
 import type { XletContexts } from '../settings';
-import type { CreatePage } from '../snapshot-loader';
+import type { PageState, RenderPage } from '../snapshot-loader';
 import {
-  h, htmlToElement, htmlToElementK, injectCss, isAnchor, isElement, isSub, isSup, isText,
+  h, isAnchor, isElement, isSub, isSup, isText,
 } from '../utils/dom';
-import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { warn } from '../utils/logging';
-import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import { chooseCanonicalUrl, formatDateWithRelative } from '../utils/strings';
 import { setLang } from '../normalize';
-import { attachStickyHeader } from '../ui/sticky';
+import { renderXletPage, type XletPage } from '../xlet-page';
 
 export type HubResult = {
   permalink: string;
@@ -745,103 +743,6 @@ function removeFollowingSiblings(node: Node): void {
   }
 }
 
-function buildPosts(data: HubResult, targetDoc: Document): HTMLElement {
-  const div = h('div', { class: 'posts' });
-  data.posts.forEach(function(post, idx) {
-    const postNode = h('div', { class: 'post' });
-    div.appendChild(postNode);
-
-    const postTitle = h('h2', { class: 'post-title' }, idx === 0 ? 'Initial Post' : `Comment ${idx}`);
-    const copyButton = buildCopyButton(targetDoc, data, idx);
-    const postHeading = h('div', { class: 'post-heading' }, postTitle, copyButton);
-    postNode.appendChild(postHeading);
-
-    postNode.appendChild(buildPostView(post, 'md', targetDoc));
-    postNode.appendChild(buildPostView(post, 'html', targetDoc));
-  });
-
-  return div;
-}
-
-function buildPostView(post: Post, viewMode: 'html' | 'md', targetDoc: Document): HTMLDivElement {
-  const modes: Record<'html' | 'md', { key: 'bodyHtml' | 'bodyMd'; class: string; }> = {
-    html: { key: 'bodyHtml', class: 'html-view' },
-    md:   { key: 'bodyMd',   class: 'md-view'   },
-  };
-  const mode = modes[viewMode];
-
-  function renderBody(str?: string): Node | string | null {
-    switch (viewMode) {
-      case 'html': return htmlToElement(str, targetDoc);
-      case 'md': return str ?? null;
-      default: throw new Error(`Unknown mode: ${String(viewMode)}`);
-    }
-  }
-
-  const postBodyStr = post[mode.key];
-  const postBody = renderBody(postBodyStr);
-  const bodyDiv = h('div', { class: 'post-body' }, postBody);
-
-  return h('div', { class: mode.class }, bodyDiv, contribLine(post));
-}
-
-function contribLine(p: Post, now?: Date): string {
-  const author = p.contributor?.author ?? 'unknown';
-  const t = p.contributor?.timestamp ?? null;
-  // const edited = p.contributor?.editor ? `; edited by ${p.contributor.editor}` : '';
-  const edited = ''; // Omitted for now (seems unnecessary clutter)
-  const when = t ? ` on ${formatDateWithRelative(t, { now })}` : '';
-  return `[[ ${author}${when}${edited} ]]`;
-}
-
-export function getCopyText(pageData: HubResult, postIdx: number, now?: Date): string {
-  const allPosts = pageData.posts;
-  const isAll = postIdx === -1;
-  const copyArr: string[] = [];
-
-  const url = isAll ? pageData.permalink : allPosts[postIdx].postId ? `${pageData.permalink}#${allPosts[postIdx].postId}` : pageData.permalink;
-  if (isAll) copyArr.push('<!-- Extractlet · GitHub -->');
-  if (pageData.title) copyArr.push(`<!-- ${pageData.title} -->`);
-  if (url) copyArr.push(`<!-- ${url} -->`, '');
-
-  allPosts.forEach((post, idx) => {
-    if (!isAll && idx !== postIdx) return;
-    copyArr.push(''); // postN \n postN+1
-
-    const postType = idx === 0 ? 'Post' : `Comment ${idx}`;
-    const heading = isAll ? `## ${postType}` : `# ${postType}`;
-
-    copyArr.push(heading);
-    copyArr.push((post.bodyMd ?? '').trim());
-
-    const cl = contribLine(post, now);
-    if (cl) copyArr.push('', cl);
-
-    copyArr.push('');
-  });
-
-  return `${copyArr.join('\n').trim()}\n`;
-}
-
-function buildCopyButton(targetDoc: Document, pageData: HubResult, postIdx = -1) {
-  const isAll = postIdx === -1;
-  const isOp = postIdx === 0;
-  const isComment = postIdx >= 1;
-
-  const responseTxt =
-    isAll      ? 'Copied All!' :
-    isOp       ? 'Copied Post!' :
-    isComment  ? `Copied Comment ${postIdx}!` : '';
-
-  const hintTxt =
-    isAll      ? 'Copy all posts' :
-    isOp       ? 'Copy post' :
-    isComment  ? `Copy comment ${postIdx}` : '';
-
-  const copyTxt = getCopyText(pageData, postIdx);
-  return createCopyButton(() => copyTxt, () => responseTxt, () => hintTxt, { doc: targetDoc });
-}
-
 export function extractFromDoc(srcDoc: Document, ctxs?: XletContexts): HubResult | undefined {
   const permalink = scrapePermaUrl(srcDoc);
   if (!permalink) {
@@ -867,38 +768,41 @@ export function extractFromDoc(srcDoc: Document, ctxs?: XletContexts): HubResult
   return { permalink, title, posts };
 }
 
-export const createPage: CreatePage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
-  const pageData = extractFromDoc(sourceDoc, ctxs);
-  if (!pageData) return warn(undefined, `[xlet:hub] extractFromDoc returned no data`);
+export const renderPage: RenderPage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
+  const result = extractFromDoc(sourceDoc, ctxs);
+  if (!result) return warn(undefined, `[xlet:hub] extractFromDoc returned no data`);
 
-  injectCss(multiToggleCss, { id: 'multi-toggle-css', doc: targetDoc });
-  injectCss(copyButtonCss, { id: 'copy-button-css', doc: targetDoc });
-  const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · GitHub Page');
-  const copyAllButton = buildCopyButton(targetDoc, pageData);
-  const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
-  root.appendChild(topBar);
-
-  if (pageData.permalink) {
-    const permalink = `<a href="${pageData.permalink}">${pageData.permalink}</a>`;
-    const permalinkNode = htmlToElementK(permalink, 'a', targetDoc);
-    const permalinkDiv = h('div', { class: 'perma-link' }, permalinkNode);
-    root.appendChild(permalinkDiv);
-  }
-
-  const viewClasses = ['show-html', 'show-md'];
-  const viewToggle = createMultiToggle({
-    initState: state.viewIdx,
-    onToggle: (newIdx) => {
-      state.viewIdx = newIdx;
-      root.classList.remove(...viewClasses);
-      root.classList.add(viewClasses[newIdx]);
-    },
-    labels: ['html', 'md'],
-    labelSide: 'right',
-  });
-  attachStickyHeader(root, viewToggle);
-
-  const output = buildPosts(pageData, targetDoc);
-  root.appendChild(output);
-  viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present
+  const page = createHubPage(result, state);
+  renderXletPage(page, targetDoc, root);
 };
+
+export function createHubPage(result: HubResult, state: PageState): XletPage {
+  const { title, permalink, posts } = result;
+
+  return {
+    title,
+    views: ['html', 'md'],
+    state,
+    root: {
+      permalink,
+      children: posts.map((post, idx) => ({
+        label: idx === 0 ? 'Initial Post' : `Comment ${idx}`,
+        permalink: post.postId && permalink ? `${permalink}#${post.postId}` : permalink,
+        copyable: true,
+        content: {
+          md: post.bodyMd,
+          html: post.bodyHtml,
+        },
+        contrib: {
+          author: {
+            name: post.contributor?.author,
+            timestamp: post.contributor?.timestamp,
+          },
+          editor: {
+            name: post.contributor?.editor,
+          },
+        },
+      })),
+    },
+  };
+}

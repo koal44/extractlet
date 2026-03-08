@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import type { HubResult } from '../../src/sites/hub';
-import { extractFromDoc, getCopyText } from '../../src/sites/hub';
+import { createHubPage, extractFromDoc } from '../../src/sites/hub';
 import { setupDom } from '../utils/test-utils';
 import { join } from 'node:path';
 import type { BaseSidecar } from './fix';
 import { loadFixtures } from './fix';
 import fs from 'node:fs';
+import { getCopyText } from '../../src/xlet-page';
 
 // defines global.document, global.window, etc
 setupDom();
@@ -15,6 +16,20 @@ export type HubSidecar = BaseSidecar<HubExpect>;
 
 const fixturesDir = join(__dirname, 'fixtures', 'github');
 const allCases = await loadFixtures<HubExpect>(fixturesDir);
+
+// emit a review artifact only while the spec is failing
+function syncMdSpec(dir: string, name: string, expected: string, actual: string): void {
+  const path = join(dir, `${name}.spec.new.md`);
+
+  if (expected !== actual) {
+    fs.writeFileSync(path, actual, 'utf8');
+    // eslint-disable-next-line no-restricted-properties
+    console.log(`[fixtures] ${name}: spec mismatch; wrote ${path}. Review and replace '${name}.spec.md' if expected.`);
+    return;
+  }
+
+  if (fs.existsSync(path)) fs.unlinkSync(path);
+}
 
 describe('github: extractFromDoc', () => {
   for (const f of allCases) {
@@ -42,14 +57,10 @@ describe('github: extractFromDoc', () => {
       });
 
       if (f.specMd) {
-        const md = getCopyText(r, -1, f.now);
-        if (f.specMd !== md) {
-          const path = join(fixturesDir, `${f.name}.spec.new.md`);
-          fs.writeFileSync(path, md, 'utf8');
-          // eslint-disable-next-line no-restricted-properties
-          console.log(`[fixtures] ${f.name}: spec mismatch; wrote ${path}. Review and replace '${f.name}.spec.md' if expected.`);
-        }
+        const xletPage = createHubPage(r, { viewIdx: 0 });
+        const md = getCopyText(xletPage.root, xletPage, f.now);
 
+        syncMdSpec(fixturesDir, f.name, f.specMd, md);
         expect(md).toBe(f.specMd);
       }
 

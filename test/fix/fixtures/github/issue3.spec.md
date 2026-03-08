@@ -1,7 +1,9 @@
+
+<!-- XLET-BEGIN -->
+
 <!-- Extractlet -->
 <!-- [rollup-plugin-typescript] Re-enable declarationDir outside output file/dir -->
 <!-- https://github.com/rollup/plugins/issues/1772 -->
-
 
 ## Initial Post
 - Rollup Plugin Name: rollup-plugin-typescript
@@ -515,3 +517,6 @@ mentioned this
 - [rollup@4.53.3 and rollup-plugin-dts@6.2.3 version bump breaks rollup-dts-plugin configuration NIAGADS/niagads-viz-monorepo#124](https://github.com/NIAGADS/niagads-viz-monorepo/issues/124)
 
 [[ fossilfriend on 2026-02-13 (17 days ago) ]]
+
+<!-- XLET-END -->
+

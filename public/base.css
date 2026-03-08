@@ -82,8 +82,8 @@ th, td {
   padding: 0.2em 0.4em;
 }
 td {
-    text-align: left;
-    vertical-align: top;
+  text-align: left;
+  vertical-align: top;
 } 
 th {
   text-align: center;
@@ -119,7 +119,7 @@ figure figcaption {
   font-weight: 500;
   font-size: 1.5em;
 }
-.perma-link {
+.permalink {
   display: block;
 }
 .view-toggle {
@@ -151,3 +151,53 @@ figure figcaption {
 :root { --xlet-sticky-offset: 0px; }
 :target { scroll-margin-top: var(--xlet-sticky-offset); }
 [id] { scroll-margin-top: var(--xlet-sticky-offset); }
+
+/* === toggle views === */
+.show-html .html-view,
+.show-md .md-view,
+.show-raw .raw-view {
+  display: block;
+}
+.show-html .md-view,
+.show-html .raw-view,
+.show-md .html-view,
+.show-md .raw-view,
+.show-raw .html-view,
+.show-raw .md-view {
+  display: none;
+}
+
+/* === xlet-page styling === */
+.node-root > .node {
+  margin-top: 0.5em;
+  padding: 0.5em;
+  border: 1px solid #dedede;
+}
+.node-heading {
+  margin-bottom: 0.6em;
+  display: flex;
+  gap: 1em;
+  align-items: center;
+}
+.node-title {
+  margin: 0;
+  line-height: 1;
+}
+.node-contrib {
+  margin-top: 1.1em;
+  line-height: 1.3;
+}
+.md-view, .raw-view {
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+.node-body {
+  margin: 0;
+}
+.node-body h1, .node-body h2, .node-body h3,
+.node-body h4, .node-body h5, .node-body h6 {
+  margin: 0.35em 0 0.05em;
+  font-size: 1.1em;
+  font-weight: 600;
+  line-height: 1.15;
+}

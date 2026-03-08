@@ -40,7 +40,7 @@ function ensureBaseUrl(doc: Document, baseUrl: string): void {
   base.setAttribute('href', baseUrl);
 }
 
-export type CreatePage = (
+export type RenderPage = (
   { sourceDoc, targetDoc, ctxs, root, state }:
   {
     sourceDoc: Document;
@@ -52,7 +52,7 @@ export type CreatePage = (
 ) => void | Promise<void>;
 
 export async function loadResultsPage(
-  createPage: CreatePage,
+  renderPage: RenderPage,
 ): Promise<void> {
   const uuid = parseUuidFromUrl();
   if (!uuid) {
@@ -101,7 +101,7 @@ export async function loadResultsPage(
     root.innerHTML = '';
 
     // create the page
-    await createPage({ sourceDoc, targetDoc, ctxs, root, state: pageState });
+    await renderPage({ sourceDoc, targetDoc, ctxs, root, state: pageState });
 
     // remove minHeight after render
     root.style.minHeight = '';

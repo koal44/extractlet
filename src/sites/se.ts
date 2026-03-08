@@ -40,7 +40,7 @@ import type { Locator } from '../utils/locator';
 import { asAbsUrl, pickEl, pickEls, pickVal } from '../utils/locator';
 import { getLang, hasSkip, markSkip, setLang } from '../normalize';
 import type { XletContexts } from '../settings';
-import type { CreatePage } from '../snapshot-loader';
+import type { RenderPage } from '../snapshot-loader';
 import { attachStickyHeader } from '../ui/sticky';
 import { formatDateWithRelative } from '../utils/strings';
 
@@ -490,7 +490,7 @@ export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): SEResu
   return result;
 }
 
-export const createPage: CreatePage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
+export const createPage: RenderPage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
   const pageData = extractFromDoc(sourceDoc, ctxs);
   if (!pageData) return warn(undefined, `[xlet:se] extractFromDoc returned no data`);
 

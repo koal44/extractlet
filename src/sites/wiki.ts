@@ -42,7 +42,7 @@ import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandl
 import { toHtml as _toHtml, toMd as _toMd, safeFetch } from '../core';
 import { frameMath, mathReprToHtml, mathReprToMd, normalizeTex, type MathRepr } from '../math-vendor';
 import type { XletContexts } from '../settings';
-import type { CreatePage } from '../snapshot-loader';
+import type { RenderPage } from '../snapshot-loader';
 import { copyButtonCss, createCopyButton } from '../ui/copy-button';
 import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import { attachStickyHeader } from '../ui/sticky';
@@ -761,7 +761,7 @@ type WikiPageState = {
   rawText?: string; // Cached raw text of the page
 };
 
-export const createPage: CreatePage = async (
+export const createPage: RenderPage = async (
   { sourceDoc, targetDoc, ctxs, root, state }:
   { sourceDoc: Document; targetDoc: Document; ctxs?: XletContexts; root: HTMLElement; state: WikiPageState; }
 ) => {
