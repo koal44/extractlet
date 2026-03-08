@@ -173,6 +173,9 @@ figure figcaption {
   padding: 0.5em;
   border: 1px solid #dedede;
 }
+.node .node {
+  margin-top: 1.5em;
+}
 .node-heading {
   margin-bottom: 0.6em;
   display: flex;

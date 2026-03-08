@@ -57,9 +57,8 @@ describe('github: extractFromDoc', () => {
       });
 
       if (f.specMd) {
-        const xletPage = createHubPage(r, { viewIdx: 0 });
-        const md = getCopyText(xletPage.root, xletPage, f.now);
-
+        const xletPage = createHubPage(r, { viewIdx: 1 }, f.now);
+        const md = getCopyText(xletPage.root, xletPage);
         syncMdSpec(fixturesDir, f.name, f.specMd, md);
         expect(md).toBe(f.specMd);
       }

@@ -743,6 +743,21 @@ function removeFollowingSiblings(node: Node): void {
   }
 }
 
+function buildContribText(post: Post, now?: Date): string {
+  const author = post.contributor?.author ?? 'unknown';
+  const authorTime = post.contributor?.timestamp;
+  const editor = post.contributor?.editor;
+  const editorTime = undefined;
+
+  const when = (time?: string) =>
+    time ? ` on ${formatDateWithRelative(time, { now })}` : '';
+
+  const authored = `${author}${when(authorTime)}`;
+  const edited = editor ? `; edited by ${editor}${when(editorTime)}` : '';
+
+  return `[[ ${authored}${edited} ]]`;
+}
+
 export function extractFromDoc(srcDoc: Document, ctxs?: XletContexts): HubResult | undefined {
   const permalink = scrapePermaUrl(srcDoc);
   if (!permalink) {
@@ -776,10 +791,11 @@ export const renderPage: RenderPage = ({ sourceDoc, targetDoc, ctxs, root, state
   renderXletPage(page, targetDoc, root);
 };
 
-export function createHubPage(result: HubResult, state: PageState): XletPage {
+export function createHubPage(result: HubResult, state: PageState, now?: Date): XletPage {
   const { title, permalink, posts } = result;
 
   return {
+    siteLabel: 'GitHub',
     title,
     views: ['html', 'md'],
     state,
@@ -793,15 +809,7 @@ export function createHubPage(result: HubResult, state: PageState): XletPage {
           md: post.bodyMd,
           html: post.bodyHtml,
         },
-        contrib: {
-          author: {
-            name: post.contributor?.author,
-            timestamp: post.contributor?.timestamp,
-          },
-          editor: {
-            name: post.contributor?.editor,
-          },
-        },
+        contrib: buildContribText(post, now),
       })),
     },
   };

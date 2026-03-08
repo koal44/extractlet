@@ -28,21 +28,17 @@
  *
  */
 
-import {
-  h, htmlToElement, htmlToElementK, injectCss, isElement, isText,
-} from '../utils/dom';
-import { copyButtonCss, createCopyButton } from '../ui/copy-button';
+import { htmlToElement, isElement, isText } from '../utils/dom';
 import { warn } from '../utils/logging';
-import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
 import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext, ToMdContext } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
 import type { Locator } from '../utils/locator';
 import { asAbsUrl, pickEl, pickEls, pickVal } from '../utils/locator';
 import { getLang, hasSkip, markSkip, setLang } from '../normalize';
 import type { XletContexts } from '../settings';
-import type { RenderPage } from '../snapshot-loader';
-import { attachStickyHeader } from '../ui/sticky';
+import type { PageState, RenderPage } from '../snapshot-loader';
 import { formatDateWithRelative } from '../utils/strings';
+import { renderXletPage, type XletPage } from '../xlet-page';
 
 type Contributor = {
   contributorType: 'author' | 'editor' | 'commenter';
@@ -303,54 +299,7 @@ function scrapeCommentVote(elem: Element, srcDoc: Document): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-function buildCopyButton(targetDoc: Document, pageData: SEResult, postIdx = -1) {
-  if (postIdx < -1 || postIdx >= pageData.posts.length) {
-    throw new Error(`Invalid postIdx: ${postIdx}`);
-  }
-  const isAll = postIdx === -1;
-  const isQuestion = postIdx === 0;
-  const isAnswer = postIdx >= 1;
-
-  const responseTxt =
-    isAll      ? 'Copied All!' :
-    isQuestion ? 'Copied Question!' :
-    isAnswer   ? `Copied Answer ${postIdx}!` : '';
-
-  const hintTxt =
-    isAll      ? 'Copy all posts' :
-    isQuestion ? 'Copy question' :
-    isAnswer   ? `Copy answer ${postIdx}` : '';
-
-  const copyArr: string[] = [];
-
-  if (isAll) copyArr.push('<!-- Extractlet · Stack Exchange -->');
-  if (pageData.title) copyArr.push(`<!-- ${pageData.title} -->`);
-  copyArr.push(`<!-- ${pageData.permalink} -->`, '');
-
-  pageData.posts.forEach((post, idx) => {
-    if (!isAll && idx !== postIdx) return;
-
-    const postHeading = idx === 0 ? 'Question' : `Answer ${idx}`;
-    copyArr.push('', `${isAll ? '##' : '#'} ${postHeading}`, post.bodyMd);
-
-    const postContrib = buildContribsAndVotes(post.contributors, post.vote);
-    if (postContrib) copyArr.push('', postContrib);
-
-    if (post.comments.length > 0) {
-      post.comments.forEach((comment, cIdx) => {
-        const commentContrib = buildContribsAndVotes(comment.contributors, comment.vote);
-        copyArr.push('', `### Comment ${cIdx + 1}:`, `${comment.bodyMd}${commentContrib ? ` ${commentContrib}` : ''}`);
-      });
-    }
-
-    copyArr.push('');
-  });
-
-  const copyTxt = `${copyArr.join('\n').trim()}\n`;
-  return createCopyButton(() => copyTxt, () => responseTxt, () => hintTxt, { doc: targetDoc });
-}
-
-function buildContribsAndVotes(contributors: Contributor[], voteCount: number): string {
+function buildContribsAndVotes(contributors: Contributor[], voteCount: number, now?: Date): string {
   if (contributors.length === 0) return '';
 
   // Sort once, newest first
@@ -394,7 +343,7 @@ function buildContribsAndVotes(contributors: Contributor[], voteCount: number): 
       : rawName;
     const name = fallbackName.replace(/\s+/g, '-');
     // const date = c.timestamp.trim() ? c.timestamp.split(' ')[0] : 'unknown-date';
-    const date = formatDateWithRelative(c.timestamp);
+    const date = formatDateWithRelative(c.timestamp, { now });
     return { name, date };
   });
 
@@ -416,62 +365,6 @@ function buildContribsAndVotes(contributors: Contributor[], voteCount: number): 
   return `[[ ${contribsText} | ${voteText} ]]`;
 }
 
-function buildPosts(data: SEResult, targetDoc: Document): HTMLElement {
-  const div = h('div', { class: 'posts' });
-  data.posts.forEach(function(post, idx) {
-    const postNode = h('div', { class: 'post' });
-    div.appendChild(postNode);
-
-    const postTitle = h('h2', { class: 'post-title' }, idx === 0 ? 'Question' : `Answer ${idx}`);
-    const copyButton = buildCopyButton(targetDoc, data, idx);
-    const postHeading = h('div', { class: 'post-heading' }, postTitle, copyButton);
-    postNode.appendChild(postHeading);
-
-    postNode.appendChild(buildPostView(post, 'md', targetDoc));
-    postNode.appendChild(buildPostView(post, 'html', targetDoc));
-  });
-
-  return div;
-}
-
-function buildPostView(post: Post, viewMode: 'html' | 'md', targetDoc: Document): HTMLDivElement {
-  const modes: Record<'html' | 'md', { key: 'bodyHtml' | 'bodyMd'; class: string; }> = {
-    html: { key: 'bodyHtml', class: 'html-view' },
-    md:   { key: 'bodyMd',   class: 'md-view'   },
-  };
-  const mode = modes[viewMode];
-
-  function renderBody(str: string): Node | string | null {
-    switch (viewMode) {
-      case 'html': return htmlToElement(str, targetDoc);
-      case 'md': return str;
-      default: throw new Error(`Unknown mode: ${String(viewMode)}`);
-    }
-  }
-
-  const postBodyStr = post[mode.key] ?? '';
-  const postBody = renderBody(postBodyStr);
-  const bodyDiv = h('div', { class: 'post-body' }, postBody);
-  const postContribs = buildContribsAndVotes(post.contributors, post.vote);
-  const postContribsDiv = h('div', { class: 'post-contribs' }, `${postContribs}`);
-
-  const commentsDiv = h('div', { class: 'comments' });
-  post.comments.forEach((comment, commentIdx) => {
-    const commentHeading = h('h4', { class: 'comment-heading' }, `Comment ${commentIdx + 1}`);
-    const commentContrib = buildContribsAndVotes(comment.contributors, comment.vote);
-    const commentContribSpan = h('span', { class: 'comment-contrib' }, ` ${commentContrib}`);
-
-    const commentBodyStr = comment[mode.key] ?? '';
-    const commentBody = renderBody(commentBodyStr);
-    const commentBodyDiv = h('div', { class: 'comment-body' }, commentBody, commentContribSpan);
-
-    commentsDiv.appendChild(commentHeading);
-    commentsDiv.appendChild(commentBodyDiv);
-  });
-
-  return h('div', { class: mode.class }, bodyDiv, postContribsDiv, commentsDiv);
-}
-
 export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): SEResult | undefined {
   const posts = scrapePosts(sourceDoc, ctxs);
   if (posts.length === 0) {
@@ -490,37 +383,43 @@ export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): SEResu
   return result;
 }
 
-export const createPage: RenderPage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
-  const pageData = extractFromDoc(sourceDoc, ctxs);
-  if (!pageData) return warn(undefined, `[xlet:se] extractFromDoc returned no data`);
+export const renderPage: RenderPage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
+  const result = extractFromDoc(sourceDoc, ctxs);
+  if (!result) return warn(undefined, `[xlet:se] extractFromDoc returned no data`);
 
-  injectCss(multiToggleCss, { id: 'multi-toggle-css', doc: targetDoc });
-  injectCss(copyButtonCss, { id: 'copy-button-css', doc: targetDoc });
-  const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · Stack Exchange');
-  const copyAllButton = buildCopyButton(targetDoc, pageData);
-  const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
-  root.appendChild(topBar);
-
-  if (pageData.permalink) {
-    const permalinkNode = htmlToElementK(`<a href="${pageData.permalink}">${pageData.title}</a>`, 'a', targetDoc);
-    const permalinkDiv = h('div', { class: 'perma-link' }, permalinkNode);
-    root.appendChild(permalinkDiv);
-  }
-
-  const viewClasses = ['show-html', 'show-md', 'show-raw'];
-  const viewToggle = createMultiToggle({
-    initState: state.viewIdx,
-    onToggle: (newIdx) => {
-      state.viewIdx = newIdx;
-      root.classList.remove(...viewClasses);
-      root.classList.add(viewClasses[newIdx]);
-    },
-    labels: ['html', 'md'],
-    labelSide: 'right',
-  });
-  attachStickyHeader(root, viewToggle);
-
-  const output = buildPosts(pageData, targetDoc);
-  root.appendChild(output);
-  viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present
+  const page = createSePage(result, state);
+  renderXletPage(page, targetDoc, root);
 };
+
+export function createSePage(result: SEResult, state: PageState, now?: Date): XletPage {
+  const { title, permalink, posts } = result;
+
+  return {
+    siteLabel: 'Stack Exchange',
+    title,
+    views: ['html', 'md'],
+    state,
+    root: {
+      permalink,
+      children: posts.map((post, idx) => ({
+        label: idx === 0 ? 'Question' : `Answer ${idx}`,
+        permalink: undefined, // ?
+        copyable: true,
+        content: {
+          md: post.bodyMd,
+          html: post.bodyHtml,
+        },
+        contrib: buildContribsAndVotes(post.contributors, post.vote, now),
+        children: post.comments.map((comment, cIdx) => ({
+          label: `Comment ${cIdx + 1}`,
+          copyable: false,
+          content: {
+            md: comment.bodyMd,
+            html: comment.bodyHtml,
+          },
+          contrib: buildContribsAndVotes(comment.contributors, comment.vote, now),
+        })),
+      })),
+    },
+  };
+}

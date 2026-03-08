@@ -3,9 +3,9 @@ import { copyButtonCss, createCopyButton } from './ui/copy-button';
 import { createMultiToggle, multiToggleCss } from './ui/multi-toggle';
 import { attachStickyHeader } from './ui/sticky';
 import { h, htmlToElement, injectCss } from './utils/dom';
-import { formatDateWithRelative } from './utils/strings';
 
 export type XletPage = {
+  siteLabel?: string; // e.g. "GitHub", "Stack Exchange", "Wikipedia"
   title?: string;
   root: XletNode;
   views: XletView[];
@@ -22,10 +22,7 @@ export type XletNode = {
     html?: string;
     raw?: string;
   };
-  contrib?: {
-    author?: { name?: string; timestamp?: string; };
-    editor?: { name?: string; timestamp?: string; };
-  };
+  contrib?: string; // e.g. "[[ contributed by user on date ]]"
   copyable?: boolean; // whether this node should have a copy button (if content is present)
   children?: XletNode[];
 };
@@ -33,13 +30,13 @@ export type XletNode = {
 export function renderXletPage(page: XletPage, targetDoc: Document, root: HTMLElement): void {
   injectCss(multiToggleCss, { id: 'multi-toggle-css', doc: targetDoc });
   injectCss(copyButtonCss, { id: 'copy-button-css', doc: targetDoc });
-  const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · GitHub Page');
+  const topHeading = h('h1', { class: 'top-heading' }, `Extractlet${page.siteLabel ? ` · ${page.siteLabel}` : ''}`);
   const copyAllButton = buildCopyButton(page.root, page, targetDoc);
   const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
   root.appendChild(topBar);
 
   if (page.root.permalink) {
-    const link = h('a', { href: page.root.permalink }, page.root.permalink);
+    const link = h('a', { href: page.root.permalink }, page.title ?? page.root.permalink);
     root.appendChild(h('div', { class: 'permalink' }, link));
   }
 
@@ -72,7 +69,7 @@ function buildCopyButton(node: XletNode, page: XletPage, targetDoc: Document) {
   );
 }
 
-export function getCopyText(node: XletNode, page: XletPage, now?: Date): string {
+export function getCopyText(node: XletNode, page: XletPage): string {
   const isRoot = node === page.root;
   const preamble: string[] = [];
 
@@ -81,26 +78,26 @@ export function getCopyText(node: XletNode, page: XletPage, now?: Date): string 
   if (node.permalink) preamble.push(`<!-- ${node.permalink} -->`);
   if (preamble.length) preamble.push('');
 
-  const body = buildCopyBody(node, page, 1, now).trim();
+  const body = buildCopyBody(node, page, 1).trim();
   const text = [...preamble, body].join('\n').trim();
 
   return `\n<!-- XLET-BEGIN -->\n\n${text}\n\n<!-- XLET-END -->\n\n`;
 }
 
-function buildCopyBody(node: XletNode, page: XletPage, level: number, now?: Date): string {
+function buildCopyBody(node: XletNode, page: XletPage, level: number): string {
   const out: string[] = [];
   const view = page.views[page.state.viewIdx];
 
-  if (node.label) out.push(`${'#'.repeat(Math.min(level, 3))} ${node.label.trim()}`);
+  if (node.label) out.push('', `${'#'.repeat(Math.min(level, 3))} ${node.label.trim()}`);
 
   switch (view) {
     case 'md':
     case 'html':
       if (node.content?.md) out.push(node.content.md.trim());
-      if (node.contrib) out.push('', buildContribText(node, now));
+      if (node.contrib) out.push('', node.contrib.trim());
       break;
     case 'raw':
-      if (node.content?.raw) out.push(node.content.raw.trim());
+      if (node.content?.raw) out.push('', node.content.raw.trim());
       break;
     default: throw new Error(`Unknown view: ${String(view satisfies never)}`);
   }
@@ -108,10 +105,10 @@ function buildCopyBody(node: XletNode, page: XletPage, level: number, now?: Date
   out.push(''); // add spacing between nodes
 
   node.children?.forEach((child) => {
-    out.push(buildCopyBody(child, page, level + 1, now));
+    out.push(buildCopyBody(child, page, level + 1));
   });
 
-  if (out.length) out.push('');
+  // if (out.length) out.push('c');
   return out.join('\n');
 }
 
@@ -131,7 +128,7 @@ function buildNode(node: XletNode, page: XletPage, level: number, targetDoc: Doc
     if (!page.views.includes(view)) return;
 
     const body = h('div', { class: 'node-body' }, content);
-    const contrib = node.contrib ? h('div', { class: 'node-contrib' }, buildContribText(node)) : null;
+    const contrib = node.contrib ? h('div', { class: 'node-contrib' }, node.contrib) : null;
     const bodyWrapper = h('div', { class: className }, body, contrib);
     div.appendChild(bodyWrapper);
   });
@@ -141,19 +138,4 @@ function buildNode(node: XletNode, page: XletPage, level: number, targetDoc: Doc
   });
 
   return div;
-}
-
-function buildContribText(node: XletNode, now?: Date): string {
-  const author = node.contrib?.author?.name ?? 'unknown';
-  const authorTime = node.contrib?.author?.timestamp;
-  const editor = node.contrib?.editor?.name;
-  const editorTime = node.contrib?.editor?.timestamp;
-
-  const when = (time?: string) =>
-    time ? ` on ${formatDateWithRelative(time, { now })}` : '';
-
-  const authored = `${author}${when(authorTime)}`;
-  const edited = editor ? `; edited by ${editor}${when(editorTime)}` : '';
-
-  return `[[ ${authored}${edited} ]]`;
 }

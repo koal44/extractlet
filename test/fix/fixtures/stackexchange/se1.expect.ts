@@ -178,7 +178,7 @@ export default {
       },
       {
         bodyHtml: '<div>\n<p>Let <code class="xlet-math-tex xlet-math-inline">T : V \\mapsto W</code>.  Then',
-        bodyMd: 'Let \\(T : V \\mapsto W\\). Then define \\(\\tau: V \\times W^* \\mapsto K\\) ',
+        bodyMd: 'Let $T : V \\mapsto W$. Then define $\\tau: V \\times W^* \\mapsto K$ ',
         contributors: [
           {
             contributorType: 'author',
@@ -252,7 +252,7 @@ export default {
           },
           {
             bodyHtml: '<span>Can the argument go both ways without assuming that <code class=',
-            bodyMd: 'Can the argument go both ways without assuming that \\(W\\) is reflexive',
+            bodyMd: 'Can the argument go both ways without assuming that $W$ is reflexive',
             contributors: [
               {
                 contributorType: 'commenter',
