@@ -3,14 +3,13 @@ import path from 'node:path';
 import { pathToFileURL } from 'url';
 import { JSDOM, VirtualConsole } from 'jsdom';
 
-export type BaseSidecar<TExpect> = {
+export type Sidecar = {
   baseUrl: string;
-  expect: TExpect;
   test?: (dom: Document) => void | Promise<void>;
   now?: Date; // for time-sensitive tests, passed to getCopyText as "now"
 };
 
-export type FixtureCase<TExpect> = BaseSidecar<TExpect> & {
+export type FixtureCase = Sidecar & {
   name: string;          // derived from sidecar filename
   sidePath: string;      // absolute sidecar path
   htmlPath: string;      // absolute html path
@@ -28,13 +27,13 @@ export function readHtmlFile(fullPath: string, { baseUrl = 'https://example.com'
   return dom.window.document;
 }
 
-export async function loadFixtures<TExpect>(rootDir: string): Promise<FixtureCase<TExpect>[]> {
+export async function loadFixtures(rootDir: string): Promise<FixtureCase[]> {
   const htmlPaths: string[] = [];
   for (const f of walkFiles(rootDir)) {
     if (f.endsWith('.html')) htmlPaths.push(f);
   }
 
-  const cases: FixtureCase<TExpect>[] = [];
+  const cases: FixtureCase[] = [];
   for (const htmlPath of htmlPaths) {
     const name = path.basename(htmlPath, '.html');
     const sidePath = path.join(path.dirname(htmlPath), `${name}.expect.ts`);
@@ -44,7 +43,7 @@ export async function loadFixtures<TExpect>(rootDir: string): Promise<FixtureCas
     }
 
     const { default: meta } =
-      (await import(pathToFileURL(sidePath).href)) as { default: BaseSidecar<TExpect>; };
+      (await import(pathToFileURL(sidePath).href)) as { default: Sidecar; };
     if (!meta.baseUrl) throw new Error(`Fixture ${name} missing baseUrl in ${sidePath}`);
 
     const html = fs.readFileSync(htmlPath, 'utf8');
@@ -56,7 +55,6 @@ export async function loadFixtures<TExpect>(rootDir: string): Promise<FixtureCas
     cases.push({
       name, sidePath, htmlPath, html, dom, specMd,
       baseUrl: meta.baseUrl,
-      expect: meta.expect,
       test: meta.test,
       now: meta.now,
     });

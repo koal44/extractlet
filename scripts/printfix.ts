@@ -137,8 +137,8 @@ function runHub(fix: string, strLim = 7, arrLim = 1) {
     },
   };
 
-  const prefix = `import type { HubSidecar  } from '../hub.test';\n\nexport default `;
-  const suffix = ' satisfies HubSidecar;\n';
+  const prefix = `import type { Sidecar  } from '../fix';\n\nexport default `;
+  const suffix = ' satisfies Sidecar;\n';
   const fullOutput = prefix + JSON.stringify(sidecar, null, 2) + suffix;
   console.log(`\n--- Copy below to test/fix/fixtures/github/${fix.replace('.html', '.expect.ts')} ---\n`);
   console.log(fullOutput);
@@ -164,8 +164,8 @@ function runSe(fix: string, strLim = 70, arrLim = 5) {
     ...trimObj(res, { strLim, arrLim }),
   };
 
-  const prefix = `import type { SESidecar } from '../../se.test';\n\nexport default `;
-  const suffix = ' satisfies SESidecar;\n';
+  const prefix = `import type { Sidecar } from '../../fix';\n\nexport default `;
+  const suffix = ' satisfies Sidecar;\n';
   const fullOutput = prefix + JSON.stringify({ baseUrl: exp.permalink, expect: exp }, null, 2) + suffix;
 
   console.log(`\n--- Copy below to test/fix/fixtures/stackexchange/${fix.replace('.html', '.expect.ts')} ---\n`);
@@ -195,8 +195,8 @@ function runWiki(fix: string, strLim = 70, arrLim = 5) {
     // data: pruneWikiNode(res.data, limit),
   };
 
-  const prefix = `import type { WikiSidecar } from '../../wiki.test';\n\nexport default `;
-  const suffix = ' satisfies WikiSidecar;\n';
+  const prefix = `import type { Sidecar } from '../../fix';\n\nexport default `;
+  const suffix = ' satisfies Sidecar;\n';
   const fullOutput = prefix + JSON.stringify({ baseUrl: exp.baseUrl, expect: exp }, null, 2) + suffix;
 
   console.log(`\n--- Copy below to test/fix/fixtures/wiki/${fix.replace('.html', '.expect.ts')} ---\n`);

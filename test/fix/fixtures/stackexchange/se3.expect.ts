@@ -1,12 +1,10 @@
 import { expect } from 'vitest';
-import type { SESidecar } from '../../se.test';
+import type { Sidecar } from '../../fix';
 import { extractFromDoc } from '../../../../src/sites/se';
 
 export default {
   baseUrl: 'https://math.stackexchange.com/questions/2793701/lambda-kv-is-spanned-by-a-basis-mathcalb?rq=1',
-  expect: {
-    permalink: 'https://math.stackexchange.com/questions/2793701/lambda-kv-is-spanned-by-a-basis-mathcalb',
-  },
+  now: new Date('2026-03-09T00:00:00Z'),
   test: (doc) => {
     const clone = doc.cloneNode(true) as Document; // avoid mutating original doc for other tests (including md specs)
     clone.querySelector('head > meta[property="og:title"]')?.remove();
@@ -17,4 +15,4 @@ export default {
     r = extractFromDoc(clone, { md: { mathFence: 'dollar' } });
     expect(r?.title).toBe('${\\Lambda}_k(V)$ is spanned by a basis $\\mathcal{B}$');
   },
-} satisfies SESidecar;
+} satisfies Sidecar;

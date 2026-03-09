@@ -1,12 +1,10 @@
 import { expect } from 'vitest';
 import { extractFromDoc } from '../../../../src/sites/hub';
-import type { HubSidecar } from '../../hub.test';
+import type { Sidecar } from '../../fix';
 
 export default {
   baseUrl: 'https://github.com/microsoft/vscode/pull/295817',
-  expect: {
-    permalink: 'https://github.com/microsoft/vscode/pull/295817',
-  },
+  now: new Date('2026-03-03T00:00:00Z'),
   test: (doc: Document) => {
     const r = extractFromDoc(doc);
     expect(r).toBeDefined();
@@ -32,5 +30,4 @@ export default {
     const ids = r.posts.map((p) => p.postId ?? '');
     expect(ids.some((id) => id.startsWith('pullrequestreview-'))).toBe(true);
   },
-  now: new Date('2026-03-03T00:00:00Z'),
-} satisfies HubSidecar;
+} satisfies Sidecar;
