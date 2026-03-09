@@ -38,9 +38,13 @@ related [https://github.com/microsoft/vscode-internalbacklog/issues/6848](https:
 
 
 ## Comment 5
+▸ 
+
 ### This comment was marked as outdated.
 
 [Sign in to view](https://github.com/login?return_to=https://github.com/microsoft/vscode/pull/295817)
+
+[xlet: thread content not loaded; load on GitHub]
 
 [[ unknown ]]
 

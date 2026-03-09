@@ -362,6 +362,7 @@ function shouldSkip(node: Node | null): boolean {
       'clipboard',
       'svg.octicon',
       'link',
+      'copilot-comment-mention-telemetry',
       // '.sr-only', '.visually-hidden', '[hidden]',
     ].join(','));
   }
@@ -481,7 +482,8 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   }
 
   if (node.matches('include-fragment')) {
-    if (!node.textContent?.trim()) return { md: '[xlet: thread content not loaded; load on GitHub]' };
+    // if (!node.textContent?.trim()) return { md: '[xlet: thread content not loaded; load on GitHub]' };
+    return { md: '[xlet: thread content not loaded; load on GitHub]' };
   }
 
   if (node.matches('task-lists table') && node.querySelectorAll('td').length === 1) {
@@ -616,7 +618,7 @@ function normalizePullTimeline(node?: Element): Element | undefined {
   });
 
   // General UI noise
-  clone.querySelectorAll('.minimized-comment').forEach((el) => el.remove());
+  // clone.querySelectorAll('.minimized-comment').forEach((el) => el.remove());
   clone.querySelectorAll('.AvatarStack').forEach((el) => el.remove());
   clone.querySelectorAll('.hidden-text-expander').forEach((el) => el.remove());
   clone.querySelectorAll('dialog-helper').forEach((el) => el.remove());
