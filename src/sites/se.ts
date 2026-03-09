@@ -36,9 +36,9 @@ import type { Locator } from '../utils/locator';
 import { asAbsUrl, pickEl, pickEls, pickVal } from '../utils/locator';
 import { getLang, hasSkip, markSkip, setLang } from '../normalize';
 import type { XletContexts } from '../settings';
-import type { PageState, RenderPage } from '../snapshot-loader';
+import type { CreatePage, RenderPage } from '../snapshot-loader';
 import { formatDateWithRelative } from '../utils/strings';
-import { renderXletPage, type XletPage } from '../xlet-page';
+import { renderXletPage } from '../xlet-page';
 
 type Contributor = {
   contributorType: 'author' | 'editor' | 'commenter';
@@ -300,7 +300,7 @@ function scrapeCommentVote(elem: Element, srcDoc: Document): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-function buildContribsAndVotes(contributors: Contributor[], voteCount: number, now?: Date): string {
+function buildContribsAndVotes(contributors: Contributor[], voteCount: number, now?: Date | null): string {
   if (contributors.length === 0) return '';
 
   // Sort once, newest first
@@ -384,15 +384,16 @@ export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): SEResu
   return result;
 }
 
-export const renderPage: RenderPage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
-  const result = extractFromDoc(sourceDoc, ctxs);
-  if (!result) return warn(undefined, `[xlet:se] extractFromDoc returned no data`);
-
-  const page = createSePage(result, state);
+export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
+  const page = await createSePage({ sourceDoc, ctxs, state });
+  if (!page) return;
   renderXletPage(page, targetDoc, root);
 };
 
-export function createSePage(result: SEResult, state: PageState, now?: Date): XletPage {
+export const createSePage: CreatePage = ({ sourceDoc, ctxs, state }) => {
+  const result = extractFromDoc(sourceDoc, ctxs);
+  if (!result) return warn(undefined, '[xlet:se-create] Failed to extract data from document');
+
   const { title, permalink, posts } = result;
 
   return {
@@ -410,7 +411,7 @@ export function createSePage(result: SEResult, state: PageState, now?: Date): Xl
           md: post.bodyMd,
           html: post.bodyHtml,
         },
-        contrib: buildContribsAndVotes(post.contributors, post.vote, now),
+        contrib: buildContribsAndVotes(post.contributors, post.vote, ctxs.md?.now),
         children: post.comments.map((comment, cIdx) => ({
           label: `Comment ${cIdx + 1}`,
           copyable: false,
@@ -418,9 +419,9 @@ export function createSePage(result: SEResult, state: PageState, now?: Date): Xl
             md: comment.bodyMd,
             html: comment.bodyHtml,
           },
-          contrib: buildContribsAndVotes(comment.contributors, comment.vote, now),
+          contrib: buildContribsAndVotes(comment.contributors, comment.vote, ctxs.md?.now),
         })),
       })),
     },
   };
-}
+};

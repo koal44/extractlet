@@ -42,7 +42,7 @@ import type { ToHtmlContext, ToHtmlElementHandler, ToMdContext, ToMdElementHandl
 import { toHtml as _toHtml, toMd as _toMd, safeFetch } from '../core';
 import { frameMath, mathReprToHtml, mathReprToMd, normalizeTex, type MathRepr } from '../math-vendor';
 import type { XletContexts } from '../settings';
-import type { RenderPage } from '../snapshot-loader';
+import type { CreatePage, RenderPage } from '../snapshot-loader';
 import type { HLevel } from '../utils/dom';
 import {
   copyHrefAttr, copySrcAttr, h, isBreak, isDiv, isDoc, isElement,
@@ -50,7 +50,7 @@ import {
 } from '../utils/dom';
 import { log, repr, warn } from '../utils/logging';
 import { jaroWinklerSimilarity } from '../utils/strings';
-import { renderXletPage, type XletNode, type XletPage } from '../xlet-page';
+import { renderXletPage, type XletNode } from '../xlet-page';
 
 export type WikiResult = {
   baseUrl: string; // Base URL of the wiki page
@@ -704,29 +704,24 @@ type WikiPageState = {
   rawText?: string; // Cached raw text of the page
 };
 
-export const renderPage: RenderPage = async (
-  { sourceDoc, targetDoc, ctxs, root, state }:
-  { sourceDoc: Document; targetDoc: Document; ctxs?: XletContexts; root: HTMLElement; state: WikiPageState; }
-) => {
-  const result = extractFromDoc(sourceDoc, ctxs);
-  if (!result) return warn(undefined, '[xlet:wiki-create] Failed to extract data from document');
-
-  const { baseUrl } = result;
-  const page = await createWikiPage(result, ctxs, state);
-  if (!baseUrl || !page) return warn(undefined, '[xlet:wiki-render] Failed to create wiki tree from document');
-
+export const renderPage: RenderPage<WikiPageState> = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
+  const page = await createWikiPage({ sourceDoc, ctxs, state });
+  if (!page) return;
   renderXletPage(page, targetDoc, root);
 };
 
-export async function createWikiPage(
-  result: WikiResult, ctxs?: XletContexts, state: WikiPageState = { viewIdx: 0 }
-): Promise<XletPage | undefined> {
+export const createWikiPage: CreatePage<WikiPageState> = async ({ sourceDoc, ctxs, state }) => {
+  const result = extractFromDoc(sourceDoc, ctxs);
+  if (!result) return warn(undefined, '[xlet:wiki-create] Failed to extract data from document');
+
   const { baseUrl, rawUrl, data } = result;
   if (!data) return warn(undefined, '[xlet:wiki-create] No tree data extracted from the document');
 
   const tree = WikiNode.fromPojo(data);
 
-  if (!state.rawText) state.rawText = await fetchRawPage(rawUrl, ctxs);
+  if (state.rawText === undefined) {
+    state.rawText = await fetchRawPage(rawUrl, ctxs);
+  }
   populateWikiNodeWithRaw(tree, state.rawText);
 
   const settingsLink = h('a', { href: '#' }, 'fetch settings');
@@ -739,11 +734,11 @@ export async function createWikiPage(
     const openOptsPageFn = (globalThis as BrowserGlobal).browser?.runtime?.openOptionsPage;
     if (openOptsPageFn) await openOptsPageFn();
   });
-  const rawFallback = ctxs?.general?.fetchMissingContent === false
+  const rawFallback = ctxs.general?.fetchMissingContent === false
     ? h('p', {}, 'Raw wikitext is unavailable due to ', settingsLink, '.')
     : h('p', {}, 'Raw wikitext is unavailable.');
 
-  const page: XletPage = {
+  return {
     siteLabel: new URL(baseUrl).hostname,
     title: tree.title,
     views: ['html', 'md', 'raw'],
@@ -753,8 +748,6 @@ export async function createWikiPage(
       raw: rawFallback,
     },
   };
-
-  return page;
 };
 
 function wikiNodeToXletNode(node: WikiNode, isRoot = false, permalink?: string): XletNode {

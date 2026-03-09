@@ -60,14 +60,14 @@ import {
   type Locator,
 } from '../utils/locator';
 import type { XletContexts } from '../settings';
-import type { PageState, RenderPage } from '../snapshot-loader';
+import type { CreatePage, RenderPage } from '../snapshot-loader';
 import {
   h, isAnchor, isElement, isSub, isSup, isText,
 } from '../utils/dom';
 import { warn } from '../utils/logging';
 import { chooseCanonicalUrl, formatDateWithRelative } from '../utils/strings';
 import { setLang } from '../normalize';
-import { renderXletPage, type XletPage } from '../xlet-page';
+import { renderXletPage } from '../xlet-page';
 
 export type HubResult = {
   permalink: string;
@@ -388,7 +388,7 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   }
   if (node.matches('relative-time')) {
     const dt = node.getAttribute('datetime');
-    const now = _ctx.now ?? undefined;
+    const now = _ctx.now;
     return { md: dt ? formatDateWithRelative(dt, { now }) : (node.textContent?.trim() ?? '') };
   }
 
@@ -745,7 +745,7 @@ function removeFollowingSiblings(node: Node): void {
   }
 }
 
-function buildContribText(post: Post, now?: Date): string {
+function buildContribText(post: Post, now?: Date | null): string {
   const author = post.contributor?.author ?? 'unknown';
   const authorTime = post.contributor?.timestamp;
   const editor = post.contributor?.editor;
@@ -785,15 +785,16 @@ export function extractFromDoc(srcDoc: Document, ctxs?: XletContexts): HubResult
   return { permalink, title, posts };
 }
 
-export const renderPage: RenderPage = ({ sourceDoc, targetDoc, ctxs, root, state }) => {
-  const result = extractFromDoc(sourceDoc, ctxs);
-  if (!result) return warn(undefined, `[xlet:hub] extractFromDoc returned no data`);
-
-  const page = createHubPage(result, state);
+export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
+  const page = await createHubPage({ sourceDoc, ctxs, state });
+  if (!page) return;
   renderXletPage(page, targetDoc, root);
 };
 
-export function createHubPage(result: HubResult, state: PageState, now?: Date): XletPage {
+export const createHubPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
+  const result = extractFromDoc(sourceDoc, ctxs);
+  if (!result) return warn(undefined, '[xlet:hub-create] Failed to extract data from document');
+
   const { title, permalink, posts } = result;
 
   return {
@@ -811,8 +812,8 @@ export function createHubPage(result: HubResult, state: PageState, now?: Date): 
           md: post.bodyMd,
           html: post.bodyHtml,
         },
-        contrib: buildContribText(post, now),
+        contrib: buildContribText(post, ctxs.md?.now),
       })),
     },
   };
-}
+};

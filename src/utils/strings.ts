@@ -166,7 +166,7 @@ export function isLabelGeneric(label?: string): boolean {
 
 export function formatDateWithRelative(
   iso?: string | null,
-  opts?: { utc?: boolean; now?: Date; },
+  opts?: { utc?: boolean; now?: Date | null; },
 ): string {
   if (!iso) return 'unknown-date';
 

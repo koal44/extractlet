@@ -1,13 +1,31 @@
 import browser from 'webextension-polyfill';
-// import { loadSnapshot } from './snapshot-store';
 import { loadSettings, observeSettings, settingsToContexts, type XletContexts } from './settings';
 import { repr } from './utils/logging';
 import { h } from './utils/dom';
 import { isXletSnapshot } from './extractlet';
+import { type XletPage } from './xlet-page';
 
 export type PageState = {
   viewIdx: number;
-}
+};
+
+export type CreatePageArgs<TState extends PageState = PageState> = {
+  sourceDoc: Document;
+  ctxs: XletContexts;
+  state: TState;
+};
+
+export type CreatePage<TState extends PageState = PageState> =
+  (args: CreatePageArgs<TState>) => XletPage | undefined | Promise<XletPage | undefined>;
+
+export type RenderPageArgs<TState extends PageState = PageState> =
+  CreatePageArgs<TState> & {
+    targetDoc: Document;
+    root: HTMLElement;
+  };
+
+export type RenderPage<TState extends PageState = PageState> =
+  (args: RenderPageArgs<TState>) => Promise<void>;
 
 function parseUuidFromUrl(): string | null {
   const params = new URLSearchParams(window.location.search);
@@ -39,17 +57,6 @@ function ensureBaseUrl(doc: Document, baseUrl: string): void {
 
   base.setAttribute('href', baseUrl);
 }
-
-export type RenderPage = (
-  { sourceDoc, targetDoc, ctxs, root, state }:
-  {
-    sourceDoc: Document;
-    targetDoc: Document;
-    ctxs: XletContexts;
-    root: HTMLElement;
-    state: PageState;
-  }
-) => void | Promise<void>;
 
 export async function loadResultsPage(
   renderPage: RenderPage,
