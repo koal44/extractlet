@@ -74,3 +74,17 @@ function* walkFiles(root: string): Generator<string> {
     else yield p;
   }
 }
+
+// emit a review artifact only while the spec is failing
+export function syncMdSpec(dir: string, name: string, expected: string, actual: string): void {
+  const pth = path.join(dir, `${name}.spec.new.md`);
+
+  if (expected !== actual) {
+    fs.writeFileSync(pth, actual, 'utf8');
+    // eslint-disable-next-line no-restricted-properties
+    console.log(`[fixtures] ${name}: spec mismatch; wrote ${pth}. Review and replace '${name}.spec.md' if expected.`);
+    return;
+  }
+
+  if (fs.existsSync(pth)) fs.unlinkSync(pth);
+}

@@ -1,11 +1,11 @@
-// test/fix/wiki.test.ts
 import { describe, it, expect } from 'vitest';
 import type { WikiNode } from '../../src/sites/wiki';
-import { extractFromDoc, type WikiResult } from '../../src/sites/wiki';
+import { createWikiPage, extractFromDoc, type WikiResult } from '../../src/sites/wiki';
 import { setupDom } from '../utils/test-utils';
 import { join } from 'node:path';
 import type { BaseSidecar } from './fix';
-import { loadFixtures } from './fix';
+import { loadFixtures, syncMdSpec } from './fix';
+import { getCopyText } from '../../src/xlet-page';
 
 // Boot JSDOM globals
 setupDom();
@@ -28,7 +28,7 @@ const allCases = await loadFixtures<WikiExpect>(fixturesDir);
 describe('wiki: extractFromDoc', () => {
   for (const f of allCases) {
     it(f.name, async () => {
-      if (f.test) return await f.test(f.dom);
+      if (f.test) await f.test(f.dom);
       const r = extractFromDoc(f.dom);
       expect(r).toBeDefined();
       if (!r) return;
@@ -42,6 +42,14 @@ describe('wiki: extractFromDoc', () => {
       // Tree comparison (partial; only fields present in sidecar are asserted)
       if ('data' in e) {
         compareNode(r.data, e.data);
+      }
+
+      if (f.specMd) {
+        const page = await createWikiPage(r, { general: { fetchMissingContent: false } });
+        if (!page) throw new Error('Failed to create page from wiki result');
+        const md = getCopyText(page.root, page);
+        syncMdSpec(fixturesDir, f.name, f.specMd, md);
+        expect(md).toBe(f.specMd);
       }
     });
   }

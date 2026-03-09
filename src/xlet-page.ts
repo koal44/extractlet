@@ -10,6 +10,7 @@ export type XletPage = {
   root: XletNode;
   views: XletView[];
   state: PageState;
+  viewFallbacks?: Partial<Record<XletView, string | Element>>;
 };
 
 export type XletView = 'html' | 'md' | 'raw';
@@ -54,6 +55,13 @@ export function renderXletPage(page: XletPage, targetDoc: Document, root: HTMLEl
   attachStickyHeader(root, viewToggle);
 
   root.appendChild(buildNode(page.root, page, 1, targetDoc));
+
+  page.views.forEach((view) => {
+    if (page.viewFallbacks?.[view] && !hasSubtreeContent(page.root, view)) {
+      root.appendChild(h('div', { class: `fallback-${view}` }, page.viewFallbacks[view]));
+    }
+  });
+
   viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present
 }
 
@@ -90,19 +98,20 @@ function buildCopyBody(node: XletNode, page: XletPage, level: number): string {
 
   if (node.label) out.push('', `${'#'.repeat(Math.min(level, 3))} ${node.label.trim()}`);
 
+  const content: string[] = [];
   switch (view) {
     case 'md':
     case 'html':
-      if (node.content?.md) out.push(node.content.md.trim());
-      if (node.contrib) out.push('', node.contrib.trim());
+      if (node.content?.md) content.push(node.content.md.trim());
+      if (node.contrib) content.push('', node.contrib.trim());
       break;
     case 'raw':
-      if (node.content?.raw) out.push('', node.content.raw.trim());
+      if (node.content?.raw) content.push('', node.content.raw.trim());
       break;
     default: throw new Error(`Unknown view: ${String(view satisfies never)}`);
   }
 
-  out.push(''); // add spacing between nodes
+  if (content.length) out.push(...content, ''); // add spacing after content if there is any
 
   node.children?.forEach((child) => {
     out.push(buildCopyBody(child, page, level + 1));
@@ -116,7 +125,8 @@ function buildNode(node: XletNode, page: XletPage, level: number, targetDoc: Doc
   const title = node.label ? h(`h${Math.min(level, 3) as 1 | 2 | 3}`, { class: 'node-title' }, node.label.trim()) : null;
   const copyButton = node.copyable ? buildCopyButton(node, page, targetDoc) : null;
   const heading = (title || copyButton) ? h('div', { class: 'node-heading' }, title, copyButton) : null;
-  const div = h('div', { class: page.root === node ? 'node-root' : 'node' }, heading);
+  const isShell = !node.content?.html && !node.content?.md && !node.content?.raw && !node.contrib && !node.label;
+  const div = h('div', { class: `${page.root === node ? 'node-root' : 'node'}${isShell ? ' shell' : ''}` }, heading);
 
   const viewSpecs: Array<{ view: XletView; className: string; content: Element | string | null; }> = [
     { view: 'md',   className: 'md-view',   content: node.content?.md ?? null },
@@ -126,6 +136,7 @@ function buildNode(node: XletNode, page: XletPage, level: number, targetDoc: Doc
 
   viewSpecs.forEach(({ view, className, content }) => {
     if (!page.views.includes(view)) return;
+    if (!hasSubtreeContent(node, view)) div.classList.add(`empty-${view}`);
 
     const body = h('div', { class: 'node-body' }, content);
     const contrib = node.contrib ? h('div', { class: 'node-contrib' }, node.contrib) : null;
@@ -138,4 +149,10 @@ function buildNode(node: XletNode, page: XletPage, level: number, targetDoc: Doc
   });
 
   return div;
+}
+
+function hasSubtreeContent(node: XletNode, view: XletView): boolean {
+  if (node.content?.[view] !== undefined) return true;
+  if ((view === 'md' || view === 'html') && node.contrib) return true;
+  return !!node.children?.some((child) => hasSubtreeContent(child, view));
 }

@@ -167,14 +167,57 @@ figure figcaption {
   display: none;
 }
 
+/* === empty view styling === */
+.show-html .empty-html,
+.show-md .empty-md,
+.show-raw .empty-raw {
+  display: none;
+}
+
+/* === view fallback styling === */
+.fallback-html, .fallback-md, .fallback-raw {
+  display: none;
+  margin-top: 1em;
+  padding: 1em;
+  background: #ffefef;
+  border: 1px solid #f5c2c2;
+  color: #a71d2a;
+  border-radius: 0.3em;
+}
+.show-html .fallback-html,
+.show-md .fallback-md,
+.show-raw .fallback-raw {
+  display: block;
+}
+.fallback-html a, .fallback-md a, .fallback-raw a {
+  color: #7a1630;
+  /* font-weight: 600; */
+}
+.fallback-html a:hover, .fallback-md a:hover, .fallback-raw a:hover {
+  color: #5e1025;
+}
+
 /* === xlet-page styling === */
-.node-root > .node {
+.node-root.shell {
+  margin: 0;
+  padding: 0;
+}
+.node-root:not(.shell) {
   margin-top: 0.5em;
   padding: 0.5em;
-  border: 1px solid #dedede;
 }
-.node .node {
+.node-root > .node,
+.node > .node {
   margin-top: 1.5em;
+  padding: 0;
+}
+.node-root.shell > .node {
+  border: 1px solid #dedede;
+  margin-top: 0.5em;
+  padding: 0.5em;
+}
+.node-root:not(.shell) > .node {
+  border: none;
 }
 .node-heading {
   margin-bottom: 0.6em;

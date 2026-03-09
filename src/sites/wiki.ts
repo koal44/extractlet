@@ -43,16 +43,14 @@ import { toHtml as _toHtml, toMd as _toMd, safeFetch } from '../core';
 import { frameMath, mathReprToHtml, mathReprToMd, normalizeTex, type MathRepr } from '../math-vendor';
 import type { XletContexts } from '../settings';
 import type { RenderPage } from '../snapshot-loader';
-import { copyButtonCss, createCopyButton } from '../ui/copy-button';
-import { createMultiToggle, multiToggleCss } from '../ui/multi-toggle';
-import { attachStickyHeader } from '../ui/sticky';
 import type { HLevel } from '../utils/dom';
 import {
-  copyHrefAttr, copySrcAttr, h, htmlToElementK, injectCss, isBreak, isDiv, isDoc, isElement,
+  copyHrefAttr, copySrcAttr, h, htmlToElementK, isBreak, isDiv, isDoc, isElement,
   isHeading, isHTML, isListItem, isSub, isSup, isText, isUList, parseHeadingLevel,
 } from '../utils/dom';
 import { log, repr, warn } from '../utils/logging';
 import { jaroWinklerSimilarity } from '../utils/strings';
+import { renderXletPage, type XletNode, type XletPage } from '../xlet-page';
 
 export type WikiResult = {
   baseUrl: string; // Base URL of the wiki page
@@ -599,62 +597,16 @@ export function populateWikiNodeWithRaw(
   if (sections.length) console.warn(`[xlet:wiki-pop] Unmatched sections: ${sections.map((s) => `${s.title} (H${s.level}) [§${s.sectionNum}]`).join(', ')}`);
 }
 
-function renderHtml(node: WikiNode): HTMLDivElement {
-  const copyBtn = createCopyButton(() => node.getSubtreeMd(), () => 'Copied Markdown!');
-  const titleElem = h(`h${node.level}`, { class: 'html-wikinode-title' }, node.title);
-  const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
-  const container = h('div', { class: 'html-wikinode-section' }, titleBar);
-  container.id = `html-section-${node.sectionNum}`;
+function getRawBody(node: WikiNode): string {
+  const raw = node.raw || '';
+  if (node.level === 1 || !node.raw) return raw;
 
-  if (node.html) container.appendChild(node.html);
-  for (const child of node.children) {
-    container.appendChild(renderHtml(child));
+  const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1(?:\s*<!--.*?-->)*\s*$/;
+  const lines = raw.split('\n');
+  if (lines.length && sectionRegex.test(lines[0])) {
+    return lines.slice(1).join('\n');
   }
-  return container;
-}
-
-function renderMd(node: WikiNode): HTMLDivElement {
-  const copyBtn = createCopyButton(() => node.getSubtreeMd(), () => 'Copied Markdown!');
-  const titleElem = h(`h${node.level}`, { class: 'md-wikinode-title' }, node.title);
-  const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
-  const container = h('div', { class: 'md-wikinode-section' }, titleBar);
-  container.id = `md-section-${node.sectionNum}`;
-
-  const textElem = h('p', { class: 'md-text' }, node.md);
-  container.appendChild(textElem);
-  for (const child of node.children) {
-    container.appendChild(renderMd(child));
-  }
-  return container;
-}
-
-function renderRaw(node: WikiNode): HTMLDivElement {
-  const copyBtn = createCopyButton(() => node.raw, () => 'Copied Wikitext!');
-  const titleElem = h(`h${node.level}`, { class: 'raw-wikinode-title' }, node.title);
-  const titleBar = h('div', { class: 'wikinode-titlebar' }, titleElem, copyBtn);
-  const container = h('div', { class: 'raw-wikinode-section' }, titleBar);
-  container.id = `raw-section-${node.sectionNum}`;
-
-  const rawBody = stripHeading(node);
-  const textElem = h('p', { class: 'raw-text' }, rawBody);
-  container.appendChild(textElem);
-  for (const child of node.children) {
-    container.appendChild(renderRaw(child));
-  }
-  return container;
-
-  // --- helper fn ----
-  function stripHeading(node: WikiNode): string {
-    const raw = node.raw || '';
-    if (node.level === 1 || !node.raw) return raw;
-
-    const sectionRegex = /^(={2,6})\s*([^=].*?[^=])\s*\1(?:\s*<!--.*?-->)*\s*$/;
-    const lines = raw.split('\n');
-    if (lines.length && sectionRegex.test(lines[0])) {
-      return lines.slice(1).join('\n');
-    }
-    return raw;
-  }
+  return raw;
 }
 
 function getPermaUrl(srcDoc: Document): string | null {
@@ -747,169 +699,74 @@ export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): WikiRe
   return result;
 }
 
-function getCopyPreamble(url: string): string {
-  const copyArr: string[] = [];
-  copyArr.push(
-    '<!-- Extractlet · Wiki -->',
-    `<!-- ${url} -->`
-  );
-  return copyArr.join('\n');
-}
-
 type WikiPageState = {
   viewIdx: number; // Index of the current view (0 = HTML, 1 = Markdown, 2 = Raw)
   rawText?: string; // Cached raw text of the page
 };
 
-export const createPage: RenderPage = async (
+export const renderPage: RenderPage = async (
   { sourceDoc, targetDoc, ctxs, root, state }:
   { sourceDoc: Document; targetDoc: Document; ctxs?: XletContexts; root: HTMLElement; state: WikiPageState; }
 ) => {
   const result = extractFromDoc(sourceDoc, ctxs);
-  if (!result) return console.warn('[xlet:wiki-create] extractFromDoc returned no result');
+  if (!result) return warn(undefined, '[xlet:wiki-create] Failed to extract data from document');
 
-  injectCss(multiToggleCss, { id: 'wiki-multi-toggle', doc: targetDoc });
-  injectCss(copyButtonCss, { id: 'wiki-copy-button', doc: targetDoc });
+  const { baseUrl } = result;
+  const page = await createWikiPage(result, ctxs, state);
+  if (!baseUrl || !page) return warn(undefined, '[xlet:wiki-render] Failed to create wiki tree from document');
 
-  // --- passed data from background script ---
+  renderXletPage(page, targetDoc, root);
+};
+
+export async function createWikiPage(
+  result: WikiResult, ctxs?: XletContexts, state: WikiPageState = { viewIdx: 0 }
+): Promise<XletPage | undefined> {
   const { baseUrl, rawUrl, data } = result;
-  if (!data) return console.warn('[xlet:wiki-create] No tree data provided to createPage');
+  if (!data) return warn(undefined, '[xlet:wiki-create] No tree data extracted from the document');
 
-  // --- restore WikiNode tree after serialization ---
   const tree = WikiNode.fromPojo(data);
-  tree.deserialize();
 
-  // --- fetch raw wikitext and add it to the tree ---
-  if (!state.rawText) {
-    state.rawText = await fetchRawPage(rawUrl, ctxs);
-  }
+  if (!state.rawText) state.rawText = await fetchRawPage(rawUrl, ctxs);
   populateWikiNodeWithRaw(tree, state.rawText);
 
-  // --- There are 3 views: HTML, Markdown, Raw ---
-  const views = {
-    html: {
-      label: 'HTML',
-      showClass: 'show-html',
-      idPrefix: 'html-section-',
-      observeClass: 'html-wikinode-title',
-      containerClass: 'html-view',
-      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${tree.getSubtreeMd()}`,
-      getCopyAllResponse: () => 'Copied all sections as Markdown!',
-      getCopyAllHint: () => 'Copy all sections as Markdown',
-    },
-    md: {
-      label: 'Markdown',
-      showClass: 'show-md',
-      idPrefix: 'md-section-',
-      observeClass: 'md-wikinode-title',
-      containerClass: 'md-view',
-      getCopyAllText: () => `${getCopyPreamble(baseUrl)}\n\n${tree.getSubtreeMd()}`,
-      getCopyAllResponse: () => 'Copied all sections as Markdown!',
-      getCopyAllHint: () => 'Copy all sections as Markdown',
-    },
-    raw: {
-      label: 'Wikitext',
-      showClass: 'show-raw',
-      idPrefix: 'raw-section-',
-      observeClass: 'raw-wikinode-title',
-      containerClass: 'raw-view',
-      getCopyAllText: () => !state.rawText ? '' : `${getCopyPreamble(baseUrl)}\n\n${[...tree].map((n) => n.raw).join('\n\n')}`,
-      getCopyAllResponse: () => 'Copied all sections as Wikitext!',
-      getCopyAllHint: () => 'Copy all sections as Wikitext',
-    },
-  } as const;
-
-  type ViewKey = keyof typeof views;
-  const viewKeys: ViewKey[] = Object.keys(views) as ViewKey[];
-
-  let sectionNum: number | null = null;
-  let currentView = viewKeys[state.viewIdx];
-
-  const topHeading = h('h1', { class: 'top-heading' }, 'Extractlet · Wiki');
-  const copyAllButton = createCopyButton(
-    () => views[currentView].getCopyAllText(),
-    () => views[currentView].getCopyAllResponse(),
-    () => views[currentView].getCopyAllHint()
-  );
-  const topBar = h('div', { class: 'top-bar' }, topHeading, copyAllButton);
-  root.appendChild(topBar);
-
-  const permalink = h('a', { href: baseUrl, target: '_blank', class: 'perma-link' }, baseUrl);
-  root.appendChild(permalink);
-
-  const viewToggle = createMultiToggle({
-    initState: viewKeys.indexOf(currentView),
-    labels: viewKeys.map((vk) => views[vk].label),
-    labelSide: 'right',
-    onToggle: (newIdx) => {
-      // Find the section closest to somewhere near the toggle bar
-      const toggleBar = targetDoc.querySelector<HTMLElement>('.view-toggle');
-      if (!toggleBar) return console.warn('[xlet:wiki-toggle] .view-toggle not found: UI may not be fully rendered');
-      const focusLine = toggleBar.getBoundingClientRect().bottom + 10;
-
-      sectionNum = findClosestSection(currentView, focusLine);
-
-      // Switch view
-      state.viewIdx = newIdx;
-      currentView = viewKeys[newIdx];
-      const nextView = views[currentView];
-      root.classList.remove(...viewKeys.map((vk) => views[vk].showClass));
-      root.classList.add(nextView.showClass);
-
-      // Scroll to equivalent section
-      if (sectionNum !== null) {
-        const targetId = `${nextView.idPrefix}${sectionNum}`;
-        const targetEl = targetDoc.getElementById(targetId);
-        if (targetEl) {
-          const sectionTop = targetEl.getBoundingClientRect().top;
-          const offset = sectionTop - focusLine;
-          window.scrollBy({ top: offset, behavior: 'auto' });
-        }
-      }
-    },
+  const settingsLink = h('a', { href: '#' }, 'fetch settings');
+  settingsLink.addEventListener('click', async (e) => {
+    e.preventDefault();
+    // TODO: use a data-xlet-action marker and centralize page actions in xlet-page
+    // Do not import browser directly into this module (tests won't be happy).
+    // wiki-page.html should source the polyfill.
+    type BrowserGlobal = { browser?: { runtime?: { openOptionsPage?: () => Promise<void>; }; }; };
+    const openOptsPageFn = (globalThis as BrowserGlobal).browser?.runtime?.openOptionsPage;
+    if (openOptsPageFn) await openOptsPageFn();
   });
+  const rawFallback = ctxs?.general?.fetchMissingContent === false
+    ? h('p', {}, 'Raw wikitext is unavailable due to ', settingsLink, '.')
+    : h('p', {}, 'Raw wikitext is unavailable.');
 
-  function findClosestSection(view: ViewKey, focusLine: number): number | null {
-    const prevView = views[view];
-    const headings = targetDoc.querySelectorAll(`.${prevView.observeClass}`);
-    if (headings.length === 0) return null; // warn(null, `[xlet:wiki-toggle] No headings found with class ${prevView.observeClass}. View state: ${currentView}.`);
+  const page: XletPage = {
+    siteLabel: new URL(baseUrl).hostname,
+    title: tree.title,
+    views: ['html', 'md', 'raw'],
+    state,
+    root: wikiNodeToXletNode(tree, true, baseUrl),
+    viewFallbacks: {
+      raw: rawFallback,
+    },
+  };
 
-    let bestHeading: HTMLElement | null = null;
-    let bestDelta = Infinity;
-
-    for (const el of headings) {
-      const rect = el.getBoundingClientRect();
-      const delta = Math.abs(focusLine - rect.top);
-      if (delta < bestDelta) {
-        bestHeading = el as HTMLElement;
-        bestDelta = delta;
-      }
-    }
-
-    if (!bestHeading) return warn(null, '[xlet:wiki-toggle] No bestHeading found despite non-empty headings list. Possible DOM error.');
-    const titlebar = bestHeading.parentElement;
-    if (!titlebar || !isDiv(titlebar)) return warn(null, '[xlet:wiki-toggle] Best heading\'s parent is not a div. Possible DOM structure change.');
-    const sectionDiv = titlebar.parentElement;
-    if (!sectionDiv || !isDiv(sectionDiv)) return warn(null, '[xlet:wiki-toggle] Best heading\'s grandparent is not a div. Possible DOM structure change.');
-    const activeSectionNum = sectionDiv.id.match(/-(\d+)$/)?.[1];
-    if (!activeSectionNum) return warn(null, '[xlet:wiki-toggle] Active section number not found in sectionDiv ID:', sectionDiv.id, sectionDiv);
-    const mainContainer = targetDoc.querySelector<HTMLElement>(`.${prevView.containerClass}`);
-    if (!mainContainer) return warn(null, `[xlet:wiki-toggle] Main container not found with class ${prevView.containerClass}. Possible DOM structure change.`);
-    const isPreambleActive = mainContainer.getBoundingClientRect().top > focusLine;
-    sectionNum = !isPreambleActive ? +activeSectionNum : null;
-    return sectionNum;
-  }
-
-  attachStickyHeader(root, viewToggle);
-
-  // --- Render views ---
-  const html = h('div', { class: 'html-view' }, renderHtml(tree));
-  const md = h('div', { class: 'md-view' }, renderMd(tree));
-  const rawUnavailableMsg = `Raw wikitext view is unavailable${ctxs?.general?.fetchMissingContent === false ? ' due to fetch settings' : ''}.`;
-  const raw = state.rawText
-    ? h('div', { class: 'raw-view' }, renderRaw(tree))
-    : h('div', { class: 'raw-view' }, h('p', {}, rawUnavailableMsg));
-  const contentBox = h('div', { class: 'content-box' }, html, md, raw);
-  root.appendChild(contentBox);
-  viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present
+  return page;
 };
+
+function wikiNodeToXletNode(node: WikiNode, isRoot = false, permalink?: string): XletNode {
+  return {
+    label: node.title,
+    permalink: isRoot ? permalink : undefined,
+    copyable: true,
+    content: {
+      md: node.md,
+      html: node.htmlStr || undefined,
+      raw: getRawBody(node) || undefined,
+    },
+    children: node.children.map((child) => wikiNodeToXletNode(child)),
+  };
+}

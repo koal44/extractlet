@@ -3,8 +3,7 @@ import { createSePage, extractFromDoc, type SEResult } from '../../src/sites/se'
 import { setupDom } from '../utils/test-utils';
 import { join } from 'node:path';
 import type { BaseSidecar } from './fix';
-import { loadFixtures } from './fix';
-import fs from 'node:fs';
+import { loadFixtures, syncMdSpec } from './fix';
 import { getCopyText } from '../../src/xlet-page';
 
 // Boot JSDOM globals
@@ -14,19 +13,6 @@ type SEExpect = Partial<SEResult> & {
   totalPosts?: number;
 };
 export type SESidecar = BaseSidecar<SEExpect>;
-
-function syncMdSpec(dir: string, name: string, expected: string, actual: string): void {
-  const path = join(dir, `${name}.spec.new.md`);
-
-  if (expected !== actual) {
-    fs.writeFileSync(path, actual, 'utf8');
-    // eslint-disable-next-line no-restricted-properties
-    console.log(`[fixtures] ${name}: spec mismatch; wrote ${path}. Review and replace '${name}.spec.md' if expected.`);
-    return;
-  }
-
-  if (fs.existsSync(path)) fs.unlinkSync(path);
-}
 
 const fixturesDir = join(__dirname, 'fixtures', 'stackexchange');
 const allCases = await loadFixtures<SEExpect>(fixturesDir);
