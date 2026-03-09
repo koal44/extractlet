@@ -60,7 +60,7 @@ for (const { version, renderers } of SUITES) {
       if (!dbg.enabled || (dbg.version === version && dbg.renderer === renderer && dbg.converter === 'toMd')) {
         it('toMd() matches .expect.md golden file', () => {
           const expectedMd = fs.readFileSync(mdPath, 'utf8');
-          const actualMd = toMd(root, { mathFence: 'bracket' });
+          const actualMd = toMd(root); // { mathFence: 'bracket' }
 
           expect(actualMd).toBe(expectedMd);
         });

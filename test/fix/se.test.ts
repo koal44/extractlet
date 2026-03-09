@@ -73,14 +73,14 @@ describe('stackexchange: extractFromDoc', () => {
             expect(rcc.isOwner).toBe(ecc.isOwner);
           });
         });
-
-        if (f.specMd) {
-          const xletPage = createSePage(r, { viewIdx: 0 }, f.now);
-          const md = getCopyText(xletPage.root, xletPage);
-          syncMdSpec(fixturesDir, f.name, f.specMd, md);
-          expect(md).toBe(f.specMd);
-        }
       });
+
+      if (f.specMd) {
+        const xletPage = createSePage(r, { viewIdx: 0 }, f.now);
+        const md = getCopyText(xletPage.root, xletPage);
+        syncMdSpec(fixturesDir, f.name, f.specMd, md);
+        expect(md).toBe(f.specMd);
+      }
     });
   }
 });

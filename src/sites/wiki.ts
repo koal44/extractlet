@@ -45,7 +45,7 @@ import type { XletContexts } from '../settings';
 import type { RenderPage } from '../snapshot-loader';
 import type { HLevel } from '../utils/dom';
 import {
-  copyHrefAttr, copySrcAttr, h, htmlToElementK, isBreak, isDiv, isDoc, isElement,
+  copyHrefAttr, copySrcAttr, h, isBreak, isDiv, isDoc, isElement,
   isHeading, isHTML, isListItem, isSub, isSup, isText, isUList, parseHeadingLevel,
 } from '../utils/dom';
 import { log, repr, warn } from '../utils/logging';
@@ -506,17 +506,17 @@ export class WikiNode {
     }
   }
 
-  deserialize() {
-    if (this.htmlStr === null) {
-      // nothing to deserialize
-      return console.warn(`[xlet:wiki-deserial] No htmlStr for section "${this.title}" (H${this.level}) [§${this.sectionNum}]`);
-    }
-    this.html = htmlToElementK(this.htmlStr, 'div', document);
-    this.htmlStr = null;
-    for (const child of this.children) {
-      child.deserialize();
-    }
-  }
+  // deserialize() {
+  //   if (this.htmlStr === null) {
+  //     // nothing to deserialize
+  //     return console.warn(`[xlet:wiki-deserial] No htmlStr for section "${this.title}" (H${this.level}) [§${this.sectionNum}]`);
+  //   }
+  //   this.html = htmlToElementK(this.htmlStr, 'div', document);
+  //   this.htmlStr = null;
+  //   for (const child of this.children) {
+  //     child.deserialize();
+  //   }
+  // }
 
   getSelfMd(): string {
     const hash = '#'.repeat(this.level);

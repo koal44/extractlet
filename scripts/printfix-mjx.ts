@@ -1,4 +1,4 @@
-// usage: ts-node scripts/printfix-mjx.ts [expect|clean]
+// usage: npm run printfix-mjx -- [expect|clean]
 // default: generate .out.* files
 
 /* eslint-disable no-restricted-properties */

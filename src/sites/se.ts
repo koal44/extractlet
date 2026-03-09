@@ -28,7 +28,7 @@
  *
  */
 
-import { htmlToElement, isElement, isText } from '../utils/dom';
+import { htmlToElementK, isElement, isText } from '../utils/dom';
 import { warn } from '../utils/logging';
 import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext, ToMdContext } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
@@ -228,9 +228,10 @@ function scrapePermalink(srcDoc: Document): string | undefined {
   return pickVal(seTable.permalink, srcDoc);
 }
 
-function scrapeTitle(srcDoc: Document): string | undefined {
+function scrapeTitle(srcDoc: Document, ctxs?: XletContexts): string | undefined {
   const val = pickVal(seTable.title, srcDoc);
-  return toMd(htmlToElement(`<div>${val}</div>`, document), { mathFence: 'dollar' });
+  if (!val) return undefined;
+  return toMd(htmlToElementK(`<div>${val}</div>`, 'div'), ctxs?.md);
 }
 
 function scrapePosts(srcDoc: Document, ctxs?: XletContexts): Post[] {
@@ -373,7 +374,7 @@ export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): SEResu
   }
 
   const permalink = scrapePermalink(sourceDoc) || '';
-  const title = scrapeTitle(sourceDoc);
+  const title = scrapeTitle(sourceDoc, ctxs);
   const result: SEResult = {
     permalink,
     title,

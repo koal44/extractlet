@@ -50,23 +50,27 @@ export function h(
   return node;
 }
 
+// Detached parse for inspection only; not for direct document insertion.
 export function htmlToElementK<K extends keyof MathMLElementTagNameMap>(html: string, tag: `math:${K}`, doc?: Document): MathMLElementTagNameMap[K] | null;
 export function htmlToElementK<K extends keyof SVGElementTagNameMap>(html: string, tag: `svg:${K}`, doc?: Document): SVGElementTagNameMap[K] | null;
 export function htmlToElementK<K extends keyof HTMLElementTagNameMap>(html: string, tag: K, doc?: Document): HTMLElementTagNameMap[K] | null;
-export function htmlToElementK(
-  html: string, tag: string, windowDoc: Document = document
-): Element | null {
-
-  const el = htmlToElement(html, windowDoc);
-  if (!el) return null;
-
-  const expectedTag =
+export function htmlToElementK(html: string, tag: string): Element | null {
+  const baseTag =
     tag.startsWith('math:') ? tag.slice(5) :
     tag.startsWith('svg:') ? tag.slice(4) :
     tag;
 
-  if (el.tagName.toLowerCase() !== expectedTag.toLowerCase()) {
-    console.warn(`[xlet] htmlToElementK(): expected root <${expectedTag}>, got <${el.tagName.toLowerCase()}>: ${html.slice(0, 1000)}`);
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  if (doc.body.childElementCount !== 1) {
+    console.warn(`[xlet] htmlToElementK(): result must contain exactly one element, got ${doc.body.childElementCount}: ${html.slice(0, 1000)}`);
+    return null;
+  }
+
+  const el = doc.body.firstElementChild;
+  if (!el) return null;
+
+  if (el.tagName.toLowerCase() !== baseTag.toLowerCase()) {
+    console.warn(`[xlet] htmlToElementK(): expected root <${baseTag}>, got <${el.tagName.toLowerCase()}>: ${html.slice(0, 1000)}`);
     return null;
   }
   return el;
