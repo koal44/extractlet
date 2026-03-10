@@ -1,265 +1,32 @@
 // TODO: Add support for auto-expanding long comment threads
 
-/**
- * GitHub Issue — DOM Reference
- *
- * <HEAD>
- *   link[rel="canonical"]                         → Canonical issue URL (base for absolute links)
- *
- * <BODY>
- * main#js-repo-pjax-container (implicit root; not queried directly here)
- *
- *   /* Title * /
- *   bdi[data-testid="issue-title"]                → Issue title (textContent)
- *
- *   /* OP wrapper (author + meta + description) * /
- *   div[data-testid="issue-viewer-issue-container"]
- *     div[data-testid="issue-body"]
- *       *[data-testid="issue-body-header-author"] → OP author handle (textContent)
- *
- *       a[data-testid="issue-body-header-link"]   → Header link (permalink to OP)
- *         href                                    → contains fragment "#issue-<N>" (used to compute postId)
- *         relative-time[datetime]                 → OP created timestamp (ISO in @datetime)
- *       span (optional; sibling of the anchor)    → "edited by …" container
- *         a                                       → Editor username (textContent)
- *
- *       /* OP body (rendered Markdown HTML) * /
- *       div[data-testid="issue-body-viewer"]
- *         /* NOTE: scraper takes the entire viewer node for HTML/MD conversion * /
- *         /* Implementation expects a markdown root under this viewer * /
- *         div[data-testid="markdown-body"]?       → Markdown render root (stable on GH; not strictly required by scraper)
- *           ...                                   → Rendered HTML content of the issue body
- *
- *   /* Timeline: comments/replies * /
- *   div[data-testid="issue-timeline-container"]   → Wraps all timeline items (comments/events)
- *     > *                                         → Each direct child is one timeline item
- *       div[data-testid="comment-header"]         → Comment header (author + time + id)
- *         id                                      → "issuecomment-<N>" (stored as postId; combine with canonical URL for fragment link)
- *         a[data-testid="avatar-link"]            → Comment author handle (textContent)
- *         relative-time[datetime]                 → Comment timestamp (ISO in @datetime)
- *
- *       /* Comment body (rendered Markdown HTML) * /
- *       div[data-testid="markdown-body"]          → Markdown render root for this comment
- *         ...                                     → Rendered HTML content of the comment
- *
- * Notes:
- * - postId mapping (what the scraper persists):
- *   - OP: extracted from a[data-testid="issue-body-header-link"].href fragment (e.g., "issue-1651242529").
- *   - Comment: taken from div[data-testid="comment-header"].id (e.g., "issuecomment-1493698400").
- * - All timestamps are read from <relative-time datetime="...">; prefer @datetime over text.
- * - Author/editor names are read as plain textContent from the designated testid anchors/spans.
- * - Body HTML/MD: the scraper passes the whole viewer/body node to converters (no inner text scraping).
- * - Canonical URL: link[rel="canonical"] is resolved against document.baseURI for absolute form.
- */
-
-
 import type { ToHtmlContext, ToMdElementHandler, ToMdContext, ToHtmlElementHandler } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
-import {
-  pickVal, pickEl, pickEls, asLastPathSeg, asIdFrag, asAbsUrl,
-  type Locator,
-} from '../utils/locator';
-import type { XletContexts } from '../settings';
+import { pickVal, asAbsUrl, type Locator } from '../utils/locator';
 import type { CreatePage, RenderPage } from '../snapshot-loader';
-import {
-  h, isAnchor, isElement, isSub, isSup, isText,
-} from '../utils/dom';
+import { h, isElement, isSub, isSup, isText } from '../utils/dom';
 import { warn } from '../utils/logging';
 import { chooseCanonicalUrl, formatDateWithRelative } from '../utils/strings';
 import { setLang } from '../normalize';
-import { renderXletPage } from '../xlet-page';
+import { renderXletPage, type XletPage } from '../xlet-page';
+import { createDiscPage } from './hub/disc';
+import { createIssuePage } from './hub/issue';
+import { createPrPage } from './hub/pr';
 
-export type HubResult = {
-  permalink: string;
-  title: string;
-  posts: Post[];
-};
+export type GhDomain = 'issue' | 'pr' | 'disc';
 
-type Post = {
-  contributor?: Contributor;
-  bodyHtml?: string;
-  bodyMd?: string;
-  postId?: string;
-}
-
-type Contributor = {
-  author?: string;
-  timestamp?: string;
-  editor?: string;
-};
-
-type GhDomain = 'issue' | 'pr' | 'discussion';
-type GhKey =
-  'permalink' | 'title' |
-  'firstPost_author' | 'firstPost_postId' | 'firstPost_createdAt' | 'firstPost_editedBy' | 'firstPost_bodyViewer' |
-  'posts_items' | 'posts_author' | 'posts_createdAt' | 'posts_postId' | 'posts_bodyViewer';
-type GhTable = Record<GhDomain | 'all', Partial<Record<GhKey, Locator[]>>>;
-
-const ghTable: GhTable  = {
-  all: {
-    permalink: [
-      { sel: 'head > link[rel="canonical"]', attr: 'href', valMap: asAbsUrl },
-      { sel: '#repo-content-turbo-frame', attr: 'src', valMap: asAbsUrl },
-      // { sel: 'meta[property="og:url"]', attr: 'content' }, // unverified
-      // { sel: 'react-app[initial-path]', attr: 'initial-path' }, // unverified
-    ],
-    title: [
-      { sel: 'head > title', attr: 'textContent' },
-      { sel: 'h1.gh-header-title > bdi.markdown-title', attr: 'textContent' },
-    ],
-    firstPost_author: [
-    ],
-    firstPost_postId: [
-    ],
-    firstPost_createdAt: [
-    ],
-    firstPost_editedBy: [
-    ],
-    firstPost_bodyViewer: [
-    ],
-    posts_items: [
-    ],
-    posts_author: [
-    ],
-    posts_createdAt: [
-    ],
-    posts_postId: [
-    ],
-    posts_bodyViewer: [
-    ],
-  },
-  pr: {
-    permalink: [
-    ],
-    title: [
-    ],
-    firstPost_author: [
-      { sel: 'div[id^="issue-"] a.author', attr: 'textContent' },
-    ],
-    firstPost_postId: [
-      { sel: 'div[id^="issue-"]', attr: 'id' },
-    ],
-    firstPost_createdAt: [
-      { sel: 'div[id^="issue-"] .timeline-comment-header relative-time', attr: 'datetime' },
-    ],
-    firstPost_editedBy: [
-    ],
-    firstPost_bodyViewer: [
-      { sel: 'div[id^="issue-"] .comment-body' },
-    ],
-    posts_items: [
-      { sel: '.js-timeline-item  .TimelineItem' },
-    ],
-    posts_author: [
-      { sel: ':scope .timeline-comment-header a.author', attr: 'textContent' },
-      { sel: ':scope .TimelineItem-body a.author', attr: 'textContent' },
-      { sel: ':scope img.avatar-user', attr: 'alt', valMap: (alt) => alt.replace(/^@/, '') },
-    ],
-    posts_createdAt: [
-      { sel: ':scope .timeline-comment-header relative-time', attr: 'datetime' },
-      { sel: ':scope .TimelineItem-body relative-time', attr: 'datetime' },
-    ],
-    posts_postId: [
-      { sel: ':scope [id^="issuecomment-"]', attr: 'id' },
-      { sel: ':scope [id^="pullrequestreview-"]', attr: 'id' },
-      { sel: ':scope [id^="event-"]', attr: 'id' },
-      { sel: ':scope [id^="commits-pushed-"]', attr: 'id' },
-      // { sel: ':scope', attr: 'id' },
-    ],
-    posts_bodyViewer: [
-      // { sel: ':scope .comment-body' },
-      { sel: ':scope .TimelineItem-body' },
-    ],
-  },
-  discussion: {
-    permalink: [
-    ],
-    title: [
-    ],
-    firstPost_author: [
-      {
-        sel: 'div[id^="discussion-"] a[data-hovercard-type="user"]', attr: 'href', valMap: asLastPathSeg,
-      },
-    ],
-    firstPost_postId: [
-      { sel: 'div[id^="discussion-"]', attr: 'id' },
-    ],
-    firstPost_createdAt: [
-      { sel: 'div[id^="discussion-"] h2 relative-time', attr: 'datetime' },
-    ],
-    firstPost_editedBy: [
-    ],
-    firstPost_bodyViewer: [
-      { sel: 'div[id^="discussion-"] .comment-body' },
-    ],
-    posts_items: [
-      { sel: 'div[id^="discussioncomment-"]' },
-    ],
-    posts_author: [
-      {
-        sel: ':scope a[data-hovercard-type="user"]', attr: 'href', valMap: asLastPathSeg,
-      },
-    ],
-    posts_createdAt: [
-      { sel: ':scope relative-time', attr: 'datetime' },
-    ],
-    posts_postId: [
-      { sel: ':scope', attr: 'id' },
-    ],
-    posts_bodyViewer: [
-      { sel: ':scope .comment-body' },
-    ],
-  },
-  issue: {
-    permalink: [
-    ],
-    title: [
-      { sel: 'bdi[data-testid="issue-title"]', attr: 'textContent' },
-    ],
-    firstPost_author: [
-      { sel: 'div[data-testid="issue-viewer-issue-container"] [data-testid="issue-body-header-author"]' },
-    ],
-    firstPost_postId: [
-      {
-        sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"]',
-        attr: 'href', valMap: asIdFrag,
-      },
-    ],
-    firstPost_createdAt: [
-      { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] relative-time', attr: 'datetime' },
-    ],
-    firstPost_editedBy: [
-      { sel: 'div[data-testid="issue-viewer-issue-container"] a[data-testid="issue-body-header-link"] + span a' },
-    ],
-    firstPost_bodyViewer: [
-      { sel: 'div[data-testid="issue-viewer-issue-container"] div[data-testid="issue-body-viewer"]' },
-    ],
-    posts_items: [
-      { sel: 'div[data-testid="issue-timeline-container"] [data-wrapper-timeline-id]' },
-      { sel: 'div[data-testid="issue-timeline-container"] > *' },
-    ],
-    posts_author: [
-      { sel: ':scope div[data-testid="comment-header"] a[data-testid="avatar-link"]', attr: 'textContent' },
-      { sel: ':scope .TimelineBody a[data-testid="actor-link"]', attr: 'textContent' },
-    ],
-    posts_createdAt: [
-      { sel: ':scope div[data-testid="comment-header"] relative-time', attr: 'datetime' },
-      { sel: ':scope .TimelineBody relative-time', attr: 'datetime' },
-    ],
-    posts_postId: [
-      { sel: ':scope div[data-testid="comment-header"]', attr: 'id' },
-    ],
-    posts_bodyViewer: [
-      { sel: ':scope div[data-testid="markdown-body"]' },
-    ],
-  },
+const locators: Record<string, Locator[]> = {
+  permalink: [
+    { sel: 'head > link[rel="canonical"]', attr: 'href', valMap: asAbsUrl },
+    { sel: '#repo-content-turbo-frame', attr: 'src', valMap: asAbsUrl },
+    // { sel: 'meta[property="og:url"]', attr: 'content' }, // unverified
+    // { sel: 'react-app[initial-path]', attr: 'initial-path' }, // unverified
+  ],
+  title: [
+    { sel: 'head > title', attr: 'textContent' },
+    { sel: 'h1.gh-header-title > bdi.markdown-title', attr: 'textContent' },
+  ],
 } as const;
-
-function getLocators(varKey: GhKey, domain?: GhDomain): Locator[] {
-  return domain
-    ? [...(ghTable[domain][varKey] ?? []), ...(ghTable['all'][varKey] ?? [])]
-    : ghTable['all'][varKey] ?? [];
-}
 
 function matchGhUrl(str: string, withHash = false): string | null {
   try {
@@ -277,74 +44,27 @@ function matchGhUrl(str: string, withHash = false): string | null {
   }
 }
 
-function detectGhDomain(str: string): GhDomain | undefined  {
+export function detectGhDomain(str: string): GhDomain | undefined  {
   //   /owner/repo/issues/123
   //   /owner/repo/pull/456
   //   /owner/repo/discussions/789
   const u = new URL(str);
   if (u.pathname.includes('/pull/')) return 'pr';
   if (u.pathname.includes('/issues/')) return 'issue';
-  if (u.pathname.includes('/discussions/')) return 'discussion';
+  if (u.pathname.includes('/discussions/')) return 'disc';
 }
 
-function scrapePermaUrl(srcDoc: Document): string | undefined {
-  let link = pickVal(getLocators('permalink'), srcDoc);
+export function scrapePermaUrl(srcDoc: Document): string | undefined {
+  let link = pickVal(locators.permalink, srcDoc);
   link = chooseCanonicalUrl(link, srcDoc.baseURI);
   if (!link) return warn(undefined, 'scrapePermaUrl: no link found');
   const detected = matchGhUrl(link, false);
   if (detected) return detected;
 }
 
-function scrapeTitle(srcDoc: Document, domain: GhDomain): string | undefined {
-  const title = pickVal(getLocators('title', domain), srcDoc);
+export function scrapeTitle(srcDoc: Document): string | undefined {
+  const title = pickVal(locators.title, srcDoc);
   return title;
-}
-
-function scrapeFirstPost(srcDoc: Document, domain: GhDomain, ctxs?: XletContexts): Post | undefined {
-  const author    = pickVal(getLocators('firstPost_author',    domain), srcDoc);
-  const postId    = pickVal(getLocators('firstPost_postId',    domain), srcDoc);
-  const createdAt = pickVal(getLocators('firstPost_createdAt', domain), srcDoc);
-  const editedBy  = pickVal(getLocators('firstPost_editedBy',  domain), srcDoc);
-
-  if (!author && !createdAt && !postId) return undefined;
-
-  const contributor: Contributor = {
-    author,
-    timestamp: createdAt,
-    editor: editedBy,
-  };
-
-  const bodyViewer = pickEl(getLocators('firstPost_bodyViewer', domain), srcDoc);
-  const bodyHtml   = bodyViewer ? toHtml(bodyViewer, ctxs?.html)?.outerHTML : undefined;
-  const bodyMd     = bodyViewer ? toMd(bodyViewer, ctxs?.md) : undefined;
-
-  return { contributor, bodyHtml, bodyMd, postId: postId };
-}
-
-function scrapePosts(srcDoc: Document, domain: GhDomain, ctxs?: XletContexts): Post[] {
-  const items = pickEls(getLocators('posts_items', domain), srcDoc);
-
-  const posts: Post[] = [];
-  for (const item of items) {
-    const author    = pickVal(getLocators('posts_author',     domain), srcDoc, item);
-    const createdAt = pickVal(getLocators('posts_createdAt',  domain), srcDoc, item);
-    const postId    = pickVal(getLocators('posts_postId',     domain), srcDoc, item);
-    let bodyEl      =  pickEl(getLocators('posts_bodyViewer', domain), srcDoc, item);
-    bodyEl ??= item;
-    bodyEl = normalizePullTimeline(bodyEl);
-    bodyEl = normalizeIssueTimeline(bodyEl);
-
-    const isComment = author || createdAt || bodyEl;
-    if (!isComment) continue;
-
-    const contributor: Contributor = { author, timestamp: createdAt, editor: undefined };
-    const bodyHtml = bodyEl ? toHtml(bodyEl, ctxs?.html)?.outerHTML : undefined;
-    const bodyMd   = bodyEl ? toMd(bodyEl, ctxs?.md) : undefined;
-
-    posts.push({ contributor, bodyHtml, bodyMd, postId: postId });
-  }
-
-  return posts;
 }
 
 function shouldSkip(node: Node | null): boolean {
@@ -559,261 +279,36 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
   return _toHtml(node, { elementHandler: toHtmlElemHandler, ...opts });
 }
 
-function normalizePullTimeline(node?: Element): Element | undefined {
-  // TODO(perf): rework
-  if (!node) return undefined;
-  if (!node.matches('.TimelineItem-body')) return node;
-
-  const clone = node.cloneNode(true) as HTMLElement;
-
-  // ---------------------------------------------------------------------------
-  // Phase 1: Remove/replace larger structures first (order-sensitive)
-  // ---------------------------------------------------------------------------
-
-  // Remove inline review-comment header strips (header row + actions)
-  clone.querySelectorAll('h3').forEach((h3) => {
-    if (!h3.querySelector('img.avatar, a.author')) return;
-    const row = h3.parentElement;
-    if (!row) return;
-
-    const hasActionSibling = [...row.children].some(
-      (el) => el !== h3 && el.querySelector('.timeline-comment-actions'),
-    );
-    if (!hasActionSibling) return;
-
-    row.remove();
-  });
-
-  // Replace hidden-conversations load-more form with compact marker
-  // (must run before generic button/form cleanup)
-  clone.querySelectorAll('form.js-review-hidden-comment-ids').forEach((form) => {
-    const label = (form.querySelector('button')?.textContent ?? '').replace(/\s+/g, ' ').trim();
-    if (!/^\d+\s+hidden\s+conversation(s)?$/i.test(label)) return;
-    form.replaceWith(h('div', {}, `▸ [xlet: ${label}; load on GitHub]`));
-  });
-
-  // Remove relative-time and everything after it in the same header area
-  const rt = clone.querySelector('relative-time');
-  if (rt) {
-    const timeAnchor = rt.closest('a');
-    const cutPoint = (timeAnchor && clone.contains(timeAnchor)) ? timeAnchor : rt;
-    removeFollowingSiblings(cutPoint);
-    cutPoint.remove();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Phase 2: Remove noisy UI/controls/containers
-  // ---------------------------------------------------------------------------
-
-  // Leading avatar/icon anchors
-  clone.querySelectorAll('span.avatar, img.avatar-user, img.avatar').forEach((el) => {
-    const a = el.closest('a');
-    if (a && clone.contains(a)) a.remove();
-  });
-
-  // Reaction summaries (remove wrapper when present)
-  clone.querySelectorAll('div.comment-reactions').forEach((reactions) => {
-    const p = reactions.parentElement;
-    if (p?.matches('div.edit-comment-hide')) p.remove();
-  });
-
-  // General UI noise
-  // clone.querySelectorAll('.minimized-comment').forEach((el) => el.remove());
-  clone.querySelectorAll('.AvatarStack').forEach((el) => el.remove());
-  clone.querySelectorAll('.hidden-text-expander').forEach((el) => el.remove());
-  clone.querySelectorAll('dialog-helper').forEach((el) => el.remove());
-  clone.querySelectorAll('button').forEach((el) => el.remove());
-
-  // Commit status / actions / forms / hidden panels / partials
-  clone.querySelectorAll('details.commit-build-statuses').forEach((el) => el.remove());
-  clone.querySelectorAll('.timeline-comment-header').forEach((el) => el.remove());
-  clone.querySelectorAll('form.js-comment-update').forEach((el) => el.remove());
-  clone.querySelectorAll('form.js-pick-reaction').forEach((el) => el.remove());
-  clone.querySelectorAll('form.js-review-hidden-comment-ids').forEach((el) => el.remove());
-  clone.querySelectorAll('.pr-review-reactions').forEach((el) => el.remove());
-  clone.querySelectorAll('.js-minimize-comment').forEach((el) => el.remove());
-  clone.querySelectorAll('.Details-content--closed').forEach((el) => el.remove());
-  clone.querySelectorAll('.Details-content--open').forEach((el) => el.remove());
-  clone.querySelectorAll('.timeline-comment-actions').forEach((el) => el.remove());
-  clone.querySelectorAll('react-partial').forEach((el) => el.remove());
-  clone.querySelectorAll('[data-show-on-forbidden-error]').forEach((el) => el.remove());
-  clone.querySelectorAll('input').forEach((el) => el.remove());
-
-  // Loading spinners
-  clone.querySelectorAll('svg[aria-label="Loading"], svg[aria-label="Loading..."]').forEach((svg) => {
-    const span = svg.closest('span');
-    if (span) span.remove();
-    else svg.remove();
-  });
-
-  // ---------------------------------------------------------------------------
-  // Phase 3: Text/attribute cleanup
-  // ---------------------------------------------------------------------------
-
-  // Slice anchor titles to first line (GH sometimes stuffs commit title + body)
-  clone.querySelectorAll('a[title]').forEach((a) => {
-    const title = a.getAttribute('title');
-    if (!title) return;
-    const firstLine = title.split(/\r?\n/, 1)[0]?.trimEnd() ?? '';
-    // eslint-disable-next-line no-restricted-syntax
-    a.setAttribute('title', firstLine);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Phase 4: Code/link normalization (order-sensitive)
-  // ---------------------------------------------------------------------------
-
-  // Remove code links that are likely duplicate commit hashes
-  clone.querySelectorAll('code > a[href]').forEach((a) => {
-    const txt = (a.textContent ?? '').trim();
-    if (/^[0-9a-f]{6,9}$/i.test(txt)) {
-      a.closest('code')?.remove();
-    }
-  });
-
-  // Unwrap code wrappers that are just links (anchors + optional whitespace)
-  clone.querySelectorAll('code').forEach((code) => {
-    const nodes = [...code.childNodes];
-    const canUnwrap =
-      nodes.some(isAnchor) &&
-      nodes.every((n) => isAnchor(n) || (isText(n) && !n.textContent?.trim()));
-
-    if (canUnwrap) code.replaceWith(...nodes);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Phase 5: Final anchor cleanup
-  // ---------------------------------------------------------------------------
-
-  // Remove self-link/permalink anchors (hidden hash anchors)
-  clone.querySelectorAll('a[href]').forEach((a) => {
-    const href = a.getAttribute('href')?.trim();
-    if (!href || !href.startsWith('#')) return;
-
-    const containerId = a.closest('[id]')?.getAttribute('id');
-    if (containerId && href === `#${containerId}`) {
-      a.remove();
-    }
-  });
-
-  // remove duplicate links by normalized href (keep first surviving occurrence)
-  // const seen = new Set<string>();
-  // clone.querySelectorAll('a[href]').forEach((a) => {
-  //   const href = a.getAttribute('href')?.trim();
-  //   if (!href || seen.has(href)) return href ? void a.remove() : undefined;
-  //   seen.add(href);
-  // });
-
-  return clone;
-}
-
-function normalizeIssueTimeline(node?: Element): Element | undefined {
-  // TODO(perf): rework
-  if (!node) return undefined;
-  if (!node.closest('[data-testid="issue-timeline-container"]')) return node;
-
-  const clone = node.cloneNode(true) as HTMLElement;
-
-  clone.querySelectorAll('a[data-testid="actor-link"]').forEach((a) => a.remove());
-  clone.querySelectorAll('button').forEach((a) => a.remove());
-
-  clone.querySelectorAll('a').forEach((a) => {
-    if (a.querySelector('relative-time')) a.remove();
-  });
-
-  clone.querySelectorAll('a[href]').forEach((a) => {
-    if (a.textContent?.trim()) return;
-    if (a.querySelector('img, svg')) return;
-    a.remove();
-  });
-
-  clone.querySelectorAll('[data-testid="issue-timeline-load-more-container-load-top"]').forEach((el) => {
-    const label = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
-    if (!/\bremaining\s+items\b/i.test(label)) return;
-    el.replaceWith(h('div', {}, `[xlet: ${label}; load on GitHub]`));
-  });
-
-  return clone;
-}
-
-function removeFollowingSiblings(node: Node): void {
-  let cur = node.nextSibling;
-  while (cur) {
-    const next = cur.nextSibling;
-    cur.parentNode?.removeChild(cur);
-    cur = next;
-  }
-}
-
-function buildContribText(post: Post, now?: Date | null): string {
-  const author = post.contributor?.author ?? 'unknown';
-  const authorTime = post.contributor?.timestamp;
-  const editor = post.contributor?.editor;
-  const editorTime = undefined;
-
-  const when = (time?: string) =>
-    time ? ` on ${formatDateWithRelative(time, { now })}` : '';
-
-  const authored = `${author}${when(authorTime)}`;
-  const edited = editor ? `; edited by ${editor}${when(editorTime)}` : '';
-
-  return `[[ ${authored}${edited} ]]`;
-}
-
-export function extractFromDoc(srcDoc: Document, ctxs?: XletContexts): HubResult | undefined {
-  const permalink = scrapePermaUrl(srcDoc);
-  if (!permalink) {
-    console.debug('[extractFromDoc] No base URL found in the document');
-    return;
-  }
-
-  const domain = detectGhDomain(permalink);
-  if (!domain) {
-    console.debug('[extractFromDoc] Unable to detect GitHub domain for', permalink);
-    return;
-  }
-
-  const title  = scrapeTitle(srcDoc, domain) ?? '???';
-  const first  = scrapeFirstPost(srcDoc, domain, ctxs);
-  const others = scrapePosts(srcDoc, domain, ctxs);
-
-  const posts = [
-    ...(first ? [first] : []),
-    ...others,
-  ];
-
-  return { permalink, title, posts };
-}
-
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
   if (!page) return;
   renderXletPage(page, targetDoc, root);
 };
 
-export const createHubPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
-  const result = extractFromDoc(sourceDoc, ctxs);
-  if (!result) return warn(undefined, '[xlet:hub-create] Failed to extract data from document');
+export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
+  const permalink = scrapePermaUrl(sourceDoc);
+  if (!permalink) return warn(undefined, '[xlet:hub-create] Failed to scrape permalink');
 
-  const { title, permalink, posts } = result;
+  const domain = detectGhDomain(permalink);
+  if (!domain) return warn(undefined, '[xlet:hub-create] Failed to detect GitHub domain');
 
-  return {
-    siteLabel: 'GitHub',
-    title,
-    views: ['html', 'md'],
-    state,
-    root: {
-      permalink,
-      children: posts.map((post, idx) => ({
-        label: idx === 0 ? 'Initial Post' : `Comment ${idx}`,
-        permalink: post.postId && permalink ? `${permalink}#${post.postId}` : permalink,
-        copyable: true,
-        content: {
-          md: post.bodyMd,
-          html: post.bodyHtml,
-        },
-        contrib: buildContribText(post, ctxs.md?.now),
-      })),
-    },
-  };
+  const title = scrapeTitle(sourceDoc) ?? '???';
+
+  let page: XletPage | undefined;
+  switch (domain) {
+    case 'pr': page = await createPrPage({ sourceDoc, ctxs, state }); break;
+    case 'disc': page = await createDiscPage({ sourceDoc, ctxs, state }); break;
+    case 'issue': page = await createIssuePage({ sourceDoc, ctxs, state }); break;
+  }
+
+  if (!page) {
+    return warn(undefined, `[xlet:hub-create] Failed to create page for domain "${domain}"`);
+  }
+
+  page.siteLabel ??= 'GitHub';
+  page.title ??= title;
+  page.root.permalink ??= permalink;
+  page.views = ['html', 'md'];
+
+  return page;
 };

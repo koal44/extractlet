@@ -1,14 +1,13 @@
 import { expect } from 'vitest';
-import { extractFromDoc } from '../../../../src/sites/hub';
+import { extractPosts } from '../../../../src/sites/hub/pr';
 import type { Sidecar } from '../../fix';
 
 export default {
   baseUrl: 'https://github.com/microsoft/vscode/pull/295817',
   now: new Date('2026-03-03T00:00:00Z'),
   test: (doc: Document) => {
-    const r = extractFromDoc(doc);
-    expect(r).toBeDefined();
-    if (!r) return; // for TS
+    const posts = extractPosts(doc);
+    expect(posts).toBeDefined();
 
     // const posts = r.posts
     //   .map((p, i) => {
@@ -25,9 +24,9 @@ export default {
     // // eslint-disable-next-line no-restricted-properties
     // console.log(`Posts:\n${posts.join('\n')}`);
 
-    expect(r.posts.length).toBe(82);
+    expect(posts.length).toBe(82);
 
-    const ids = r.posts.map((p) => p.postId ?? '');
+    const ids = posts.map((p) => p.postId ?? '');
     expect(ids.some((id) => id.startsWith('pullrequestreview-'))).toBe(true);
   },
 } satisfies Sidecar;
