@@ -1,17 +1,29 @@
 import { findCommonAncestor, h, isDoc, isElement } from './dom';
 
 export type SelectSpec =
-  | { kind: 'match'; selectors: string[]; }
-  | { kind: 'ancestor'; selectors: string[]; };
+  | { kind: 'match'; selectors: string[]; } // fallbacks
+  | { kind: 'ancestor'; selectors: string[]; }
+  | { kind: 'root'; };
 
 export type TransformSpec =
   | { kind: 'remove'; selectors: string[]; }
   | { kind: 'unwrap'; selectors: string[]; }
-  | { kind: 'replace'; selectors: string[]; tag: keyof HTMLElementTagNameMap; };
+  | { kind: 'replace'; selectors: string[]; tag: keyof HTMLElementTagNameMap; }
+  | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element) => Element | null; }
 
 export type BlockSpec = {
   name: string;
   select?: SelectSpec;
+  transforms?: TransformSpec[];
+  normalize?: (root: Element) => Element | null;
+};
+
+export type ManySelectSpec =
+  | { kind: 'matchAll'; selectors: string[]; }  // fallbacks
+  | { kind: 'childrenOfMatch'; selectors: string[]; };
+
+export type ManySpec = {
+  select: ManySelectSpec;
   transforms?: TransformSpec[];
   normalize?: (root: Element) => Element | null;
 };
@@ -22,6 +34,46 @@ export function extractBlocks(root: ParentNode, specs: BlockSpec[], doc?: Docume
     blocks.push(extractBlock(root, spec, doc));
   }
   return blocks;
+}
+
+export function extractMany(root: ParentNode, spec: ManySpec, doc?: Document): Element[] {
+  let matches: Element[] = [];
+  switch (spec.select.kind) {
+    case 'matchAll': {
+      for (const selector of spec.select.selectors) {
+        matches = [...root.querySelectorAll(selector)];
+        if (matches.length > 0) break;
+      }
+      break;
+    }
+    case 'childrenOfMatch': {
+      for (const selector of spec.select.selectors) {
+        const el = root.querySelector(selector);
+        if (el) {
+          matches = [...el.children];
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  const out: Element[] = [];
+  for (const match of matches) {
+    const item = extractBlock(
+      match,
+      {
+        name: `${spec.select.kind}-item`,
+        select: { kind: 'root' },
+        transforms: spec.transforms,
+        normalize: spec.normalize,
+      },
+      doc
+    );
+
+    if (item) out.push(item);
+  }
+  return out;
 }
 
 function extractBlock(root: ParentNode, spec: BlockSpec, doc?: Document): Element | null {
@@ -37,6 +89,8 @@ function extractBlock(root: ParentNode, spec: BlockSpec, doc?: Document): Elemen
     }
   } else if (spec.select?.kind === 'ancestor') {
     found = findCommonAncestor(root, spec.select.selectors);
+  } else if (spec.select?.kind === 'root') {
+    found = resolveRootElement(root);
   } else {
     found = resolveRootElement(root);
   }
@@ -53,8 +107,6 @@ function extractBlock(root: ParentNode, spec: BlockSpec, doc?: Document): Elemen
   if (!transformed) return null;
 
   return transformed;
-
-  // return spec.normalize ? spec.normalize(transformed) : transformed;
 }
 
 function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Document): Element | null {
@@ -72,14 +124,24 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
     .filter((f): f is Extract<TransformSpec, { kind: 'replace'; }> => f.kind === 'replace')
     .flatMap((f) => f.selectors.map((selector) => ({ selector, tag: f.tag })));
 
+  const replaceFns = transforms
+    .filter((f): f is Extract<TransformSpec, { kind: 'replaceFn'; }> => f.kind === 'replaceFn')
+    .flatMap((f) => f.selectors.map((selector) => ({ selector, fn: f.fn })));
+
   const shouldRemove = (el: Element) => removeSelectors.some((sel) => el.matches(sel));
   const shouldUnwrap = (el: Element) => unwrapSelectors.some((sel) => el.matches(sel));
   // const shouldReplace = (el: Element) => replacements.some((r) => el.matches(r.selector));
 
-  function getReplacementTag(el: Node): keyof HTMLElementTagNameMap | null {
-    if (!isElement(el)) return null;
-    const tag = replacements.find((r) => el.matches(r.selector))?.tag;
+  function getReplacementTag(n: Node): keyof HTMLElementTagNameMap | null {
+    if (!isElement(n)) return null;
+    const tag = replacements.find((r) => n.matches(r.selector))?.tag;
     return tag ?? null;
+  }
+
+  function getReplacementFn(n: Node): ((el: Element) => Element | null) | null {
+    if (!isElement(n)) return null;
+    const fn = replaceFns.find((r) => n.matches(r.selector))?.fn;
+    return fn ?? null;
   }
 
   if (shouldRemove(root)) return null;
@@ -105,9 +167,22 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
         continue;
       }
 
+      const replaceFn = getReplacementFn(child);
+      if (isElement(child) && replaceFn) {
+        const newChild = replaceFn(child);
+        if (newChild) {
+          child.replaceWith(newChild);
+          child = newChild;
+        } else {
+          child.remove();
+          child = next;
+          continue;
+        }
+      }
+
       const tag = getReplacementTag(child);
       if (tag) {
-        const newChild = h(tag, { __doc: doc }, ...Array.from(child.childNodes));
+        const newChild = h(tag, { __doc: doc }, ...child.childNodes);
         child.replaceWith(newChild);
         child = newChild;
       }
@@ -124,6 +199,9 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
   }
 
   walk(root);
+
+  const replaceFn = getReplacementFn(root);
+  if (replaceFn) return replaceFn(root);
 
   const tag = getReplacementTag(root);
   if (tag) return h(tag, { __doc: doc }, ...Array.from(root.childNodes));
