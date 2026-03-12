@@ -2975,6 +2975,24 @@ describe('toMd – list item formatting', () => {
     expect(r3).toBe(`• X\n  Y`);
   });
 
+  it('UL: spans separated by br preserve hard breaks', () => {
+    const html = `
+      <li>
+        <span>Title</span><br>
+        <span>Description</span><br>
+        <span>Status</span><br>
+        <span>Labels</span>
+      </li>
+    `.trim();
+
+    const result = toMd(el(html), { brMode: 'soft' });
+    expect(result).toBe(`
+- Title  
+  Description  
+  Status  
+  Labels
+`.trim());
+  });
 });
 
 test('skipped elements between inline and block content do not introduce phantom spaces', () => {

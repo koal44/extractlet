@@ -212,10 +212,10 @@ Thanks for the PR — the `.d.<ext>.ts` handling matches TypeScript’s `allowAr
    **Change needed:** ensure the TS watch program / file watchers are _not_ left running for non-watch builds (e.g. don’t create a watch program when `this.meta.watchMode` is false, and/or dispose/close the program in a hook that runs during `bundle.generate()` such as `generateBundle`/`buildEnd`, since the tests don’t call `bundle.close()`).
 2. **Track down the `TS1110: Type expected` diagnostic shown in the failing run** (`RollupError: @rollup/plugin-typescript TS1110: Type expected.`). Please identify which file triggers it and adjust module resolution/arbitrary-extension handling so TS consumes the `*.d.<ext>.ts` declaration (and doesn’t try to parse the arbitrary extension source itself).
 
-**IMPROVEMENTS**
-3. Consider addressing the open `TS5110` warning discussion by tweaking the fixture/tsconfig to avoid emitting the warning (rather than asserting on it), so the test output stays clean: [#1949 (comment)](https://github.com/rollup/plugins/pull/1949#discussion_r2762883780).
-4. Small typing cleanup from the review thread: prefer `new Map<string, ExtendedConfigCacheEntry>()` over casting, if you touch that area again: [#1949 (comment)](https://github.com/rollup/plugins/pull/1949#discussion_r2762888220).
-5. Tiny TS nit in the new fixture: use `number` instead of `Number` in `module.d.custom.ts`.
+**IMPROVEMENTS**  
+3. Consider addressing the open `TS5110` warning discussion by tweaking the fixture/tsconfig to avoid emitting the warning (rather than asserting on it), so the test output stays clean: [#1949 (comment)](https://github.com/rollup/plugins/pull/1949#discussion_r2762883780).  
+4. Small typing cleanup from the review thread: prefer `new Map<string, ExtendedConfigCacheEntry>()` over casting, if you touch that area again: [#1949 (comment)](https://github.com/rollup/plugins/pull/1949#discussion_r2762888220).  
+5. Tiny TS nit in the new fixture: use `number` instead of `Number` in `module.d.custom.ts`.  
 6. The new assertion that checks `bundle.cache.modules` is a bit indirect; consider also asserting the build succeeds without warnings/errors for that import to keep the test resilient.
 
 [[ charliecreates on 2026-02-15 (15 days ago) ]]

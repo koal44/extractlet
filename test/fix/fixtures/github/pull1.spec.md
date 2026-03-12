@@ -14,8 +14,8 @@ _No description provided. _
 ## Comment 1
 Add non-overlapping ANTLR grammar examples for runtime tests
 
-This commit introduces a set of nine non-obvious, non-overlapping grammars
-under `runtime-testsuite/test/org/antlr/v4/test/runtime/antlr_grammars/`
+This commit introduces a set of nine non-obvious, non-overlapping grammars  
+under `runtime-testsuite/test/org/antlr/v4/test/runtime/antlr_grammars/`  
 to demonstrate and validate diverse ANTLR 4 parsing features.
 
 Included grammars:
@@ -30,7 +30,7 @@ Included grammars:
 - UnitExpr.g4 — unit-based mathematical expressions
 -
 
-All grammars are self-contained and compile successfully with ANTLR 4.
+All grammars are self-contained and compile successfully with ANTLR 4.  
 Removed obsolete GrammarCompilationTest.java to fix build issues
 
 [[ sumittlearnbay on 2025-10-12 (5 months ago) ]]
@@ -119,8 +119,8 @@ Signed-off-by: sumittlearnbay <sumit.learnbay@gmail.com>
 Add EOF-terminated fixed grammars following ANTLR 4.7+ and Boolean precedence standards
 
 - All grammars now terminate start rules with EOF for full input coverage, ensuring correct behavior under ANTLR 4.7+ (resolves partial parse acceptance issue).
-- BooleanExpr.g4 updated to follow textbook operator precedence:
-   NOT > AND > OR
+- BooleanExpr.g4 updated to follow textbook operator precedence:  
+   NOT > AND > OR  
    (as per Table 5.1.4 in Robert G. Plantz, _Introduction to Computer Organization_).
 - Other grammars (Arithmetic, JSONMini, CSVFlexible, etc.) adjusted for clarity, non-overlap, and pedagogical consistency.
 - Removed test scaffolds for simplified inclusion in runtime-testsuite.
@@ -134,8 +134,8 @@ Signed-off-by: Sumit Pawar [sumittlearnbay@gmail.com](mailto:sumittlearnbay@gmai
 Add EOF-terminated fixed grammars following ANTLR 4.7+ and Boolean precedence standards
 
 - All grammars now terminate start rules with EOF for full input coverage, ensuring correct behavior under ANTLR 4.7+ (resolves partial parse acceptance issue).
-- BooleanExpr.g4 updated to follow textbook operator precedence:
-   NOT > AND > OR
+- BooleanExpr.g4 updated to follow textbook operator precedence:  
+   NOT > AND > OR  
    (as per Table 5.1.4 in Robert G. Plantz, _Introduction to Computer Organization_).
 - Other grammars (Arithmetic, JSONMini, CSVFlexible, etc.) adjusted for clarity, non-overlap, and pedagogical consistency.
 - Removed test scaffolds for simplified inclusion in runtime-testsuite.

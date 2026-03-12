@@ -6,9 +6,9 @@
 <!-- https://github.com/antlr/antlr4/discussions/4889 -->
 
 ## Initial Post
-Hello,
-I have a task to transpile code from language grammar A to grammar B.
-If, lets say, I have g4 files with grammar of both languages, can I generate AST of grammar B using AST of A?
+Hello,  
+I have a task to transpile code from language grammar A to grammar B.  
+If, lets say, I have g4 files with grammar of both languages, can I generate AST of grammar B using AST of A?  
 More specific, can I build ANTLR syntax tree by code?
 
 [[ GreedIsGood10000 on 2025-09-17 (6 months ago) ]]
@@ -21,9 +21,9 @@ Have you tried using LLM-based solutions for this?
 
 
 ## Comment 2
-No, LLMs will be overkill for my task. Grammars of mentioned languages are not very complex, so in the worst case I could write transpilation algorithm by hand.
-Another restriction is that transpile algorithm must generate predictable result code and make some edits in AST, like adding variable's values checks.
-I just think of simplifying my task by generating both grammars and using pregenerated code.
+No, LLMs will be overkill for my task. Grammars of mentioned languages are not very complex, so in the worst case I could write transpilation algorithm by hand.  
+Another restriction is that transpile algorithm must generate predictable result code and make some edits in AST, like adding variable's values checks.  
+I just think of simplifying my task by generating both grammars and using pregenerated code.  
 Maybe, in future I'll have to make transpile from grammar B to A, so building AST will be even more useful
 
 [[ GreedIsGood10000 on 2025-09-18 (6 months ago) ]]

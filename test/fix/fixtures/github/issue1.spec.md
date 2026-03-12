@@ -14,7 +14,7 @@ When profiling I noticed that ANTLR does tons of tiny mallocs, and was wondering
 
 Another thing that would be amazing would be to fail early if the input text isn't for example UTF8 and then allow for the user to request string_view's into the original text buffer instead of constructing tiny strings everywhere (which is also a malloc hazard). Not sure how plausible that is.
 
-Thanks,
+Thanks,  
 Gustav
 
 [[ Duttenheim on 2025-06-09 (9 months ago) ]]
@@ -37,7 +37,7 @@ And while I understand there is an issue with knowing the UTF encoding before ha
 
 Instead I'm forced to copy a string that already exists every time I read a token for which I need its text contents.
 
-Thanks,
+Thanks,  
 Gustav
 
 [[ Duttenheim on 2025-06-09 (9 months ago) ]]
@@ -171,7 +171,7 @@ I took what you said to heart and worked on the grammar a bit to make it less am
 
 Even so, I still find it a little bit disappointing that the parsing is the largest bottleneck in the compilation process. Unless there really are other major issues with the grammar, should I settle with this as it is right now? Would like to hear your thoughts.
 
-Thanks,
+Thanks,  
 Gustav
 
 [[ Duttenheim on 2025-06-23 (9 months ago) ]]
@@ -186,7 +186,7 @@ I'm curious what machine you are using for your benchmark @KvanTTT, but I manage
 
 The parser is still the largest single bottleneck in the compiler though, despite the compiler doing validation, symbol visibility resolution, compile time expression evaluation and branch elimination, basic type inference and type conversions, but orders of magnitude faster than the one produced by ANTLR.
 
-Thanks,
+Thanks,  
 Gustav
 
 [[ Duttenheim on 2025-08-09 (7 months ago) ]]

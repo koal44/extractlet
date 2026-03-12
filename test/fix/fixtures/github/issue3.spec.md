@@ -100,7 +100,7 @@ if you'd like to discuss this until the cows come home, you're more than welcome
 
 
 ## Comment 8
-@marekdedic
+@marekdedic  
 I’m experiencing a similar issue, but only with version `v12.1.1`, not in `v12.1.0`. In my case, I want to place the declaration files in the `dist/dts` folder, while keeping the UMD and module JS files in the `dist` folder.
 
 - Project Github Link: [@carry0987/check-box](https://github.com/carry0987/CheckBox-JS)
@@ -303,7 +303,7 @@ Thanks ! But I still want to use pure plugin `@ollup/plugin-typescript`, since `
 ## Comment 14
 > @carry0987 Hmm, re-reading your first comment, it seems like you want to just do the thing I am doing before running api-extractor?
 
-Exactly, I just want to create `index.d.ts` instead of creating multiple declaration files separately for whole project.
+Exactly, I just want to create `index.d.ts` instead of creating multiple declaration files separately for whole project.  
 Everything work perfectly before v12.1.1, I'm using v12.1.0 currently.
 
 [[ carry0987 on 2024-10-18 (last year) ]]

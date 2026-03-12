@@ -31,8 +31,8 @@ test('toMd converts GitHub comment-body block into expected Markdown', () => {
   const expected = `
 Add non-overlapping ANTLR grammar examples for runtime tests
 
-This commit introduces a set of nine non-obvious, non-overlapping grammars
-under \`runtime-testsuite/test/org/antlr/v4/test/runtime/antlr_grammars/\`
+This commit introduces a set of nine non-obvious, non-overlapping grammars  
+under \`runtime-testsuite/test/org/antlr/v4/test/runtime/antlr_grammars/\`  
 to demonstrate and validate diverse ANTLR 4 parsing features.
 
 Included grammars:
@@ -47,7 +47,7 @@ Included grammars:
 - UnitExpr.g4 — unit-based mathematical expressions
 -
 
-All grammars are self-contained and compile successfully with ANTLR 4.
+All grammars are self-contained and compile successfully with ANTLR 4.  
 Removed obsolete GrammarCompilationTest.java to fix build issues
 `.trim();
 
@@ -111,12 +111,12 @@ test('toMd handles...', () => {
   const expected = `
 ### heading
 
-**bold**
+**bold**  
 _italics_
 
 > quote
 
-\`code\`
+\`code\`  
 [a link](https://example.com/)
 
 1. item1
@@ -154,7 +154,7 @@ test('toMd handles tagnames', () => {
   const expected = `
 @koal44, @kaby76
 
-@koal44
+@koal44  
 @0xFireWolf
 `.trim();
   const result = toMd(el(html));
@@ -195,11 +195,11 @@ test('toMd handles...', () => {
   </div>
 </div>`.trim();
   const expected = `
-@koal44 @koal44
-[![icon-full-48](https...)](https...)
-@koal44@koal44
-[![icon-full-48](https...)](https...) [![icon-full-48](https...)](https...)
-[![icon-full-48](https...)](https...)
+@koal44 @koal44  
+[![icon-full-48](https...)](https...)  
+@koal44@koal44  
+[![icon-full-48](https...)](https...) [![icon-full-48](https...)](https...)  
+[![icon-full-48](https...)](https...)  
 @koal44 [![icon-full-48](https...)](https...) @koal44
 `.trim();
   const result = toMd(el(html));
@@ -219,7 +219,7 @@ test('toMd handles...', () => {
 
   const expected = `
 1. item1
-2. item2
+2. item2  
    @koal44
 `.trim();
   const result = toMd(el(html));

@@ -117,7 +117,7 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   if (node.matches('em, i')) {
     return { md: `_${gc(node, 'inline')}_` }; // use _..._ rather than *...*
   }
-  if (node.matches('br')) return { md: '\n' }; // without the double space
+  // if (node.matches('br')) return { md: '\n' }; // without the double space
   if (node.matches('input[type="checkbox"]')) {
     return { md: node.hasAttribute('checked') ? '[x] ' : '[ ] ' };
   }
