@@ -14,8 +14,14 @@ const _sites = {
       !!(doc.querySelector('head > meta[property="mw:htmlVersion"]')),                     // parsoid pages
   },
   hub: {
-    isMatch: (doc) =>
-      !!(doc.defaultView?.location.href.match(/^https:\/\/(?:www\.)?github\.com\/[^/]+\/[^/]+\/(?:issues|pull|discussions)\/\d+(?:[/?#].*)?$/i)),
+    isMatch: (doc) => {
+      const href = doc.defaultView?.location.href;
+      if (!href) return false;
+
+      return !!href.match(
+        /^https:\/\/github\.com\/[^/]+(?:\/[^/?#]+(?:\/(?:issues|pulls|pull|discussions)(?:\/\d+)?)?)?(?:[/?#].*)?$/i,
+      );
+    },
   },
 } as const satisfies Record<string, {
   isMatch: (doc: Document) => boolean;

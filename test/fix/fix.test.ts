@@ -39,7 +39,7 @@ for (const site of sites) {
     for (const f of allCases) {
       it(f.name, async () => {
         if (f.test) await f.test(f.dom);
-        if (!f.specMd) return;
+        if (f.specMd === undefined) return;
 
         const page = await site.createPage({
           sourceDoc: f.dom,

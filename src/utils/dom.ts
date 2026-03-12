@@ -4,13 +4,13 @@ import DOMPurify from 'dompurify';
 export type AttrValue = string | number | boolean | null | undefined;
 export type HAttrs = Record<string, AttrValue | Document> & { __doc?: Document; };
 
-export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs?: HAttrs, ...children: (string | Node | null)[]): HTMLElementTagNameMap[K];
-export function h<K extends keyof SVGElementTagNameMap>(tag: `svg:${K}`, attrs?: HAttrs, ...children: (string | Node | null)[]): SVGElementTagNameMap[K];
-export function h<K extends keyof MathMLElementTagNameMap>(tag: `math:${K}`, attrs?: HAttrs, ...children: (string | Node | null)[]): MathMLElementTagNameMap[K];
+export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs?: HAttrs, ...children: (string | Node | null | undefined)[]): HTMLElementTagNameMap[K];
+export function h<K extends keyof SVGElementTagNameMap>(tag: `svg:${K}`, attrs?: HAttrs, ...children: (string | Node | null | undefined)[]): SVGElementTagNameMap[K];
+export function h<K extends keyof MathMLElementTagNameMap>(tag: `math:${K}`, attrs?: HAttrs, ...children: (string | Node | null | undefined)[]): MathMLElementTagNameMap[K];
 export function h(
   tag: string, // e.g. 'div', 'svg:circle', 'math:mi'
   attrs: HAttrs = {}, // e.g. { class: 'my-class', id: 'my-id', 'xlink:href': '#foo', __doc: document }
-  ...children: (string | Node | null)[] // e.g. 'Hello', document.createElement('span'), null
+  ...children: (string | Node | null | undefined)[] // e.g. 'Hello', document.createElement('span'), null
 ): HTMLElement | SVGElement | MathMLElement {
 
   const doc = attrs.__doc ?? document;
@@ -295,6 +295,29 @@ export function scrubSvgElement(e: Element): void {
   }
 
   for (let i = e.children.length; i--;) scrubSvgElement(e.children[i]);
+}
+
+export function findCommonAncestor(root: ParentNode, selectors: string[]): Element | null {
+  const descendants = [...root.querySelectorAll(selectors.join(', '))];
+
+  if (descendants.length < 2) return null;
+
+  const [first, ...rest] = descendants;
+  for (let candidate = first.parentElement; candidate; candidate = candidate.parentElement) {
+    if (rest.every((el) => candidate.contains(el))) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+export function findByText(root: ParentNode, text: string, selectors: string[]): Element[] {
+  const matches: Element[] = [];
+  for (const el of root.querySelectorAll(selectors.join(', '))) {
+    if (el.textContent?.trim() === text) matches.push(el);
+  }
+  return matches;
 }
 
 export function isNode(x: unknown): x is Node {

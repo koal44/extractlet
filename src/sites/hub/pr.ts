@@ -2,7 +2,7 @@ import type { XletContexts } from '../../settings';
 import type { CreatePage } from '../../snapshot-loader';
 import { h, isAnchor, isText } from '../../utils/dom';
 import { warn } from '../../utils/logging';
-import { scrapePermaUrl } from '../hub';
+import { scrapePermaUrl } from './hub-core';
 import { buildContribText, scrapeFirstPost, scrapePosts } from './posts';
 import type { PostLocators, NormTimeline, Post } from './posts';
 

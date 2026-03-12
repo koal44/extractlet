@@ -3,7 +3,7 @@ import type { CreatePage } from '../../snapshot-loader';
 import { h } from '../../utils/dom';
 import { asIdFrag, pickVal } from '../../utils/locator';
 import { warn } from '../../utils/logging';
-import { scrapePermaUrl } from '../hub';
+import { scrapePermaUrl } from './hub-core';
 import type { NormTimeline, Post, PostLocators } from './posts';
 import { buildContribText, scrapeFirstPost, scrapePosts } from './posts';
 
