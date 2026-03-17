@@ -2,7 +2,7 @@ import type { CreatePage } from '../../snapshot-loader';
 import { h, isAnchor } from '../../utils/dom';
 import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../utils/extract';
 import { warn } from '../../utils/logging';
-import { scrapePermaUrl, toHtml, toMd } from './hub-core';
+import { brWrap, joinWrap, scrapePermaUrl, toHtml, toMd } from './hub-core';
 
 const metaSpecs: BlockSpec[] = [
   {
@@ -164,24 +164,6 @@ function normalizeRow(root: Element): Element | null {
     ...brWrap('span', [badges]),
     h('br'), h('br'),
   );
-}
-
-function brWrap(wrapper: keyof HTMLElementTagNameMap, els: (Element | null)[]): [] | [HTMLElement, HTMLElement] {
-  const wrapped = joinWrap(wrapper, els);
-  return wrapped ? [h('br'), wrapped] : [];
-}
-
-function joinWrap(wrapper: keyof HTMLElementTagNameMap, els: (Element | null)[], separator = ' · '): HTMLElement | null {
-  const present = els.filter((el): el is Element => !!el);
-  if (!present.length) return null;
-
-  const parts: Element[] = [];
-  present.forEach((el, i) => {
-    if (i > 0) parts.push(h('span', {}, separator));
-    parts.push(el);
-  });
-
-  return h(wrapper, {}, ...parts);
 }
 
 export const createListPrPage: CreatePage = ({ sourceDoc, ctxs, state }) => {

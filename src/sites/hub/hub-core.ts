@@ -296,3 +296,21 @@ export function toHtml(node: Element, opts?: Partial<ToHtmlContext>): Element | 
 export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): Node | null {
   return _toHtml(node, { elementHandler: toHtmlElemHandler, ...opts });
 }
+
+export function brWrap(wrapper: keyof HTMLElementTagNameMap, els: (Element | null)[]): [] | [HTMLElement, HTMLElement] {
+  const wrapped = joinWrap(wrapper, els);
+  return wrapped ? [h('br'), wrapped] : [];
+}
+
+export function joinWrap(wrapper: keyof HTMLElementTagNameMap, els: (Element | null)[], separator = ' · '): HTMLElement | null {
+  const present = els.filter((el): el is Element => !!el);
+  if (!present.length) return null;
+
+  const parts: Element[] = [];
+  present.forEach((el, i) => {
+    if (i > 0) parts.push(h('span', {}, separator));
+    parts.push(el);
+  });
+
+  return h(wrapper, {}, ...parts);
+}

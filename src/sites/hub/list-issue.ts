@@ -2,7 +2,7 @@ import type { CreatePage } from '../../snapshot-loader';
 import { h } from '../../utils/dom';
 import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../utils/extract';
 import { warn } from '../../utils/logging';
-import { scrapePermaUrl, toHtml, toMd } from './hub-core';
+import { brWrap, joinWrap, scrapePermaUrl, toHtml, toMd } from './hub-core';
 
 const metaSpecs: BlockSpec[] = [
   {
@@ -55,107 +55,27 @@ const metaSpecs: BlockSpec[] = [
   },
 ];
 
-const itemTransforms: ManySpec['transforms'] = [
-  {
-    kind: 'remove', selectors: [
-      // 'img',
-      '[popover="auto"]',
-      '[role="tooltip"]',
-      '.sr-only',
-    ],
-  },
-  {
-    kind: 'unwrap', selectors: [
-      '[class^="TrailingBadge"] > a',
-      '[data-testid="list-row-repo-name-and-number"] a',
-      // '[data-testid="list-row-assignees"] a',
-      'button',
-    ],
-  },
-  // { kind: 'replace', selectors: ['div', 'p'], tag: 'span' },
-  {
-    kind: 'replace', tag: 'span', selectors: [
-      '[data-testid="list-row-repo-name-and-number"]',
-      '[data-testid="list-row-repo-name-and-number"] p',
-      '[data-testid="list-row-repo-name-and-number"] div',
-      '[data-testid="list-row-linked-pull-requests"]',
-      '[data-testid="list-row-linked-pull-requests"] p',
-      '[data-testid="list-row-linked-pull-requests"] div',
-      '[data-testid="list-row-comments"]',
-      '[data-testid="list-row-comments"] p',
-      '[data-testid="list-row-comments"] div',
-      '[data-listview-component="trailing-badge"]',
-      '[data-listview-component="trailing-badge"] p',
-      '[data-listview-component="trailing-badge"] div',
-    ],
-  },
-  {
-    kind: 'replaceFn',
-    selectors: ['[data-testid="list-row-assignees"]'],
-    fn: (el) => {
-      const names = [...el.querySelectorAll('a img')].map((img) => img.getAttribute('alt')?.trim());
-      if (names.length === 0) return null;
-      return h('span', {}, `${names.map((n) => `@${n}`).join(', ')}`);
-    },
-  },
-];
-
-const rowSelectorSpec: ManySpec = {
+const rowSpec1: ManySpec = {
   select: {
     kind: 'matchAll',
     selectors: [
       'div[class^="IssueRow"]',
     ],
   },
-  transforms: itemTransforms,
-  normalize: normalizeItem,
+  normalize: normalizeRow,
 };
 
-const componentSelectorSpec: ManySpec = {
+const rowSpec2: ManySpec = {
   select: {
     kind: 'childrenOfMatch',
     selectors: [
       'ul[data-listview-component="items-list"]',
     ],
   },
-  transforms: itemTransforms,
-  normalize: normalizeItem,
+  normalize: normalizeRow,
 };
 
-// function normalizeItem(root: Element): Element | null {
-//   const title = root.querySelector('a[data-testid="issue-pr-title-link"]');
-//   const badges = root.querySelectorAll('[data-listview-component="trailing-badge"]');
-//   const status = root.querySelector('[data-testid="list-row-state-icon"]')?.textContent?.trim();
-//   const description = root.querySelector('[data-testid="list-row-repo-name-and-number"]');
-//   const pr = root.querySelector('[data-testid="list-row-linked-pull-requests"]');
-//   const commentNo = root.querySelector('[data-testid="list-row-comments"]');
-//   const assignees = root.querySelector('[data-testid="list-row-assignees"]');
-
-//   const hasAssigned = !!assignees?.children.length;
-//   const prLabel = pr?.querySelector('button[aria-label]')?.getAttribute('aria-label')?.trim() || '';
-//   const comLabel = commentNo?.textContent?.trim() || '';
-
-//   // if (!title) return null;
-
-//   return h('li', {},
-//     h('span', {}, title),
-//     h('br'),
-//     h('span', {},
-//       description,
-//       `${hasAssigned ? ' · assigned to ' : ''}`, assignees),
-//     h('br'),
-//     h('span', {},
-//       status,
-//       `${comLabel ? ' · ' : ''}`, comLabel,
-//       `${prLabel ? ' · ' : ''}`, prLabel,
-//     ),
-//     h('br'),
-//     h('span', {}, ...[...badges].flatMap((b, i) => i === 0 ? [b] : [h('span', {}, ', '), b])),
-//     h('br'), h('br'),
-//   );
-// }
-
-const itemSpecs: BlockSpec[] = [
+const fieldSpecs: BlockSpec[] = [
   {
     name: 'title',
     select: {
@@ -172,6 +92,28 @@ const itemSpecs: BlockSpec[] = [
       selectors: [
         '[data-testid="list-row-repo-name-and-number"]',
       ],
+    },
+    transforms: [
+      { kind: 'remove', selectors: ['.sr-only'] },
+      { kind: 'unwrap', selectors: ['a'] },
+      { kind: 'replace', tag: 'span', selectors: ['div', 'p'] },
+    ],
+  },
+  {
+    name: 'assignees',
+    select: {
+      kind: 'match',
+      selectors: [
+        '[data-testid="list-row-assignees"]',
+      ],
+    },
+    normalize: (root) => {
+      const names = [...root.querySelectorAll('a img')]
+        .map((img) => img.getAttribute('alt')?.trim())
+        .filter((name): name is string => !!name)
+        .map((n) => !n.startsWith('@') ? `@${n}` : n);
+      if (names.length === 0) return null;
+      return h('span', {}, 'assigned to ', names.join(', '));
     },
   },
   {
@@ -195,7 +137,7 @@ const itemSpecs: BlockSpec[] = [
     normalize: (root) => {
       const label = root.textContent?.trim() || '';
       if (!label) return null;
-      return h('span', {}, ` · ${label}`);
+      return h('span', {}, label);
     },
   },
   {
@@ -209,20 +151,7 @@ const itemSpecs: BlockSpec[] = [
     normalize: (root) => {
       const label = root.querySelector('button[aria-label]')?.getAttribute('aria-label')?.trim() || '';
       if (!label) return null;
-      return h('span', {}, ` · ${label}`);
-    },
-  },
-  {
-    name: 'assignees',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[data-testid="list-row-assignees"]',
-      ],
-    },
-    normalize: (root) => {
-      if (!root.children.length) return null;
-      return h('span', {}, ' · assigned to ', root);
+      return h('span', {}, label);
     },
   },
   {
@@ -233,30 +162,25 @@ const itemSpecs: BlockSpec[] = [
       if (!badges.length) return null;
       return h('span', {}, ...badges.flatMap((b, i) => i === 0 ? [b] : [h('span', {}, ', '), b]));
     },
+    transforms: [
+      { kind: 'remove', selectors: ['.sr-only'] },
+      { kind: 'unwrap', selectors: ['a'] },
+      { kind: 'replace', tag: 'span', selectors: ['div', 'p'] },
+    ],
   },
 ];
 
-function normalizeItem(root: Element): Element | null {
-  const [title, description, status, comments, prs, assignees, badges] =
-    extractBlocks(root, itemSpecs, root.ownerDocument);
+function normalizeRow(root: Element): Element | null {
+  const [title, description, assignees, status, comments, prs, badges] =
+    extractBlocks(root, fieldSpecs, root.ownerDocument);
 
   if (!title) return null;
 
   return h('li', {},
     h('span', {}, title),
-    h('br'),
-    h('span', {},
-      description,
-      assignees,
-    ),
-    h('br'),
-    h('span', {},
-      status,
-      comments,
-      prs,
-    ),
-    h('br'),
-    h('span', {}, badges),
+    ...brWrap('span', [description, assignees]),
+    ...brWrap('span', [status, comments, prs]),
+    ...brWrap('span', [badges]),
     h('br'), h('br'),
   );
 }
@@ -265,16 +189,14 @@ export const createListIssuePage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const permalink = scrapePermaUrl(sourceDoc);
   if (!permalink) return warn(undefined, '[xlet:lists-create] Failed to scrape permalink');
 
-  let listItems = extractMany(sourceDoc, rowSelectorSpec);
-  if (!listItems.length) listItems = extractMany(sourceDoc, componentSelectorSpec);
+  let listItems = extractMany(sourceDoc, rowSpec1);
+  if (!listItems.length) listItems = extractMany(sourceDoc, rowSpec2);
   if (!listItems.length) return warn(undefined, '[xlet:lists-create] Failed to extract list items');
 
   const ul = h('ul', {}, ...listItems);
-
   const [pagination, counts] = extractBlocks(sourceDoc, metaSpecs);
-
   const wrapper = h('div', { class: 'hub-list', __doc: sourceDoc },
-    h('div', {}, pagination, `${counts ? ' · ' : ''}`, counts),
+    joinWrap('div', [pagination, counts]),
     ul,
   );
 
