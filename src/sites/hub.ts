@@ -6,6 +6,7 @@ import { createDiscPage } from './hub/disc';
 import { detectGhDomain, scrapePermaUrl, scrapeTitle } from './hub/hub-core';
 import { createIssuePage } from './hub/issue';
 import { createListIssuePage } from './hub/list-issue';
+import { createListPrPage } from './hub/list-pr';
 import { createPrPage } from './hub/pr';
 import { createRepoPage } from './hub/repo';
 
@@ -31,7 +32,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'issue': page = await createIssuePage({ sourceDoc, ctxs, state }); break;
     case 'repo': page = await createRepoPage({ sourceDoc, ctxs, state }); break;
     case 'issues': page = await createListIssuePage({ sourceDoc, ctxs, state }); break;
-    // case 'pulls': page = await createListsPage({ sourceDoc, ctxs, state }); break;
+    case 'pulls': page = await createListPrPage({ sourceDoc, ctxs, state }); break;
     // case 'discussions': page = await createListsPage({ sourceDoc, ctxs, state }); break;
   }
 
