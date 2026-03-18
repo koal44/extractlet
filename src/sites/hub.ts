@@ -10,6 +10,7 @@ import { createListIssuePage } from './hub/list-issue';
 import { createListPrPage } from './hub/list-pr';
 import { createPrPage } from './hub/pr';
 import { createRepoPage } from './hub/repo';
+import { createTreePage } from './hub/tree';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -35,6 +36,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'issues': page = await createListIssuePage({ sourceDoc, ctxs, state }); break;
     case 'pulls': page = await createListPrPage({ sourceDoc, ctxs, state }); break;
     case 'discussions': page = await createListDiscPage({ sourceDoc, ctxs, state }); break;
+    case 'tree': page = await createTreePage({ sourceDoc, ctxs, state }); break;
   }
 
   if (!page) {
