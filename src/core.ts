@@ -351,6 +351,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       case 'DT':
       case 'DL':
       case 'DETAILS':
+      case 'SECTION':
       case 'BODY':
       case 'DIV':
       case 'P': {

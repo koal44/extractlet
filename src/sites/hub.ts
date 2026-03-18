@@ -12,6 +12,7 @@ import { createListPrPage } from './hub/pages/list-pr';
 import { createPrPage } from './hub/pages/pr';
 import { createRepoPage } from './hub/pages/repo';
 import { createTreePage } from './hub/pages/tree';
+import { createCommitPage } from './hub/pages/commit';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -38,6 +39,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'pulls': page = await createListPrPage({ sourceDoc, ctxs, state }); break;
     case 'discussions': page = await createListDiscPage({ sourceDoc, ctxs, state }); break;
     case 'tree': page = await createTreePage({ sourceDoc, ctxs, state }); break;
+    case 'commit': page = await createCommitPage({ sourceDoc, ctxs, state }); break;
   }
 
   if (!page) {

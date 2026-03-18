@@ -122,3 +122,141 @@ export function normalizeFileTable(table: Element): Element | null {
     h('h2', {}, 'Folders and files'),
     filesList);
 }
+
+type DiffOp = '+' | '-' | ' ';
+type UnifiedEntry = { kind: 'unified'; lNo: string; rNo: string; op: DiffOp; code: string; };
+type SplitEntry = { kind: 'split'; lNo: string; lOp: DiffOp; lCode: string; rNo: string; rOp: DiffOp; rCode: string; };
+type HunkEntry = { kind: 'hunk'; code: string; };
+type DiffEntry = HunkEntry | UnifiedEntry | SplitEntry;
+
+export function normalizeDiffTable(root: Element): Element | null {
+  if (!isTable(root)) return null;
+
+  const rows = [...root.querySelectorAll<HTMLTableRowElement>('tbody > tr.diff-line-row')];
+  if (!rows.length) return null;
+
+  const entries: DiffEntry[] = [];
+
+  for (const row of rows) {
+    const cells = [...row.querySelectorAll<HTMLTableCellElement>(':scope > td')];
+    if (!cells.length) continue;
+
+    const entry = parseHunkRow(row) ?? parseUnifiedRow(cells) ?? parseSplitRow(cells);
+    if (entry) entries.push(entry);
+  }
+
+  if (!entries.length) return null;
+
+  const uEntries = diffToUnified(entries);
+  const lines = renderUnifiedEntries(uEntries);
+
+  const text = lines.join('\n');
+  return h('pre', {}, h('code', {}, text));
+}
+
+function getCodeText(cell: HTMLTableCellElement): string {
+  return cell.querySelector('code .diff-text-inner')?.textContent?.trimEnd() ?? '';
+};
+
+function getLineNo(cell: HTMLTableCellElement): string {
+  return cell.querySelector('code')?.textContent?.trim() ?? '';
+};
+
+function getDiffOp(cell: HTMLTableCellElement): DiffOp {
+  const codeNode = cell.querySelector('code.diff-text');
+  if (!codeNode) return ' ';
+  return codeNode.classList.contains('addition') ? '+'
+    : codeNode.classList.contains('deletion') ? '-'
+    : ' ';
+}
+
+function parseHunkRow(row: HTMLTableRowElement): DiffEntry | null {
+  const hunkCell = row.querySelector<HTMLTableCellElement>(':scope > td.diff-hunk-cell');
+  if (!hunkCell) return null;
+  const hunkText = getCodeText(hunkCell).trim();
+  if (!hunkText) return null;
+  return { kind: 'hunk', code: hunkText };
+}
+
+function parseUnifiedRow(cells: HTMLTableCellElement[]): DiffEntry | null {
+  if (cells.length !== 3) return null;
+  const [leftTd, rightTd, codeTd] = cells;
+  const lNo = getLineNo(leftTd);
+  const rNo = getLineNo(rightTd);
+  const op = getDiffOp(codeTd);
+  const code = getCodeText(codeTd);
+
+  if (!lNo && !rNo && !code) return null;
+
+  return { kind: 'unified', lNo, rNo, op, code };
+}
+
+function parseSplitRow(cells: HTMLTableCellElement[]): DiffEntry | null {
+  if (cells.length !== 4) return null;
+  const [leftTd, leftCodeTd, rightTd, rightCodeTd] = cells;
+  const lNo = getLineNo(leftTd);
+  const rNo = getLineNo(rightTd);
+  const lOp = getDiffOp(leftCodeTd);
+  const rOp = getDiffOp(rightCodeTd);
+  const lCode = getCodeText(leftCodeTd);
+  const rCode = getCodeText(rightCodeTd);
+
+  if (!lNo && !rNo && !lCode && !rCode) return null;
+
+  return { kind: 'split', lNo, lOp, lCode, rNo, rOp, rCode };
+}
+
+function diffToUnified(entries: DiffEntry[]): UnifiedEntry[] {
+  const pushU = (lNo: string, rNo: string, op: DiffOp, code: string) =>
+    unified.push({ kind: 'unified', lNo, rNo, op, code });
+
+  const unified: UnifiedEntry[] = [];
+  for (const entry of entries) {
+    switch (entry.kind) {
+      case 'unified': {
+        unified.push(entry);
+        break;
+      }
+      case 'hunk': {
+        unified.push({ kind: 'unified', lNo: '', rNo: '', op: ' ', code: entry.code });
+        break;
+      }
+      case 'split': {
+        const leftHas = !!(entry.lNo || entry.lCode || entry.lOp !== ' ');
+        const rightHas = !!(entry.rNo || entry.rCode || entry.rOp !== ' ');
+
+        if (
+          !!entry.lNo && !!entry.rNo &&
+          entry.lOp === ' ' && entry.rOp === ' ' &&
+          entry.lCode === entry.rCode
+        ) {
+          pushU(entry.lNo, entry.rNo, ' ', entry.lCode);
+          break;
+        }
+
+        if (leftHas) pushU(entry.lNo, '', entry.lOp, entry.lCode);
+        if (rightHas) pushU('', entry.rNo, entry.rOp, entry.rCode);
+        break;
+      }
+    }
+  }
+  return unified;
+}
+
+function renderUnifiedEntries(entries: UnifiedEntry[]): string[] {
+  const maxPropLen = (prop: 'lNo' | 'rNo') =>
+    entries.reduce((m, e) => Math.max(m, e[prop].length), 0);
+
+  const leftW = maxPropLen('lNo');
+  const rightW = maxPropLen('rNo');
+  const opUse = entries.some((e) => e.op !== ' ');
+
+  const lines = entries.map(({ lNo, rNo, op, code }) => {
+    let out = `${lNo.padStart(leftW, ' ')}`;
+    if (rightW > 0) out += ` ${rNo.padStart(rightW, ' ')}`;
+    if (opUse) out += ` ${op}`;
+    return code ? `${out} ${code}` : out;
+  });
+
+  return lines;
+}
