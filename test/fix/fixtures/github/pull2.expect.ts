@@ -1,5 +1,5 @@
 import { expect } from 'vitest';
-import { extractPosts } from '../../../../src/sites/hub/pr';
+import { extractPosts } from '../../../../src/sites/hub/pages/pr';
 import type { Sidecar } from '../../fix';
 
 export default {

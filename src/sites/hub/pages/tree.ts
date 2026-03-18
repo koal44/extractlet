@@ -1,7 +1,9 @@
-import type { CreatePage } from '../../snapshot-loader';
-import { h, isDiv } from '../../utils/dom';
-import { extractBlocks, type BlockSpec } from '../../utils/extract';
-import { normalizeFileTable, scrapePermaUrl, toHtml, toMd, parseGhPath } from './hub-core';
+import type { CreatePage } from '../../../snapshot-loader';
+import { h, isDiv } from '../../../utils/dom';
+import { extractBlocks, type BlockSpec } from '../../../utils/extract';
+import { normalizeFileTable, scrapePermaUrl } from '../dom';
+import { toHtml, toMd } from '../convert';
+import { parseGhPath } from '../route';
 
 const blocks: BlockSpec[] = [
   {
@@ -104,8 +106,8 @@ const blocks: BlockSpec[] = [
       return h('div', { class: 'repo-tree' }, h('h2', {}, 'Repository Tree'), root);
     },
     transforms: [
-      { kind: 'replace', tag: 'div', selectors: ['nav'] },
-      { kind: 'replace', tag: 'span', selectors: ['div', 'p'] },
+      { kind: 'replace', with: 'div', selectors: ['nav'] },
+      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
     ],
   },
   {
@@ -121,7 +123,7 @@ const blocks: BlockSpec[] = [
           'article > .markdown-heading > a[href^="#"]',
         ],
       },
-      { kind: 'replace', tag: 'div', selectors: ['article'] },
+      { kind: 'replace', with: 'div', selectors: ['article'] },
     ],
   },
 ];

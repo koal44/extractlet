@@ -8,7 +8,7 @@ export type SelectSpec =
 export type TransformSpec =
   | { kind: 'remove'; selectors: string[]; }
   | { kind: 'unwrap'; selectors: string[]; }
-  | { kind: 'replace'; selectors: string[]; tag: keyof HTMLElementTagNameMap; }
+  | { kind: 'replace'; selectors: string[]; with: keyof HTMLElementTagNameMap; }
   | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element) => Element | null; }
 
 export type BlockSpec = {
@@ -122,7 +122,7 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
 
   const replacements = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'replace'; }> => f.kind === 'replace')
-    .flatMap((f) => f.selectors.map((selector) => ({ selector, tag: f.tag })));
+    .flatMap((f) => f.selectors.map((selector) => ({ selector, tag: f.with })));
 
   const replaceFns = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'replaceFn'; }> => f.kind === 'replaceFn')

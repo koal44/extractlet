@@ -1,11 +1,11 @@
-import type { XletContexts } from '../../settings';
-import type { CreatePage } from '../../snapshot-loader';
-import { h } from '../../utils/dom';
-import { asIdFrag, pickVal } from '../../utils/locator';
-import { warn } from '../../utils/logging';
-import { scrapePermaUrl } from './hub-core';
-import type { NormTimeline, Post, PostLocators } from './posts';
-import { buildContribText, scrapeFirstPost, scrapePosts } from './posts';
+import type { XletContexts } from '../../../settings';
+import type { CreatePage } from '../../../snapshot-loader';
+import { h } from '../../../utils/dom';
+import { asIdFrag, pickVal } from '../../../utils/locator';
+import { warn } from '../../../utils/logging';
+import { scrapePermaUrl } from '../dom';
+import type { NormTimeline, Post, PostLocators } from '../posts';
+import { buildContribText, scrapeFirstPost, scrapePosts } from '../posts';
 
 const locators: PostLocators = {
   title: [

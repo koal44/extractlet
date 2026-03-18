@@ -2,15 +2,16 @@ import { toHtml as _toHtml, toMd as _toMd } from '../core';
 import type { CreatePage, RenderPage } from '../snapshot-loader';
 import { warn } from '../utils/logging';
 import { renderXletPage, type XletPage } from '../xlet-page';
-import { createDiscPage } from './hub/disc';
-import { detectGhDomain, scrapePermaUrl, scrapeTitle } from './hub/hub-core';
-import { createIssuePage } from './hub/issue';
-import { createListDiscPage } from './hub/list-disc';
-import { createListIssuePage } from './hub/list-issue';
-import { createListPrPage } from './hub/list-pr';
-import { createPrPage } from './hub/pr';
-import { createRepoPage } from './hub/repo';
-import { createTreePage } from './hub/tree';
+import { createDiscPage } from './hub/pages/disc';
+import { detectGhDomain } from './hub/route';
+import { scrapePermaUrl, scrapeTitle } from './hub/dom';
+import { createIssuePage } from './hub/pages/issue';
+import { createListDiscPage } from './hub/pages/list-disc';
+import { createListIssuePage } from './hub/pages/list-issue';
+import { createListPrPage } from './hub/pages/list-pr';
+import { createPrPage } from './hub/pages/pr';
+import { createRepoPage } from './hub/pages/repo';
+import { createTreePage } from './hub/pages/tree';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });

@@ -1,7 +1,8 @@
-import type { CreatePage } from '../../snapshot-loader';
-import { h } from '../../utils/dom';
-import { extractBlocks, type BlockSpec } from '../../utils/extract';
-import { normalizeFileTable, toHtml, toMd } from './hub-core';
+import type { CreatePage } from '../../../snapshot-loader';
+import { h } from '../../../utils/dom';
+import { extractBlocks, type BlockSpec } from '../../../utils/extract';
+import { normalizeFileTable } from '../dom';
+import { toHtml, toMd } from '../convert';
 
 const blocks: BlockSpec[] = [
   {
@@ -86,8 +87,8 @@ const blocks: BlockSpec[] = [
       return h('div', { class: 'resource-tabs' }, h('h2', {}, 'Resources'), nav);
     },
     transforms: [
-      { kind: 'replace', selectors: ['a[aria-current="page"]'], tag: 'strong' },
-      { kind: 'replace', selectors: ['nav'], tag: 'div' },
+      { kind: 'replace', selectors: ['a[aria-current="page"]'], with: 'strong' },
+      { kind: 'replace', selectors: ['nav'], with: 'div' },
       { kind: 'unwrap', selectors: ['li > a'] },
     ],
   },
@@ -100,7 +101,7 @@ const blocks: BlockSpec[] = [
       ],
     },
     transforms: [
-      { kind: 'remove', selectors: ['article a[href^="#"]'] },
+      { kind: 'remove', selectors: ['article > .markdown-heading > a[href^="#"]'] },
       { kind: 'unwrap', selectors: ['article'] },
     ],
   },

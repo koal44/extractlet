@@ -1,6 +1,6 @@
 import { describe, expect, it, test } from 'vitest';
 import { strictEqual } from 'node:assert';
-import { toMd, toHtml } from '../../src/sites/hub/hub-core';
+import { toMd, toHtml } from '../../src/sites/hub/convert';
 import { assertNodeEqual, el, setupDom } from '../utils/test-utils';
 
 setupDom();

@@ -1,8 +1,9 @@
-import type { CreatePage } from '../../snapshot-loader';
-import { h } from '../../utils/dom';
-import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../utils/extract';
-import { warn } from '../../utils/logging';
-import { brWrap, joinWrap, scrapePermaUrl, toHtml, toMd } from './hub-core';
+import type { CreatePage } from '../../../snapshot-loader';
+import { h } from '../../../utils/dom';
+import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../../utils/extract';
+import { warn } from '../../../utils/logging';
+import { brWrap, joinWrap, scrapePermaUrl } from '../dom';
+import { toHtml, toMd } from '../convert';
 
 const metaSpecs: BlockSpec[] = [
   {
@@ -56,7 +57,7 @@ const fieldSpecs: BlockSpec[] = [
     },
     transforms: [
       // { kind: 'unwrap', selectors: ['a'] },
-      { kind: 'replace', tag: 'span', selectors: ['h3'] },
+      { kind: 'replace', with: 'span', selectors: ['h3'] },
     ],
   },
   {
@@ -70,7 +71,7 @@ const fieldSpecs: BlockSpec[] = [
     },
     transforms: [
       { kind: 'unwrap', selectors: ['a'] },
-      { kind: 'replace', tag: 'span', selectors: ['div', 'p'] },
+      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
     ],
   },
   {

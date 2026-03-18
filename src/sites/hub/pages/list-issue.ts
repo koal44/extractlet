@@ -1,8 +1,9 @@
-import type { CreatePage } from '../../snapshot-loader';
-import { h } from '../../utils/dom';
-import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../utils/extract';
-import { warn } from '../../utils/logging';
-import { brWrap, joinWrap, scrapePermaUrl, toHtml, toMd } from './hub-core';
+import type { CreatePage } from '../../../snapshot-loader';
+import { h } from '../../../utils/dom';
+import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../../utils/extract';
+import { warn } from '../../../utils/logging';
+import { brWrap, joinWrap, scrapePermaUrl } from '../dom';
+import { toHtml, toMd } from '../convert';
 
 const metaSpecs: BlockSpec[] = [
   {
@@ -45,7 +46,7 @@ const metaSpecs: BlockSpec[] = [
           'span[aria-hidden="true"]',
         ],
       },
-      { kind: 'replace', tag: 'span', selectors: ['div', 'p', 'ul', 'li'] },
+      { kind: 'replace', with: 'span', selectors: ['div', 'p', 'ul', 'li'] },
       {
         kind: 'unwrap', selectors: [
           'a',
@@ -96,7 +97,7 @@ const fieldSpecs: BlockSpec[] = [
     transforms: [
       { kind: 'remove', selectors: ['.sr-only'] },
       { kind: 'unwrap', selectors: ['a'] },
-      { kind: 'replace', tag: 'span', selectors: ['div', 'p'] },
+      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
     ],
   },
   {
@@ -165,7 +166,7 @@ const fieldSpecs: BlockSpec[] = [
     transforms: [
       { kind: 'remove', selectors: ['.sr-only'] },
       { kind: 'unwrap', selectors: ['a'] },
-      { kind: 'replace', tag: 'span', selectors: ['div', 'p'] },
+      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
     ],
   },
 ];

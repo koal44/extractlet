@@ -54,7 +54,7 @@ import type { XletContexts } from '../../settings';
 import type { Locator } from '../../utils/locator';
 import { pickEl, pickEls, pickVal } from '../../utils/locator';
 import { formatDateWithRelative } from '../../utils/strings';
-import { toHtml, toMd } from './hub-core';
+import { toHtml, toMd } from './convert';
 
 export type PostKey =
   | 'title'
