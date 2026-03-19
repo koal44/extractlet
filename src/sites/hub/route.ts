@@ -1,7 +1,8 @@
 export type GhDomain =
   | 'issue' | 'pr' | 'disc' | 'repo'
   | 'issues' | 'pulls' | 'discussions'
-  | 'owner' | 'tree' | 'commit';
+  | 'owner' | 'tree' | 'commit'
+  | 'blob' | 'blame';
 
 type GhPath = {
   owner?: string;
@@ -61,4 +62,7 @@ export function detectGhDomain(str: string): GhDomain | undefined {
 
   if (p.kind === 'tree') return 'tree';
   if (p.kind === 'commit' && p.id) return 'commit';
+
+  if (p.kind === 'blob' && p.id && p.tail.length) return 'blob';
+  if (p.kind === 'blame' && p.id && p.tail.length) return 'blame';
 }

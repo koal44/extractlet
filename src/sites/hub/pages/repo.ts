@@ -8,16 +8,28 @@ const blocks: BlockSpec[] = [
   {
     name: 'header',
     select: {
-      kind: 'match', selectors: ['#repository-container-header'],
+      kind: 'match', selectors: [
+        '[data-testid="top-nav-center"] nav',
+        '#repository-container-header',
+      ],
+    },
+    normalize: (root) => {
+      root.querySelectorAll('li').forEach((li) => {
+        if (li.nextElementSibling) {
+          li.insertAdjacentElement('afterend', h('span', {}, ' / '));
+        }
+      });
+      return h('section', {}, root);
     },
     transforms: [
       {
         kind: 'remove', selectors: [
-          'nav',
+          '#repository-container-header nav',
           '#repository-details-container',
           'ul.pagehead-actions',
         ],
       },
+      { kind: 'replace', with: 'span', selectors: ['ul', 'li', 'nav'] },
     ],
   },
   {
