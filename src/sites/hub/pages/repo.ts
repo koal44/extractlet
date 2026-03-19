@@ -30,6 +30,13 @@ const blocks: BlockSpec[] = [
         ],
       },
       { kind: 'replace', with: 'span', selectors: ['ul', 'li', 'nav'] },
+      {
+        kind: 'replaceFn', selectors: ['a'],
+        fn: (el) => {
+          el.textContent = el.textContent?.trim() ?? '';
+          return el;
+        },
+      },
     ],
   },
   {

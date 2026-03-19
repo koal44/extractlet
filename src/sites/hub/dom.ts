@@ -30,8 +30,8 @@ export function scrapeTitle(srcDoc: Document): string | undefined {
   return title;
 }
 
-export function brWrap(wrapper: keyof HTMLElementTagNameMap, els: (Element | null)[]): [] | [HTMLElement, HTMLElement] {
-  const wrapped = joinWrap(wrapper, els);
+export function brWrap(wrapper: keyof HTMLElementTagNameMap, els: (Element | null)[], separator = ' · '): [] | [HTMLElement, HTMLElement] {
+  const wrapped = joinWrap(wrapper, els, separator);
   return wrapped ? [h('br'), wrapped] : [];
 }
 

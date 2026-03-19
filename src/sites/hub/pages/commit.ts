@@ -30,6 +30,13 @@ const specs: BlockSpec[] = [
         ],
       },
       { kind: 'replace', with: 'span', selectors: ['ul', 'li', 'nav'] },
+      {
+        kind: 'replaceFn', selectors: ['a'],
+        fn: (el) => {
+          el.textContent = el.textContent?.trim() ?? '';
+          return el;
+        },
+      },
     ],
   },
   {
@@ -84,16 +91,6 @@ const specs: BlockSpec[] = [
       selectors: ['[class*="commitBranchContainer"]'],
     },
     normalize: (root) => {
-      root.querySelectorAll('pre').forEach((pre) => {
-        const parentAnchor = pre.querySelector('a[href*="/commit/"]');
-        if (!parentAnchor) return;
-        let node = parentAnchor.nextSibling;
-        while (node) {
-          const next = node.nextSibling;
-          node.remove();
-          node = next;
-        }
-      });
       root.querySelectorAll('span').forEach((span) => {
         if (span.textContent?.trim() === '·') {
           span.textContent = ' · ';
@@ -115,6 +112,7 @@ const specs: BlockSpec[] = [
           'a[href*="/releases/tag/"]',
         ],
       },
+      { kind: 'removeNextSiblings', selectors: ['pre a[href*="/commit/"]'] },
       { kind: 'unwrap', selectors: ['pre', 'a'] },
       { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
     ],

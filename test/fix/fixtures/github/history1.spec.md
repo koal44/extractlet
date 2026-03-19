@@ -17,10 +17,8 @@
 
 ### Commits on May 8, 2025
 
-#### integer-wrap: Force full rebuild when .scl file changes
-
-[11bb167](https://github.com/torvalds/linux/commit/11bb1678e249e51cd748e8f91e5241b3ce71da3a)
-
+#### integer-wrap: Force full rebuild when .scl file changes  
+[11bb167](https://github.com/torvalds/linux/commit/11bb1678e249e51cd748e8f91e5241b3ce71da3a)  
 ```
 integer-wrap: Force full rebuild when .scl file changes
 
@@ -37,16 +35,13 @@ Acked-by: Justin Stitt <justinstitt@google.com>
 Link: https://lore.kernel.org/r/20250503184623.2572355-3-kees@kernel.org
 Reviewed-by: Nicolas Schier <n.schier@avm.de>
 Signed-off-by: Kees Cook <kees@kernel.org>
-```
-
+```  
 kees committed 2025-05-08 (10 months ago)
 
 ### Commits on May 8, 2022
 
-#### randstruct: Move seed generation into scripts/basic/
-
-[be2b34f](https://github.com/torvalds/linux/commit/be2b34fa9be31c60a95989f984c9a5d40cd781b6)
-
+#### randstruct: Move seed generation into scripts/basic/  
+[be2b34f](https://github.com/torvalds/linux/commit/be2b34fa9be31c60a95989f984c9a5d40cd781b6)  
 ```
 randstruct: Move seed generation into scripts/basic/
 
@@ -59,16 +54,13 @@ but now does so from the common "randstruct.seed" file.
 Cc: linux-hardening@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Link: https://lore.kernel.org/r/20220503205503.3054173-6-keescook@chromium.org
-```
-
+```  
 kees committed 2022-05-08 (4 years ago)
 
 ### Commits on Aug 9, 2020
 
-#### kbuild: introduce hostprogs-always-y and userprogs-always-y
-
-[faabed2](https://github.com/torvalds/linux/commit/faabed295cccc2aba2b67f2e7b309f2892d55004)
-
+#### kbuild: introduce hostprogs-always-y and userprogs-always-y  
+[faabed2](https://github.com/torvalds/linux/commit/faabed295cccc2aba2b67f2e7b309f2892d55004)  
 ```
 kbuild: introduce hostprogs-always-y and userprogs-always-y
 
@@ -95,16 +87,13 @@ userprogs-always-y works as a shorthand.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 Acked-by: Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>
-```
-
+```  
 masahir0y committed 2020-08-09 (6 years ago)
 
 ### Commits on Feb 3, 2020
 
-#### kbuild: rename hostprogs-y/always to hostprogs/always-y
-
-[5f2fb52](https://github.com/torvalds/linux/commit/5f2fb52fac15a8a8e10ce020dd532504a8abfc4e)
-
+#### kbuild: rename hostprogs-y/always to hostprogs/always-y  
+[5f2fb52](https://github.com/torvalds/linux/commit/5f2fb52fac15a8a8e10ce020dd532504a8abfc4e)  
 ```
 kbuild: rename hostprogs-y/always to hostprogs/always-y
 
@@ -134,16 +123,13 @@ The "always", "hostprogs-y", "hostprogs-m" will be kept for backward
 compatibility for a while.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-```
-
+```  
 masahir0y committed 2020-02-03 (6 years ago)
 
 ### Commits on Aug 29, 2019
 
-#### kbuild: remove unneeded comments and code from scripts/basic/Makefile
-
-[fc01adc](https://github.com/torvalds/linux/commit/fc01adc41679b19ee35a79e2bd2e9176aeba20c8)
-
+#### kbuild: remove unneeded comments and code from scripts/basic/Makefile  
+[fc01adc](https://github.com/torvalds/linux/commit/fc01adc41679b19ee35a79e2bd2e9176aeba20c8)  
 ```
 kbuild: remove unneeded comments and code from scripts/basic/Makefile
 
@@ -151,16 +137,13 @@ Kbuild descends into scripts/basic/ even before the Kconfig.
 I do not expect any other host programs added to this Makefile.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-```
-
+```  
 masahir0y committed 2019-08-29 (7 years ago)
 
 ### Commits on May 21, 2019
 
-#### treewide: Add SPDX license identifier - Makefile/Kconfig
-
-[ec8f24b](https://github.com/torvalds/linux/commit/ec8f24b7faaf3d4799a7c3f4c1b87f6b02778ad1)
-
+#### treewide: Add SPDX license identifier - Makefile/Kconfig  
+[ec8f24b](https://github.com/torvalds/linux/commit/ec8f24b7faaf3d4799a7c3f4c1b87f6b02778ad1)  
 ```
 treewide: Add SPDX license identifier - Makefile/Kconfig
 
@@ -175,16 +158,13 @@ license identifier is:
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-```
-
+```  
 KAGA-KOKO authored and gregkh committed 2019-05-21 (7 years ago)
 
 ### Commits on Jul 17, 2018
 
-#### kbuild: move bin2c back to scripts/ from scripts/basic/
-
-[c417fbc](https://github.com/torvalds/linux/commit/c417fbce98722ad7e384caa8ba6f2e7c5f8672d9)
-
+#### kbuild: move bin2c back to scripts/ from scripts/basic/  
+[c417fbc](https://github.com/torvalds/linux/commit/c417fbce98722ad7e384caa8ba6f2e7c5f8672d9)  
 ```
 kbuild: move bin2c back to scripts/ from scripts/basic/
 
@@ -204,16 +184,13 @@ fixdep is the only host program that deserves to sit in the
 scripts/basic/ directory.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-```
-
+```  
 masahir0y committed 2018-07-17 (8 years ago)
 
 ### Commits on Aug 9, 2017
 
-#### kbuild: trivial cleanups on the comments
-
-[312a3d0](https://github.com/torvalds/linux/commit/312a3d0918bb7d65862fbbd3e2f2f4630e4d6f56)
-
+#### kbuild: trivial cleanups on the comments  
+[312a3d0](https://github.com/torvalds/linux/commit/312a3d0918bb7d65862fbbd3e2f2f4630e4d6f56)  
 ```
 kbuild: trivial cleanups on the comments
 
@@ -221,16 +198,13 @@ This is a bunch of trivial fixes and cleanups.
 
 Signed-off-by: Cao jin <caoj.fnst@cn.fujitsu.com>
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-```
-
+```  
 Cao jin authored and masahir0y committed 2017-08-09 (9 years ago)
 
 ### Commits on Aug 8, 2014
 
-#### kernel: build bin2c based on config option CONFIG_BUILD_BIN2C
-
-[de5b56b](https://github.com/torvalds/linux/commit/de5b56ba51f63973ceb5c184ee0855f0c8a13fc9)
-
+#### kernel: build bin2c based on config option CONFIG_BUILD_BIN2C  
+[de5b56b](https://github.com/torvalds/linux/commit/de5b56ba51f63973ceb5c184ee0855f0c8a13fc9)  
 ```
 kernel: build bin2c based on config option CONFIG_BUILD_BIN2C
 
@@ -252,14 +226,11 @@ Cc: Baoquan He <bhe@redhat.com>
 Cc: Andy Lutomirski <luto@amacapital.net>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-```
-
+```  
 rhvgoyal authored and torvalds committed 2014-08-08 (12 years ago)
 
-#### bin2c: move bin2c in scripts/basic
-
-[8370ede](https://github.com/torvalds/linux/commit/8370edea81e321b8a976969753d6b2811e6d5ed6)
-
+#### bin2c: move bin2c in scripts/basic  
+[8370ede](https://github.com/torvalds/linux/commit/8370edea81e321b8a976969753d6b2811e6d5ed6)  
 ```
 bin2c: move bin2c in scripts/basic
 
@@ -302,31 +273,25 @@ Cc: Baoquan He <bhe@redhat.com>
 Cc: Andy Lutomirski <luto@amacapital.net>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-```
-
+```  
 rhvgoyal authored and torvalds committed 2014-08-08 (12 years ago)
 
 ### Commits on May 2, 2011
 
-#### kbuild: move scripts/basic/docproc.c to scripts/docproc.c
-
-[bffd202](https://github.com/torvalds/linux/commit/bffd2020a972a188750e5cf4b9566950dfdf25a2)
-
+#### kbuild: move scripts/basic/docproc.c to scripts/docproc.c  
+[bffd202](https://github.com/torvalds/linux/commit/bffd2020a972a188750e5cf4b9566950dfdf25a2)  
 ```
 kbuild: move scripts/basic/docproc.c to scripts/docproc.c
 
 Move docproc from scripts/basic to scripts so it is only built for *doc
 targets instead of every time the kernel is built.
-```
-
+```  
 pefoley2 authored and michal42 committed 2011-05-02 (15 years ago)
 
 ### Commits on Sep 22, 2010
 
-#### jump label: Convert dynamic debug to use jump labels
-
-[52159d9](https://github.com/torvalds/linux/commit/52159d98be6f26c48f5e02c7ab3c9848a85979b5)
-
+#### jump label: Convert dynamic debug to use jump labels  
+[52159d9](https://github.com/torvalds/linux/commit/52159d98be6f26c48f5e02c7ab3c9848a85979b5)  
 ```
 jump label: Convert dynamic debug to use jump labels
 
@@ -335,16 +300,13 @@ Convert the 'dynamic debug' infrastructure to use jump labels.
 Signed-off-by: Jason Baron <jbaron@redhat.com>
 LKML-Reference: <b77627358cea3e27d7be4386f45f66219afb8452.1284733808.git.jbaron@redhat.com>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
-```
-
+```  
 jibaron authored and rostedt committed 2010-09-22 (15 years ago)
 
 ### Commits on Oct 16, 2008
 
-#### driver core: basic infrastructure for per-module dynamic debug messages
-
-[346e15b](https://github.com/torvalds/linux/commit/346e15beb5343c2eb8216d820f2ed8f150822b08)
-
+#### driver core: basic infrastructure for per-module dynamic debug messages  
+[346e15b](https://github.com/torvalds/linux/commit/346e15beb5343c2eb8216d820f2ed8f150822b08)  
 ```
 driver core: basic infrastructure for per-module dynamic debug messages
 
@@ -408,16 +370,13 @@ disable command.
 
 Signed-off-by: Jason Baron <jbaron@redhat.com>
 Signed-off-by: Greg Kroah-Hartman <gregkh@suse.de>
-```
-
+```  
 jibaron authored and gregkh committed 2008-10-16 (17 years ago)
 
 ### Commits on Oct 12, 2007
 
-#### docproc: style & typo cleanups
-
-[6dd16f4](https://github.com/torvalds/linux/commit/6dd16f44a94798116c4d35be907f7d4c80de4791)
-
+#### docproc: style & typo cleanups  
+[6dd16f4](https://github.com/torvalds/linux/commit/6dd16f44a94798116c4d35be907f7d4c80de4791)  
 ```
 docproc: style & typo cleanups
 
@@ -427,16 +386,13 @@ docproc: style & typo cleanups
 
 Signed-off-by: Randy Dunlap <randy.dunlap@oracle.com>
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-```
-
+```  
 rddunlap authored and Sam Ravnborg committed 2007-10-12 (18 years ago)
 
 ### Commits on Jun 9, 2006
 
-#### kconfig: integrate split config into silentoldconfig
-
-[2e3646e](https://github.com/torvalds/linux/commit/2e3646e51b2d6415549b310655df63e7e0d7a080)
-
+#### kconfig: integrate split config into silentoldconfig  
+[2e3646e](https://github.com/torvalds/linux/commit/2e3646e51b2d6415549b310655df63e7e0d7a080)  
 ```
 kconfig: integrate split config into silentoldconfig
 
@@ -450,16 +406,13 @@ now 648KB instead of 5.2MB).
 Signed-off-by: Roman Zippel <zippel@linux-m68k.org>
 Signed-off-by: Andrew Morton <akpm@osdl.org>
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-```
-
+```  
 Roman Zippel authored and Sam Ravnborg committed 2006-06-08 (20 years ago)
 
 ### Commits on Apr 16, 2005
 
-#### Linux-2.6.12-rc2
-
-[1da177e](https://github.com/torvalds/linux/commit/1da177e4c3f41524e886b7f1b8a0c1fc7321cac2)
-
+#### Linux-2.6.12-rc2  
+[1da177e](https://github.com/torvalds/linux/commit/1da177e4c3f41524e886b7f1b8a0c1fc7321cac2)  
 ```
 Linux-2.6.12-rc2
 
@@ -471,10 +424,8 @@ git days unnecessarily complicated, when we don't have a lot of good
 infrastructure for it.
 
 Let it rip!
-```
-
-Linus Torvalds committed 2005-04-16 (21 years ago)
-
+```  
+Linus Torvalds committed 2005-04-16 (21 years ago)  
 168 comments
 
 <!-- XLET-END -->

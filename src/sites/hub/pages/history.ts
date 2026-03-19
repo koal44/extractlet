@@ -1,7 +1,7 @@
 import type { CreatePage } from '../../../snapshot-loader';
 import { h } from '../../../utils/dom';
 import { extractBlocks, extractMany, type ManySpec, type BlockSpec } from '../../../utils/extract';
-import { scrapePermaUrl } from '../dom';
+import { brWrap, scrapePermaUrl } from '../dom';
 import { toHtml, toMd } from '../convert';
 import { parseGhPath } from '../route';
 
@@ -31,6 +31,13 @@ const blocks: BlockSpec[] = [
         ],
       },
       { kind: 'replace', with: 'span', selectors: ['ul', 'li', 'nav'] },
+      {
+        kind: 'replaceFn', selectors: ['a'],
+        fn: (el) => {
+          el.textContent = el.textContent?.trim() ?? '';
+          return el;
+        },
+      },
     ],
   },
   {
@@ -97,7 +104,15 @@ const commitManySpec: ManySpec = {
     selectors: ['li[class*="CommitRow"]'],
   },
   normalize: (root) => {
-    return h('div', {}, ...extractBlocks(root, commitFieldSpecs));
+    const [title, shortLink, message, attribution, checks, commentCount] = extractBlocks(root, commitFieldSpecs);
+    return h('div', {},
+      ...brWrap('span', [title]),
+      ...brWrap('span', [shortLink]),
+      ...brWrap('span', [message]),
+      ...brWrap('span', [attribution]),
+      ...brWrap('span', [checks, commentCount], ' · '),
+    );
+    // return h('div', {}, ...extractBlocks(root, commitFieldSpecs));
   },
 };
 
@@ -115,11 +130,13 @@ const commitFieldSpecs: BlockSpec[] = [
       kind: 'ancestor', selectors: [
         '[data-testid="commit-row-view-code"]',
         '[data-testid="commit-row-browse-repo"]',
+        'svg.octicon-copy',
+        'svg.octicon-code',
       ],
     },
     normalize: (root) => {
       const link = root.querySelector('a[href*="/commit/"]');
-      return link ? h('div', {}, link) : null;
+      return link ? h('span', {}, link) : null;
     },
   },
   {
@@ -142,15 +159,30 @@ const commitFieldSpecs: BlockSpec[] = [
     },
     transforms: [
       { kind: 'remove', selectors: ['img'] },
+      { kind: 'removeNextSiblings', selectors: ['relative-time'] },
       { kind: 'unwrap', selectors: ['a'] },
       { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+    ],
+  },
+  {
+    name: 'checks',
+    select: { kind: 'match', selectors: ['[data-testid="checks-status-badge-button"]'] },
+    normalize: (root) => {
+      const text = root.textContent?.replace(/\s+/g, '').trim();
+      return text ? h('span', {}, `${text} checks`) : null;
+    },
+    transforms: [
+      { kind: 'unwrap', selectors: ['button'] },
     ],
   },
   {
     name: 'comment-count',
     select: { kind: 'match', selectors: ['a[data-testid="commit-row-comments"]'] },
     normalize: (root) => {
-      return h('div', {}, root, ' comments');
+      const raw = root.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+      const n = Number(raw);
+      if (!Number.isFinite(n)) return null;
+      return h('span', {}, `${n} ${n === 1 ? 'comment' : 'comments'}`);
     },
     transforms: [
       { kind: 'unwrap', selectors: ['a'] },
@@ -164,9 +196,10 @@ export const createHistoryPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
 
   const extract = extractBlocks(main, blocks);
   for (const [i, entry] of extract.entries()) {
-    if (!entry) console.warn(`History page: ${blocks[i].name} not found`);
+    if (!entry && blocks[i].name !== 'breadcrumbs') {
+      console.warn(`History page: ${blocks[i].name} not found`);
+    }
   }
-
   const html = h('div', { class: 'history-root', __doc: sourceDoc }, ...extract);
 
   return {

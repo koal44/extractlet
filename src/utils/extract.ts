@@ -7,6 +7,7 @@ export type SelectSpec =
 
 export type TransformSpec =
   | { kind: 'remove'; selectors: string[]; }
+  | { kind: 'removeNextSiblings'; selectors: string[]; }
   | { kind: 'unwrap'; selectors: string[]; }
   | { kind: 'replace'; selectors: string[]; with: keyof HTMLElementTagNameMap; }
   | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element) => Element | null; }
@@ -116,6 +117,10 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
     .filter((f): f is Extract<TransformSpec, { kind: 'remove'; }> => f.kind === 'remove')
     .flatMap((f) => f.selectors);
 
+  const removeNextSiblingSelectors = transforms
+    .filter((f): f is Extract<TransformSpec, { kind: 'removeNextSiblings'; }> => f.kind === 'removeNextSiblings')
+    .flatMap((f) => f.selectors);
+
   const unwrapSelectors = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'unwrap'; }> => f.kind === 'unwrap')
     .flatMap((f) => f.selectors);
@@ -129,6 +134,7 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
     .flatMap((f) => f.selectors.map((selector) => ({ selector, fn: f.fn })));
 
   const shouldRemove = (el: Element) => removeSelectors.some((sel) => el.matches(sel));
+  const shouldRemoveNextSiblings = (el: Element) => removeNextSiblingSelectors.some((sel) => el.matches(sel));
   const shouldUnwrap = (el: Element) => unwrapSelectors.some((sel) => el.matches(sel));
   // const shouldReplace = (el: Element) => replacements.some((r) => el.matches(r.selector));
 
@@ -156,6 +162,15 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
         child.remove();
         child = next;
         continue;
+      }
+
+      if (isElement(child) && shouldRemoveNextSiblings(child)) {
+        let cur = child.nextSibling;
+        while (cur) {
+          const next = cur.nextSibling;
+          cur.parentNode?.removeChild(cur);
+          cur = next;
+        }
       }
 
       if (isElement(child)) {
