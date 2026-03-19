@@ -361,6 +361,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       case 'CITE':
       case 'BDI':
+      case 'TT':
       case 'SPAN': {
         result = glueChildren(node, 'inline');
         break;
@@ -433,8 +434,9 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
             (ctx.filterRedundantLabels && isLabelRedundant(label, o)) ||
             (ctx.filterGenericLabels && ctx.filterRedundantLabels && isLabelRedundant(filterGenericLabel(label), o))
           );
+        const sameLabel = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim();
 
-        const dropTitle = shouldDropLabel(title, [linkText, ctx.deCaption, url]);
+        const dropTitle = sameLabel(title, linkText) || shouldDropLabel(title, [linkText, ctx.deCaption, url]);
         const dropLinkText = shouldDropLabel(linkText, [ctx.deCaption, url]);
 
         title = title && !dropTitle ? title : '';

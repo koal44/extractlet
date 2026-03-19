@@ -271,12 +271,12 @@ test('WikiNode.buildFromHTML produces double linefeeds between top-level childre
   const doc = docEl(html);
   const result = WikiNode.buildFromHTML(doc);
   const expectedMd = `
-For other uses, see [Tensor (disambiguation)](/wiki/Tensor_%28disambiguation%29 "Tensor (disambiguation)").
+For other uses, see [Tensor (disambiguation)](/wiki/Tensor_%28disambiguation%29).
 
-This article is about tensors on a single vector space and is not to be confused with [Vector field](/wiki/Vector_field "Vector field") or [Tensor field](/wiki/Tensor_field "Tensor field").
+This article is about tensors on a single vector space and is not to be confused with [Vector field](/wiki/Vector_field) or [Tensor field](/wiki/Tensor_field).
 
 :::figure  
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [Cauchy stress tensor](/wiki/Cauchy_stress_tensor "Cauchy stress tensor")
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](/wiki/File:Components_stress_tensor.svg)\n\nThe second-order [Cauchy stress tensor](/wiki/Cauchy_stress_tensor)
 
 :::`.trim();
   strictEqual(result!.md, expectedMd);
@@ -794,7 +794,7 @@ caption
   test('wikilink to non-existing page (red link)', () => {
     // [[Non existing page]]
     const html = '<a href="./Non_existing_page?action=edit&amp;redlink=1" title="Non existing page" rel="mw:WikiLink" class="new" typeof="mw:LocalizedAttrs" data-mw-i18n=\'{"title":{"lang":"x-page","key":"red-link-title","params":["Non existing page"]}}\'>Non existing page</a>'.trim();
-    const expectedMd = '[Non existing page](./Non_existing_page?action=edit&redlink=1 "Non existing page")';
+    const expectedMd = '[Non existing page](./Non_existing_page?action=edit&redlink=1)';
     strictEqual(toMd(el(html)), expectedMd);
   });
 
@@ -1470,21 +1470,21 @@ describe('navbox transformation', () => {
     expect(nextMd).toBe(`
 :::navbox  
 - **Tensors**
-- *[Glossary of tensor theory](https://en.wikipedia.org/wiki/Glossary_of_tensor_theory "Glossary of tensor theory")*
+- *[Glossary of tensor theory](https://en.wikipedia.org/wiki/Glossary_of_tensor_theory)*
 - Scope
-  - [Mathematics](https://en.wikipedia.org/wiki/Mathematics "Mathematics")
-    - [Coordinate system](https://en.wikipedia.org/wiki/Coordinate_system "Coordinate system")
-    - [Differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry")
+  - [Mathematics](https://en.wikipedia.org/wiki/Mathematics)
+    - [Coordinate system](https://en.wikipedia.org/wiki/Coordinate_system)
+    - [Differential geometry](https://en.wikipedia.org/wiki/Differential_geometry)
     - [Dyadic algebra](https://en.wikipedia.org/wiki/Dyadics "Dyadics")
-    - [Euclidean geometry](https://en.wikipedia.org/wiki/Euclidean_geometry "Euclidean geometry")
-  - [Physics](https://en.wikipedia.org/wiki/Physics "Physics") • [Engineering](https://en.wikipedia.org/wiki/Engineering "Engineering")
-    - [Computer vision](https://en.wikipedia.org/wiki/Computer_vision "Computer vision")
-    - [Continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics "Continuum mechanics")
-    - [Electromagnetism](https://en.wikipedia.org/wiki/Electromagnetism "Electromagnetism")
+    - [Euclidean geometry](https://en.wikipedia.org/wiki/Euclidean_geometry)
+  - [Physics](https://en.wikipedia.org/wiki/Physics) • [Engineering](https://en.wikipedia.org/wiki/Engineering)
+    - [Computer vision](https://en.wikipedia.org/wiki/Computer_vision)
+    - [Continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics)
+    - [Electromagnetism](https://en.wikipedia.org/wiki/Electromagnetism)
 - Notation
-  - [Abstract index notation](https://en.wikipedia.org/wiki/Abstract_index_notation "Abstract index notation")
-  - [Einstein notation](https://en.wikipedia.org/wiki/Einstein_notation "Einstein notation")
-  - [Index notation](https://en.wikipedia.org/wiki/Index_notation "Index notation")
+  - [Abstract index notation](https://en.wikipedia.org/wiki/Abstract_index_notation)
+  - [Einstein notation](https://en.wikipedia.org/wiki/Einstein_notation)
+  - [Index notation](https://en.wikipedia.org/wiki/Index_notation)
 
 :::
       `.trim());

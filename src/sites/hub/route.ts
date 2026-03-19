@@ -46,25 +46,18 @@ export function matchGhUrl(str: string, withHash = false): string | null {
 export function detectGhDomain(str: string): GhDomain | undefined {
   const p = parseGhPath(str);
   if (!p?.owner) return;
-
   if (!p.repo) return 'owner';
   if (!p.kind) return 'repo';
 
-  if (p.kind === 'issues') {
-    return p.id ? 'issue' : 'issues';
+  switch (p.kind) {
+    case 'discussions': return p.id ? 'disc' : 'discussions';
+    case 'issues': return p.id ? 'issue' : 'issues';
+    case 'pulls': return 'pulls';
+    case 'pull': return p.id ? 'pr' : undefined;
+    case 'tree': return 'tree';
+    case 'commit': return p.id ? 'commit' : undefined;
+    case 'commits': return 'commits';
+    case 'blob': return p.id && p.tail.length ? 'blob' : undefined;
+    case 'blame': return p.id && p.tail.length ? 'blame' : undefined;
   }
-
-  if (p.kind === 'pulls') return 'pulls';
-  if (p.kind === 'pull' && p.id) return 'pr';
-
-  if (p.kind === 'discussions') {
-    return p.id ? 'disc' : 'discussions';
-  }
-
-  if (p.kind === 'tree') return 'tree';
-  if (p.kind === 'commit' && p.id) return 'commit';
-  if (p.kind === 'commits' && p.id && p.tail.length) return 'commits';
-
-  if (p.kind === 'blob' && p.id && p.tail.length) return 'blob';
-  if (p.kind === 'blame' && p.id && p.tail.length) return 'blame';
 }

@@ -56,7 +56,7 @@ related [https://github.com/microsoft/vscode-internalbacklog/issues/6848](https:
 
 
 ## Comment 7
-[copilot-sdk: add dependency and build infrastructure](https://github.com/microsoft/vscode/pull/295817/commits/02720134f6dd9209c0c446ff2b71cfb1549c9c53 "copilot-sdk: add dependency and build infrastructure")
+[copilot-sdk: add dependency and build infrastructure](https://github.com/microsoft/vscode/pull/295817/commits/02720134f6dd9209c0c446ff2b71cfb1549c9c53)
 
 :::details
 Add @github/copilot-sdk 0.1.23 as a production dependency. The SDK ships
@@ -75,7 +75,7 @@ require build system support:
 
 
 ## Comment 8
-[copilot-sdk: add --sessions-sdk CLI flag and environment service](https://github.com/microsoft/vscode/pull/295817/commits/24bd5cfcf8bc7e2ef972a181f5e81a80db60a3b5 "copilot-sdk: add --sessions-sdk CLI flag and environment service")
+[copilot-sdk: add --sessions-sdk CLI flag and environment service](https://github.com/microsoft/vscode/pull/295817/commits/24bd5cfcf8bc7e2ef972a181f5e81a80db60a3b5)
 
 :::details
 Add 'sessions-sdk' to NativeParsedArgs and the OPTIONS descriptor so it
@@ -90,7 +90,7 @@ reads from the window configuration.
 
 
 ## Comment 9
-[copilot-sdk: add platform service layer](https://github.com/microsoft/vscode/pull/295817/commits/7b5a4570fc44e23d771af00eb9648c13c6c405dc "copilot-sdk: add platform service layer")
+[copilot-sdk: add platform service layer](https://github.com/microsoft/vscode/pull/295817/commits/7b5a4570fc44e23d771af00eb9648c13c6c405dc)
 
 :::details
 Three-layer architecture for the Copilot SDK integration:
@@ -113,13 +113,13 @@ Three-layer architecture for the Copilot SDK integration:
 
 
 ## Comment 10
-[copilot-sdk: add SDK chat widget and session list UI](https://github.com/microsoft/vscode/pull/295817/commits/abce2c0ecddbb5b0bdef1e131af5a9f66f385133 "copilot-sdk: add SDK chat widget and session list UI")
+[copilot-sdk: add SDK chat widget and session list UI](https://github.com/microsoft/vscode/pull/295817/commits/abce2c0ecddbb5b0bdef1e131af5a9f66f385133)
 
 [[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 11
-[copilot-sdk: wire up main process and gate behind --sessions-sdk](https://github.com/microsoft/vscode/pull/295817/commits/1b4ef47e50a5490e04dc13ef3eee5ce973d42dc5 "copilot-sdk: wire up main process and gate behind --sessions-sdk")
+[copilot-sdk: wire up main process and gate behind --sessions-sdk](https://github.com/microsoft/vscode/pull/295817/commits/1b4ef47e50a5490e04dc13ef3eee5ce973d42dc5)
 
 :::details
 Register CopilotSdkMainService and its IPC channel in the main process,
@@ -135,13 +135,13 @@ service created during normal VS Code usage.
 
 
 ## Comment 12
-[Align sessions utility process naming](https://github.com/microsoft/vscode/pull/295817/commits/ca9154d717b4046786fb96897acb1f176dc609f9 "Align sessions utility process naming")
+[Align sessions utility process naming](https://github.com/microsoft/vscode/pull/295817/commits/ca9154d717b4046786fb96897acb1f176dc609f9)
 
 [[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 13
-[Adopt sessions utility process flag](https://github.com/microsoft/vscode/pull/295817/commits/91c48fa7cf4416227e1f2607f9b7f6eb6255076e "Adopt sessions utility process flag")
+[Adopt sessions utility process flag](https://github.com/microsoft/vscode/pull/295817/commits/91c48fa7cf4416227e1f2607f9b7f6eb6255076e)
 
 [[ joshspicer on 2026-02-17 (13 days ago) ]]
 
@@ -428,13 +428,13 @@ The `_relativeTime` function doesn't handle future dates gracefully. If `date` i
 
 
 ## Comment 22
-[code review](https://github.com/microsoft/vscode/pull/295817/commits/abecd693388f366ff48f854fd6824a6c36c37279 "code review")
+[code review](https://github.com/microsoft/vscode/pull/295817/commits/abecd693388f366ff48f854fd6824a6c36c37279)
 
 [[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 23
-[merge](https://github.com/microsoft/vscode/pull/295817/commits/d823b474c95e4a3667d6b33fde4c5ea1b0bacf94 "merge")
+[merge](https://github.com/microsoft/vscode/pull/295817/commits/d823b474c95e4a3667d6b33fde4c5ea1b0bacf94)
 
 [[ joshspicer on 2026-02-17 (13 days ago) ]]
 
@@ -741,7 +741,7 @@ The SDK sessions list renders clickable `div` elements with `role="listitem"`, b
 
 
 ## Comment 29
-[fix fs usage](https://github.com/microsoft/vscode/pull/295817/commits/057e8424a6926a3a4d2acfe23cd20ebe374e58e4 "fix fs usage")
+[fix fs usage](https://github.com/microsoft/vscode/pull/295817/commits/057e8424a6926a3a4d2acfe23cd20ebe374e58e4)
 
 [[ joshspicer on 2026-02-17 (13 days ago) ]]
 
@@ -787,7 +787,7 @@ All actionable feedback has been fixed. Resolving threads now.
 
 
 ## Comment 31
-[Merge branch 'main' into josh/sessions-with-sdk](https://github.com/microsoft/vscode/pull/295817/commits/481e91ab26f92066410de7778b1e10422d185fcb "Merge branch 'main' into josh/sessions-with-sdk")
+[Merge branch 'main' into josh/sessions-with-sdk](https://github.com/microsoft/vscode/pull/295817/commits/481e91ab26f92066410de7778b1e10422d185fcb)
 
 [[ joshspicer on 2026-02-17 (13 days ago) ]]
 
@@ -902,13 +902,13 @@ Suggested change
 
 
 ## Comment 38
-[implement auto generation from copiot sdk d.ts and layer of abstraction](https://github.com/microsoft/vscode/pull/295817/commits/4592ab1bf23ea1b82a3174363bfe980e0a898463 "implement auto generation from copiot sdk d.ts and layer of abstraction")
+[implement auto generation from copiot sdk d.ts and layer of abstraction](https://github.com/microsoft/vscode/pull/295817/commits/4592ab1bf23ea1b82a3174363bfe980e0a898463)
 
 [[ joshspicer on 2026-02-17 (13 days ago) ]]
 
 
 ## Comment 39
-[resolve code review](https://github.com/microsoft/vscode/pull/295817/commits/1c27c3b44088881a5d7b33243e83923d2c1f52c7 "resolve code review")
+[resolve code review](https://github.com/microsoft/vscode/pull/295817/commits/1c27c3b44088881a5d7b33243e83923d2c1f52c7)
 
 [[ joshspicer on 2026-02-17 (13 days ago) ]]
 
@@ -1057,7 +1057,7 @@ due to merge conflicts
 
 
 ## Comment 46
-[Merge branch 'main' into josh/sessions-with-sdk](https://github.com/microsoft/vscode/pull/295817/commits/6ff5b71b882f6a81594f038e60f233389fe236c3 "Merge branch 'main' into josh/sessions-with-sdk")
+[Merge branch 'main' into josh/sessions-with-sdk](https://github.com/microsoft/vscode/pull/295817/commits/6ff5b71b882f6a81594f038e60f233389fe236c3)
 
 [[ bpasero on 2026-02-20 (11 days ago) ]]
 
@@ -1075,37 +1075,37 @@ due to merge conflicts
 
 
 ## Comment 49
-[feedback](https://github.com/microsoft/vscode/pull/295817/commits/3bda41c22304d9131a315c8d5fa7e63ee6b6f04c "feedback")
+[feedback](https://github.com/microsoft/vscode/pull/295817/commits/3bda41c22304d9131a315c8d5fa7e63ee6b6f04c)
 
 [[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 50
-[feedback](https://github.com/microsoft/vscode/pull/295817/commits/24134c3c8bc6dfcd0d0daecb545dbfc0ce178f11 "feedback")
+[feedback](https://github.com/microsoft/vscode/pull/295817/commits/24134c3c8bc6dfcd0d0daecb545dbfc0ce178f11)
 
 [[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 51
-[refactor](https://github.com/microsoft/vscode/pull/295817/commits/478f81446689833465f901a3308c6d28c90a0f2e "refactor")
+[refactor](https://github.com/microsoft/vscode/pull/295817/commits/478f81446689833465f901a3308c6d28c90a0f2e)
 
 [[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 52
-[fix css reference](https://github.com/microsoft/vscode/pull/295817/commits/a6a5e2d96f39507979326253712422fda92a5cbf "fix css reference")
+[fix css reference](https://github.com/microsoft/vscode/pull/295817/commits/a6a5e2d96f39507979326253712422fda92a5cbf)
 
 [[ bpasero on 2026-02-20 (11 days ago) ]]
 
 
 ## Comment 53
-[.](https://github.com/microsoft/vscode/pull/295817/commits/6dc2411f1ea6dff3a109358648db4876804d44ae ".")
+[.](https://github.com/microsoft/vscode/pull/295817/commits/6dc2411f1ea6dff3a109358648db4876804d44ae)
 
 [[ bpasero on 2026-02-20 (10 days ago) ]]
 
 
 ## Comment 54
-[fix it](https://github.com/microsoft/vscode/pull/295817/commits/0fdb2ef1a7692963e5ed278822290d8b31a60f2e "fix it")
+[fix it](https://github.com/microsoft/vscode/pull/295817/commits/0fdb2ef1a7692963e5ed278822290d8b31a60f2e)
 
 [[ bpasero on 2026-02-20 (10 days ago) ]]
 
@@ -1149,7 +1149,7 @@ Copilot reviewed 33 out of 36 changed files in this pull request and generated 1
 
 
 ## Comment 60
-[leaks](https://github.com/microsoft/vscode/pull/295817/commits/08d444a8ef605e9d867d98a363894cae06449757 "leaks")
+[leaks](https://github.com/microsoft/vscode/pull/295817/commits/08d444a8ef605e9d867d98a363894cae06449757)
 
 [[ bpasero on 2026-02-20 (10 days ago) ]]
 
@@ -1339,7 +1339,7 @@ Suggested change
 
 
 ## Comment 66
-[refactor](https://github.com/microsoft/vscode/pull/295817/commits/cf33c65b8ab1ad7fb7c5c1c571e66c48b0b60b22 "refactor")
+[refactor](https://github.com/microsoft/vscode/pull/295817/commits/cf33c65b8ab1ad7fb7c5c1c571e66c48b0b60b22)
 
 [[ bpasero on 2026-02-20 (10 days ago) ]]
 
@@ -1382,7 +1382,7 @@ Are we certain this works? At this moment the process is stopping and you are ca
 
 
 ## Comment 71
-[teardown on exit or crash](https://github.com/microsoft/vscode/pull/295817/commits/4d6986e0cda85df1d419102ea14432e31541d328 "teardown on exit or crash")
+[teardown on exit or crash](https://github.com/microsoft/vscode/pull/295817/commits/4d6986e0cda85df1d419102ea14432e31541d328)
 
 [[ bpasero on 2026-02-20 (10 days ago) ]]
 
@@ -1398,19 +1398,19 @@ Are we certain this works? At this moment the process is stopping and you are ca
 
 
 ## Comment 73
-[merge conflicts](https://github.com/microsoft/vscode/pull/295817/commits/ff1347002a684a6a955d1448247e4813ac1a773c "merge conflicts")
+[merge conflicts](https://github.com/microsoft/vscode/pull/295817/commits/ff1347002a684a6a955d1448247e4813ac1a773c)
 
 [[ joshspicer ]]
 
 
 ## Comment 74
-[code review bot](https://github.com/microsoft/vscode/pull/295817/commits/b57f9e64740d3ad2a5cb10682dfd59b8ab7e29d5 "code review bot")
+[code review bot](https://github.com/microsoft/vscode/pull/295817/commits/b57f9e64740d3ad2a5cb10682dfd59b8ab7e29d5)
 
 [[ joshspicer ]]
 
 
 ## Comment 75
-[dmg changes](https://github.com/microsoft/vscode/pull/295817/commits/6fef58cfbebb6e85233d8089a80c8d7d61021032 "dmg changes")
+[dmg changes](https://github.com/microsoft/vscode/pull/295817/commits/6fef58cfbebb6e85233d8089a80c8d7d61021032)
 
 [[ joshspicer ]]
 
@@ -1497,7 +1497,7 @@ Comment on lines 123 to 124
 
 
 ## Comment 79
-[build code review](https://github.com/microsoft/vscode/pull/295817/commits/bd2efddc8f35f55e2d9899cd50a55e63be71e8fc "build code review")
+[build code review](https://github.com/microsoft/vscode/pull/295817/commits/bd2efddc8f35f55e2d9899cd50a55e63be71e8fc)
 
 [[ joshspicer ]]
 

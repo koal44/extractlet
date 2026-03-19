@@ -6,14 +6,14 @@
 <!-- https://en.wikipedia.org/wiki/Tensor -->
 
 # Tensor
-For other uses, see [Tensor (disambiguation)](https://en.wikipedia.org/wiki/Tensor_%28disambiguation%29 "Tensor (disambiguation)").
+For other uses, see [Tensor (disambiguation)](https://en.wikipedia.org/wiki/Tensor_%28disambiguation%29).
 
-This article is about tensors on a single vector space and is not to be confused with [Vector field](https://en.wikipedia.org/wiki/Vector_field "Vector field") or [Tensor field](https://en.wikipedia.org/wiki/Tensor_field "Tensor field").
+This article is about tensors on a single vector space and is not to be confused with [Vector field](https://en.wikipedia.org/wiki/Vector_field) or [Tensor field](https://en.wikipedia.org/wiki/Tensor_field).
 
 :::figure  
 [![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Components_stress_tensor.svg/330px-Components_stress_tensor.svg.png)](https://en.wikipedia.org/wiki/File:Components_stress_tensor.svg)
 
-The second-order [Cauchy stress tensor](https://en.wikipedia.org/wiki/Cauchy_stress_tensor "Cauchy stress tensor") $\mathbf{T}$ describes the stress experienced by a material at a given point. For any unit vector $\mathbf{v}$, the product $\mathbf{T} \cdot \mathbf{v}$ is a vector, denoted $\mathbf{T} (\mathbf{v} )$, that quantifies the force per area along the plane perpendicular to $\mathbf{v}$. This image shows, for cube faces perpendicular to $\mathbf{e}_{1},\mathbf{e}_{2},\mathbf{e}_{3}$, the corresponding stress vectors $\mathbf{T} (\mathbf{e}_{1}),\mathbf{T} (\mathbf{e}_{2}),\mathbf{T} (\mathbf{e}_{3})$ along those faces. Because the stress tensor takes one vector as input and gives one vector as output, it is a second-order tensor.
+The second-order [Cauchy stress tensor](https://en.wikipedia.org/wiki/Cauchy_stress_tensor) $\mathbf{T}$ describes the stress experienced by a material at a given point. For any unit vector $\mathbf{v}$, the product $\mathbf{T} \cdot \mathbf{v}$ is a vector, denoted $\mathbf{T} (\mathbf{v} )$, that quantifies the force per area along the plane perpendicular to $\mathbf{v}$. This image shows, for cube faces perpendicular to $\mathbf{e}_{1},\mathbf{e}_{2},\mathbf{e}_{3}$, the corresponding stress vectors $\mathbf{T} (\mathbf{e}_{1}),\mathbf{T} (\mathbf{e}_{2}),\mathbf{T} (\mathbf{e}_{3})$ along those faces. Because the stress tensor takes one vector as input and gives one vector as output, it is a second-order tensor.
 
 :::
 
@@ -21,7 +21,7 @@ In [mathematics](https://en.wikipedia.org/wiki/Mathematics "Mathematics"), a **t
 
 Tensors have become important in [physics](https://en.wikipedia.org/wiki/Physics "Physics") because they provide a concise mathematical framework for formulating and solving physics problems in areas such as [mechanics](https://en.wikipedia.org/wiki/Mechanics "Mechanics") ([stress](https://en.wikipedia.org/wiki/Stress_%28mechanics%29 "Stress (mechanics)"), [elasticity](https://en.wikipedia.org/wiki/Elasticity_%28physics%29 "Elasticity (physics)"), [quantum mechanics](https://en.wikipedia.org/wiki/Quantum_mechanics "Quantum mechanics"), [fluid mechanics](https://en.wikipedia.org/wiki/Fluid_mechanics "Fluid mechanics"), [moment of inertia](https://en.wikipedia.org/wiki/Moment_of_inertia "Moment of inertia"), ...), [electrodynamics](https://en.wikipedia.org/wiki/Classical_electromagnetism "Classical electromagnetism") ([electromagnetic tensor](https://en.wikipedia.org/wiki/Electromagnetic_tensor "Electromagnetic tensor"), [Maxwell tensor](https://en.wikipedia.org/wiki/Maxwell_stress_tensor "Maxwell stress tensor"), [permittivity](https://en.wikipedia.org/wiki/Permittivity "Permittivity"), [magnetic susceptibility](https://en.wikipedia.org/wiki/Magnetic_susceptibility "Magnetic susceptibility"), ...), and [general relativity](https://en.wikipedia.org/wiki/General_relativity "General relativity") ([stress–energy tensor](https://en.wikipedia.org/wiki/Stress–energy_tensor "Stress–energy tensor"), [curvature tensor](https://en.wikipedia.org/wiki/Riemann_curvature_tensor "Riemann curvature tensor"), ...). In applications, it is common to study situations in which a different tensor can occur at each point of an object; for example the stress within an object may vary from one location to another. This leads to the concept of a [tensor field](https://en.wikipedia.org/wiki/Tensor_field "Tensor field"). In some areas, tensor fields are so ubiquitous that they are often simply called "tensors".
 
-[Tullio Levi-Civita](https://en.wikipedia.org/wiki/Tullio_Levi-Civita "Tullio Levi-Civita") and [Gregorio Ricci-Curbastro](https://en.wikipedia.org/wiki/Gregorio_Ricci-Curbastro "Gregorio Ricci-Curbastro") popularised tensors in 1900 – continuing the earlier work of [Bernhard Riemann](https://en.wikipedia.org/wiki/Bernhard_Riemann "Bernhard Riemann"), [Elwin Bruno Christoffel](https://en.wikipedia.org/wiki/Elwin_Bruno_Christoffel "Elwin Bruno Christoffel"), and others – as part of the *[absolute differential calculus](https://en.wikipedia.org/wiki/Absolute_differential_calculus "Absolute differential calculus")*. The concept enabled an alternative formulation of the intrinsic [differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry") of a [manifold](https://en.wikipedia.org/wiki/Manifold "Manifold") in the form of the [Riemann curvature tensor](https://en.wikipedia.org/wiki/Riemann_curvature_tensor "Riemann curvature tensor").[\[1\]](#cite_note-Kline-1)
+[Tullio Levi-Civita](https://en.wikipedia.org/wiki/Tullio_Levi-Civita) and [Gregorio Ricci-Curbastro](https://en.wikipedia.org/wiki/Gregorio_Ricci-Curbastro) popularised tensors in 1900 – continuing the earlier work of [Bernhard Riemann](https://en.wikipedia.org/wiki/Bernhard_Riemann), [Elwin Bruno Christoffel](https://en.wikipedia.org/wiki/Elwin_Bruno_Christoffel), and others – as part of the *[absolute differential calculus](https://en.wikipedia.org/wiki/Absolute_differential_calculus "Absolute differential calculus")*. The concept enabled an alternative formulation of the intrinsic [differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry") of a [manifold](https://en.wikipedia.org/wiki/Manifold "Manifold") in the form of the [Riemann curvature tensor](https://en.wikipedia.org/wiki/Riemann_curvature_tensor).[\[1\]](#cite_note-Kline-1)
 
 
 ## Definition
@@ -40,13 +40,13 @@ A tensor may be represented as a (potentially multidimensional) array. Just as a
 
 The total number of indices ($m$) required to identify each component uniquely is equal to the *dimension* or the number of *ways* of an array, which is why a tensor is sometimes referred to as an $m$-dimensional array or an $m$-way array. The total number of indices is also called the *order*, *degree* or *rank* of a tensor,[\[2\]](#cite_note-DeLathauwerEtAl2000-2)[\[3\]](#cite_note-Vasilescu2002Tensorfaces-3)[\[4\]](#cite_note-KoldaBader2009-4) although the term "rank" generally has [another meaning](https://en.wikipedia.org/wiki/Tensor_rank "Tensor rank") in the context of matrices and tensors.
 
-Just as the components of a vector change when we change the [basis](https://en.wikipedia.org/wiki/Basis_%28linear_algebra%29 "Basis (linear algebra)") of the vector space, the components of a tensor also change under such a transformation. Each type of tensor comes equipped with a *transformation law* that details how the components of the tensor respond to a [change of basis](https://en.wikipedia.org/wiki/Change_of_basis "Change of basis"). The components of a vector can respond in two distinct ways to a [change of basis](https://en.wikipedia.org/wiki/Change_of_basis "Change of basis") (see *[Covariance and contravariance of vectors](https://en.wikipedia.org/wiki/Covariance_and_contravariance_of_vectors "Covariance and contravariance of vectors")*), where the new [basis vectors](https://en.wikipedia.org/wiki/Basis_vectors "Basis vectors") $\mathbf{\hat{e}}_{i}$ are expressed in terms of the old basis vectors $\mathbf{e}_{j}$ as,
+Just as the components of a vector change when we change the [basis](https://en.wikipedia.org/wiki/Basis_%28linear_algebra%29 "Basis (linear algebra)") of the vector space, the components of a tensor also change under such a transformation. Each type of tensor comes equipped with a *transformation law* that details how the components of the tensor respond to a [change of basis](https://en.wikipedia.org/wiki/Change_of_basis "Change of basis"). The components of a vector can respond in two distinct ways to a [change of basis](https://en.wikipedia.org/wiki/Change_of_basis "Change of basis") (see *[Covariance and contravariance of vectors](https://en.wikipedia.org/wiki/Covariance_and_contravariance_of_vectors)*), where the new [basis vectors](https://en.wikipedia.org/wiki/Basis_vectors "Basis vectors") $\mathbf{\hat{e}}_{i}$ are expressed in terms of the old basis vectors $\mathbf{e}_{j}$ as,
 
 $$
 \mathbf{\hat{e}}_{i}=\sum_{j=1}^{n}\mathbf{e}_{j}R_{i}^{j}=\mathbf{e}_{j}R_{i}^{j}.
 $$
 
-Here *R*^{*j*}_{*i*} are the entries of the change of basis matrix, and in the rightmost expression the [summation](https://en.wikipedia.org/wiki/Summation "Summation") sign was suppressed: this is the [Einstein summation convention](https://en.wikipedia.org/wiki/Einstein_summation_convention "Einstein summation convention"), which will be used throughout this article.[\[Note 1\]](#cite_note-5) The components *v*^{*i*} of a column vector **v** transform with the [inverse](https://en.wikipedia.org/wiki/Matrix_inverse "Matrix inverse") of the matrix *R*,
+Here *R*^{*j*}_{*i*} are the entries of the change of basis matrix, and in the rightmost expression the [summation](https://en.wikipedia.org/wiki/Summation "Summation") sign was suppressed: this is the [Einstein summation convention](https://en.wikipedia.org/wiki/Einstein_summation_convention), which will be used throughout this article.[\[Note 1\]](#cite_note-5) The components *v*^{*i*} of a column vector **v** transform with the [inverse](https://en.wikipedia.org/wiki/Matrix_inverse "Matrix inverse") of the matrix *R*,
 
 $$
 {\hat{v}}^{i}=\left(R^{-1}\right)_{j}^{i}v^{j},
@@ -68,7 +68,7 @@ $$
 {\displaystyle \mathbf{v} ={\hat{v}}^{i}\,\mathbf{\hat{e}}_{i}=\left(\left(R^{-1}\right)_{j}^{i}{v}^{j}\right)\left(\mathbf{e}_{k}R_{i}^{k}\right)=\left(\left(R^{-1}\right)_{j}^{i}R_{i}^{k}\right){v}^{j}\mathbf{e}_{k}=\delta_{j}^{k}{v}^{j}\mathbf{e}_{k}={v}^{k}\,\mathbf{e}_{k}={v}^{i}\,\mathbf{e}_{i}},
 $$
 
-where $\delta_{j}^{k}$ is the [Kronecker delta](https://en.wikipedia.org/wiki/Kronecker_delta "Kronecker delta"), which functions similarly to the [identity matrix](https://en.wikipedia.org/wiki/Identity_matrix "Identity matrix"), and has the effect of renaming indices (*j* into *k* in this example). This shows several features of the component notation: the ability to re-arrange terms at will ([commutativity](https://en.wikipedia.org/wiki/Commutativity "Commutativity")), the need to use different indices when working with multiple objects in the same expression, the ability to rename indices, and the manner in which contravariant and covariant tensors combine so that all instances of the transformation matrix and its inverse cancel, so that expressions like ${v}^{i}\,\mathbf{e}_{i}$ can immediately be seen to be geometrically identical in all coordinate systems.
+where $\delta_{j}^{k}$ is the [Kronecker delta](https://en.wikipedia.org/wiki/Kronecker_delta), which functions similarly to the [identity matrix](https://en.wikipedia.org/wiki/Identity_matrix "Identity matrix"), and has the effect of renaming indices (*j* into *k* in this example). This shows several features of the component notation: the ability to re-arrange terms at will ([commutativity](https://en.wikipedia.org/wiki/Commutativity "Commutativity")), the need to use different indices when working with multiple objects in the same expression, the ability to rename indices, and the manner in which contravariant and covariant tensors combine so that all instances of the transformation matrix and its inverse cancel, so that expressions like ${v}^{i}\,\mathbf{e}_{i}$ can immediately be seen to be geometrically identical in all coordinate systems.
 
 Similarly, a linear operator, viewed as a geometric object, does not actually depend on a basis: it is just a linear map that accepts a vector as an argument and produces another vector. The transformation law for how the matrix of components of a linear operator changes with the basis is consistent with the transformation law for a contravariant vector, so that the action of a linear operator on a contravariant vector is represented in coordinates as the matrix product of their respective coordinate representations. That is, the components $(Tv)^{i}$ are given by $(Tv)^{i}=T_{j}^{i}v^{j}$. These components transform contravariantly, since
 
@@ -126,7 +126,7 @@ When $\rho$ is a [tensor representation](https://en.wikipedia.org/wiki/Tensor_re
 
 
 ### As multilinear maps
-Main article: [Multilinear map](https://en.wikipedia.org/wiki/Multilinear_map "Multilinear map")
+Main article: [Multilinear map](https://en.wikipedia.org/wiki/Multilinear_map)
 
 A downside to the definition of a tensor using the multidimensional array approach is that it is not apparent from the definition that the defined object is indeed basis independent, as is expected from an intrinsically geometric object. Although it is possible to show that transformation laws indeed ensure independence from the basis, sometimes a more intrinsic definition is preferred. One approach that is common in [differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry") is to define tensors relative to a fixed (finite-dimensional) vector space *V*, which is usually taken to be a particular vector space of some geometrical significance like the [tangent space](https://en.wikipedia.org/wiki/Tangent_space "Tangent space") to a manifold.[\[8\]](#cite_note-9) In this approach, a type (*p*, *q*) tensor *T* is defined as a [multilinear map](https://en.wikipedia.org/wiki/Multilinear_map "Multilinear map"),
 
@@ -148,7 +148,7 @@ In viewing a tensor as a multilinear map, it is conventional to identify the [do
 
 
 ### Using tensor products
-Main article: [Tensor (intrinsic definition)](https://en.wikipedia.org/wiki/Tensor_%28intrinsic_definition%29 "Tensor (intrinsic definition)")
+Main article: [Tensor (intrinsic definition)](https://en.wikipedia.org/wiki/Tensor_%28intrinsic_definition%29)
 
 For some mathematical applications, a more abstract approach is sometimes useful. This can be achieved by defining tensors in terms of elements of [tensor products](https://en.wikipedia.org/wiki/Tensor_product "Tensor product") of vector spaces, which in turn are defined through a [universal property](https://en.wikipedia.org/wiki/Universal_property "Universal property") as explained [here](https://en.wikipedia.org/wiki/Tensor_product#Universal_property "Tensor product") and [here](https://en.wikipedia.org/wiki/Tensor_%28intrinsic_definition%29#Universal_property "Tensor (intrinsic definition)").
 
@@ -182,7 +182,7 @@ This discussion of tensors so far assumes finite dimensionality of the spaces in
 
 
 ### Tensor fields
-Main article: [Tensor field](https://en.wikipedia.org/wiki/Tensor_field "Tensor field")
+Main article: [Tensor field](https://en.wikipedia.org/wiki/Tensor_field)
 
 In many applications, especially in differential geometry and physics, it is natural to consider a tensor with components that are functions of the point in a space. This was the setting of Ricci's original work. In modern mathematical terminology such an object is called a [tensor field](https://en.wikipedia.org/wiki/Tensor_field "Tensor field"), often referred to simply as a tensor.[\[1\]](#cite_note-Kline-1)
 
@@ -200,25 +200,25 @@ $$
 
 
 ## History
-The concepts of later tensor analysis arose from the work of [Carl Friedrich Gauss](https://en.wikipedia.org/wiki/Carl_Friedrich_Gauss "Carl Friedrich Gauss") in [differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry"), and the formulation was much influenced by the theory of [algebraic forms](https://en.wikipedia.org/wiki/Algebraic_form "Algebraic form") and invariants developed during the middle of the nineteenth century.[\[14\]](#cite_note-16) The word "tensor" itself was introduced in 1846 by [William Rowan Hamilton](https://en.wikipedia.org/wiki/William_Rowan_Hamilton "William Rowan Hamilton")[\[15\]](#cite_note-17) to describe something different from what is now meant by a tensor.[\[Note 3\]](#cite_note-18) Gibbs introduced [dyadics](https://en.wikipedia.org/wiki/Dyadics "Dyadics") and [polyadic algebra](https://en.wikipedia.org/wiki/Polyadic_algebra "Polyadic algebra"), which are also tensors in the modern sense.[\[16\]](#cite_note-auto-19) The contemporary usage was introduced by [Woldemar Voigt](https://en.wikipedia.org/wiki/Woldemar_Voigt "Woldemar Voigt") in 1898.[\[17\]](#cite_note-Voigt1898-20)
+The concepts of later tensor analysis arose from the work of [Carl Friedrich Gauss](https://en.wikipedia.org/wiki/Carl_Friedrich_Gauss) in [differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry"), and the formulation was much influenced by the theory of [algebraic forms](https://en.wikipedia.org/wiki/Algebraic_form "Algebraic form") and invariants developed during the middle of the nineteenth century.[\[14\]](#cite_note-16) The word "tensor" itself was introduced in 1846 by [William Rowan Hamilton](https://en.wikipedia.org/wiki/William_Rowan_Hamilton)[\[15\]](#cite_note-17) to describe something different from what is now meant by a tensor.[\[Note 3\]](#cite_note-18) Gibbs introduced [dyadics](https://en.wikipedia.org/wiki/Dyadics "Dyadics") and [polyadic algebra](https://en.wikipedia.org/wiki/Polyadic_algebra "Polyadic algebra"), which are also tensors in the modern sense.[\[16\]](#cite_note-auto-19) The contemporary usage was introduced by [Woldemar Voigt](https://en.wikipedia.org/wiki/Woldemar_Voigt) in 1898.[\[17\]](#cite_note-Voigt1898-20)
 
-Tensor calculus was developed around 1890 by [Gregorio Ricci-Curbastro](https://en.wikipedia.org/wiki/Gregorio_Ricci-Curbastro "Gregorio Ricci-Curbastro") under the title *absolute differential calculus*, and originally presented in 1892.[\[18\]](#cite_note-21) It was made accessible to many mathematicians by the publication of Ricci-Curbastro and [Tullio Levi-Civita](https://en.wikipedia.org/wiki/Tullio_Levi-Civita "Tullio Levi-Civita")'s 1900 classic text *Méthodes de calcul différentiel absolu et leurs applications* (Methods of absolute differential calculus and their applications).[\[19\]](#cite_note-FOOTNOTERicciLevi-Civita1900-22) In Ricci's notation, he refers to "systems" with covariant and contravariant components, which are known as tensor fields in the modern sense.[\[16\]](#cite_note-auto-19)
+Tensor calculus was developed around 1890 by [Gregorio Ricci-Curbastro](https://en.wikipedia.org/wiki/Gregorio_Ricci-Curbastro) under the title *absolute differential calculus*, and originally presented in 1892.[\[18\]](#cite_note-21) It was made accessible to many mathematicians by the publication of Ricci-Curbastro and [Tullio Levi-Civita](https://en.wikipedia.org/wiki/Tullio_Levi-Civita)'s 1900 classic text *Méthodes de calcul différentiel absolu et leurs applications* (Methods of absolute differential calculus and their applications).[\[19\]](#cite_note-FOOTNOTERicciLevi-Civita1900-22) In Ricci's notation, he refers to "systems" with covariant and contravariant components, which are known as tensor fields in the modern sense.[\[16\]](#cite_note-auto-19)
 
-In the 20th century, the subject came to be known as *tensor analysis*, and achieved broader acceptance with the introduction of [Albert Einstein](https://en.wikipedia.org/wiki/Albert_Einstein "Albert Einstein")'s theory of [general relativity](https://en.wikipedia.org/wiki/General_relativity "General relativity"), around 1915. General relativity is formulated completely in the language of tensors. Einstein had learned about them, with great difficulty, from the geometer [Marcel Grossmann](https://en.wikipedia.org/wiki/Marcel_Grossmann "Marcel Grossmann").[\[20\]](#cite_note-23) Levi-Civita then initiated a correspondence with Einstein to correct mistakes Einstein had made in his use of tensor analysis. The correspondence lasted 1915–17, and was characterized by mutual respect:
+In the 20th century, the subject came to be known as *tensor analysis*, and achieved broader acceptance with the introduction of [Albert Einstein](https://en.wikipedia.org/wiki/Albert_Einstein)'s theory of [general relativity](https://en.wikipedia.org/wiki/General_relativity "General relativity"), around 1915. General relativity is formulated completely in the language of tensors. Einstein had learned about them, with great difficulty, from the geometer [Marcel Grossmann](https://en.wikipedia.org/wiki/Marcel_Grossmann).[\[20\]](#cite_note-23) Levi-Civita then initiated a correspondence with Einstein to correct mistakes Einstein had made in his use of tensor analysis. The correspondence lasted 1915–17, and was characterized by mutual respect:
 
 > I admire the elegance of your method of computation; it must be nice to ride through these fields upon the horse of true mathematics while the like of us have to make our way laboriously on foot.
 
 — Albert Einstein[\[21\]](#cite_note-Goodstein-24)
 
-Tensors and [tensor fields](https://en.wikipedia.org/wiki/Tensor_field "Tensor field") were also found to be useful in other fields such as [continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics "Continuum mechanics"). Some well-known examples of tensors in [differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry") are [quadratic forms](https://en.wikipedia.org/wiki/Quadratic_form "Quadratic form") such as [metric tensors](https://en.wikipedia.org/wiki/Metric_tensor "Metric tensor"), and the [Riemann curvature tensor](https://en.wikipedia.org/wiki/Riemann_curvature_tensor "Riemann curvature tensor"). The [exterior algebra](https://en.wikipedia.org/wiki/Exterior_algebra "Exterior algebra") of [Hermann Grassmann](https://en.wikipedia.org/wiki/Hermann_Grassmann "Hermann Grassmann"), from the middle of the nineteenth century, is itself a tensor theory, and highly geometric, but it was some time before it was seen, with the theory of [differential forms](https://en.wikipedia.org/wiki/Differential_form "Differential form"), as naturally unified with tensor calculus. The work of [Élie Cartan](https://en.wikipedia.org/wiki/Élie_Cartan "Élie Cartan") made differential forms one of the basic kinds of tensors used in mathematics, and [Hassler Whitney](https://en.wikipedia.org/wiki/Hassler_Whitney "Hassler Whitney") popularized the [tensor product](https://en.wikipedia.org/wiki/Tensor_product "Tensor product").[\[16\]](#cite_note-auto-19)
+Tensors and [tensor fields](https://en.wikipedia.org/wiki/Tensor_field "Tensor field") were also found to be useful in other fields such as [continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics "Continuum mechanics"). Some well-known examples of tensors in [differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry") are [quadratic forms](https://en.wikipedia.org/wiki/Quadratic_form "Quadratic form") such as [metric tensors](https://en.wikipedia.org/wiki/Metric_tensor "Metric tensor"), and the [Riemann curvature tensor](https://en.wikipedia.org/wiki/Riemann_curvature_tensor). The [exterior algebra](https://en.wikipedia.org/wiki/Exterior_algebra "Exterior algebra") of [Hermann Grassmann](https://en.wikipedia.org/wiki/Hermann_Grassmann), from the middle of the nineteenth century, is itself a tensor theory, and highly geometric, but it was some time before it was seen, with the theory of [differential forms](https://en.wikipedia.org/wiki/Differential_form "Differential form"), as naturally unified with tensor calculus. The work of [Élie Cartan](https://en.wikipedia.org/wiki/Élie_Cartan) made differential forms one of the basic kinds of tensors used in mathematics, and [Hassler Whitney](https://en.wikipedia.org/wiki/Hassler_Whitney) popularized the [tensor product](https://en.wikipedia.org/wiki/Tensor_product "Tensor product").[\[16\]](#cite_note-auto-19)
 
-From about the 1920s onwards, it was realised that tensors play a basic role in [algebraic topology](https://en.wikipedia.org/wiki/Algebraic_topology "Algebraic topology") (for example in the [Künneth theorem](https://en.wikipedia.org/wiki/Künneth_theorem "Künneth theorem")).[\[22\]](#cite_note-Spanier2012-25) Correspondingly there are types of tensors at work in many branches of [abstract algebra](https://en.wikipedia.org/wiki/Abstract_algebra "Abstract algebra"), particularly in [homological algebra](https://en.wikipedia.org/wiki/Homological_algebra "Homological algebra") and [representation theory](https://en.wikipedia.org/wiki/Representation_theory "Representation theory"). Multilinear algebra can be developed in greater generality than for scalars coming from a [field](https://en.wikipedia.org/wiki/Field_%28mathematics%29 "Field (mathematics)"). For example, scalars can come from a [ring](https://en.wikipedia.org/wiki/Ring_%28mathematics%29 "Ring (mathematics)"). But the theory is then less geometric and computations more technical and less algorithmic.[\[23\]](#cite_note-Hungerford2003-26) Tensors are generalized within [category theory](https://en.wikipedia.org/wiki/Category_theory "Category theory") by means of the concept of [monoidal category](https://en.wikipedia.org/wiki/Monoidal_category "Monoidal category"), from the 1960s.[\[24\]](#cite_note-MacLane2013-27)
+From about the 1920s onwards, it was realised that tensors play a basic role in [algebraic topology](https://en.wikipedia.org/wiki/Algebraic_topology "Algebraic topology") (for example in the [Künneth theorem](https://en.wikipedia.org/wiki/Künneth_theorem)).[\[22\]](#cite_note-Spanier2012-25) Correspondingly there are types of tensors at work in many branches of [abstract algebra](https://en.wikipedia.org/wiki/Abstract_algebra "Abstract algebra"), particularly in [homological algebra](https://en.wikipedia.org/wiki/Homological_algebra "Homological algebra") and [representation theory](https://en.wikipedia.org/wiki/Representation_theory "Representation theory"). Multilinear algebra can be developed in greater generality than for scalars coming from a [field](https://en.wikipedia.org/wiki/Field_%28mathematics%29 "Field (mathematics)"). For example, scalars can come from a [ring](https://en.wikipedia.org/wiki/Ring_%28mathematics%29 "Ring (mathematics)"). But the theory is then less geometric and computations more technical and less algorithmic.[\[23\]](#cite_note-Hungerford2003-26) Tensors are generalized within [category theory](https://en.wikipedia.org/wiki/Category_theory "Category theory") by means of the concept of [monoidal category](https://en.wikipedia.org/wiki/Monoidal_category "Monoidal category"), from the 1960s.[\[24\]](#cite_note-MacLane2013-27)
 
 
 ## Examples
-See also: [Dyadic tensor](https://en.wikipedia.org/wiki/Dyadic_tensor "Dyadic tensor")
+See also: [Dyadic tensor](https://en.wikipedia.org/wiki/Dyadic_tensor)
 
-An elementary example of a mapping describable as a tensor is the [dot product](https://en.wikipedia.org/wiki/Dot_product "Dot product"), which maps two vectors to a scalar. A more complex example is the [Cauchy stress tensor](https://en.wikipedia.org/wiki/Cauchy_stress_tensor "Cauchy stress tensor") **T**, which takes a directional unit vector **v** as input and maps it to the stress vector **T**^{(**v**)}, which is the force (per unit area) exerted by material on the negative side of the plane orthogonal to **v** against the material on the positive side of the plane, thus expressing a relationship between these two vectors, shown in the figure (right). The [cross product](https://en.wikipedia.org/wiki/Cross_product "Cross product"), where two vectors are mapped to a third one, is strictly speaking not a tensor because it changes its sign under those transformations that change the orientation of the coordinate system. The [totally anti-symmetric symbol](https://en.wikipedia.org/wiki/Levi-Civita_symbol "Levi-Civita symbol") $\varepsilon_{ijk}$ nevertheless allows a convenient handling of the cross product in equally oriented three dimensional coordinate systems.
+An elementary example of a mapping describable as a tensor is the [dot product](https://en.wikipedia.org/wiki/Dot_product "Dot product"), which maps two vectors to a scalar. A more complex example is the [Cauchy stress tensor](https://en.wikipedia.org/wiki/Cauchy_stress_tensor) **T**, which takes a directional unit vector **v** as input and maps it to the stress vector **T**^{(**v**)}, which is the force (per unit area) exerted by material on the negative side of the plane orthogonal to **v** against the material on the positive side of the plane, thus expressing a relationship between these two vectors, shown in the figure (right). The [cross product](https://en.wikipedia.org/wiki/Cross_product "Cross product"), where two vectors are mapped to a third one, is strictly speaking not a tensor because it changes its sign under those transformations that change the orientation of the coordinate system. The [totally anti-symmetric symbol](https://en.wikipedia.org/wiki/Levi-Civita_symbol "Levi-Civita symbol") $\varepsilon_{ijk}$ nevertheless allows a convenient handling of the cross product in equally oriented three dimensional coordinate systems.
 
 This table shows important examples of tensors on vector spaces and tensor fields on manifolds. The tensors are classified according to their type $(n, m)$, where *n* is the number of contravariant indices, *m* is the number of covariant indices, and $n + m$ gives the total order of the tensor. For example, a [bilinear form](https://en.wikipedia.org/wiki/Bilinear_form "Bilinear form") is the same thing as a $(0, 2)$-tensor; an [inner product](https://en.wikipedia.org/wiki/Inner_product "Inner product") is an example of a $(0, 2)$-tensor, but not all $(0, 2)$-tensors are inner products. In the $(0, M)$-entry of the table, *M* denotes the dimensionality of the underlying vector space or manifold because for each dimension of the space, a separate index is needed to select that dimension to get a maximally covariant antisymmetric tensor.
 
@@ -286,15 +286,15 @@ There are several notational systems that are used to describe tensors and perfo
 
 
 ### Ricci calculus
-[Ricci calculus](https://en.wikipedia.org/wiki/Ricci_calculus "Ricci calculus") is the modern formalism and notation for tensor indices: indicating [inner](https://en.wikipedia.org/wiki/Inner_product "Inner product") and [outer products](https://en.wikipedia.org/wiki/Outer_product "Outer product"), [covariance and contravariance](https://en.wikipedia.org/wiki/Covariance_and_contravariance_of_vectors "Covariance and contravariance of vectors"), [summations](https://en.wikipedia.org/wiki/Summation "Summation") of tensor components, [symmetry](https://en.wikipedia.org/wiki/Symmetric_tensor "Symmetric tensor") and [antisymmetry](https://en.wikipedia.org/wiki/Antisymmetric_tensor "Antisymmetric tensor"), and [partial](https://en.wikipedia.org/wiki/Partial_derivative "Partial derivative") and [covariant derivatives](https://en.wikipedia.org/wiki/Covariant_derivative "Covariant derivative").
+[Ricci calculus](https://en.wikipedia.org/wiki/Ricci_calculus) is the modern formalism and notation for tensor indices: indicating [inner](https://en.wikipedia.org/wiki/Inner_product "Inner product") and [outer products](https://en.wikipedia.org/wiki/Outer_product "Outer product"), [covariance and contravariance](https://en.wikipedia.org/wiki/Covariance_and_contravariance_of_vectors "Covariance and contravariance of vectors"), [summations](https://en.wikipedia.org/wiki/Summation "Summation") of tensor components, [symmetry](https://en.wikipedia.org/wiki/Symmetric_tensor "Symmetric tensor") and [antisymmetry](https://en.wikipedia.org/wiki/Antisymmetric_tensor "Antisymmetric tensor"), and [partial](https://en.wikipedia.org/wiki/Partial_derivative "Partial derivative") and [covariant derivatives](https://en.wikipedia.org/wiki/Covariant_derivative "Covariant derivative").
 
 
 ### Einstein summation convention
-The [Einstein summation convention](https://en.wikipedia.org/wiki/Einstein_summation_convention "Einstein summation convention") dispenses with writing [summation signs](https://en.wikipedia.org/wiki/Summation_sign "Summation sign"), leaving the summation implicit. Any repeated index symbol is summed over: if the index $i$ is used twice in a given term of a tensor expression, it means that the term is to be summed for all $i$. Several distinct pairs of indices may be summed this way.
+The [Einstein summation convention](https://en.wikipedia.org/wiki/Einstein_summation_convention) dispenses with writing [summation signs](https://en.wikipedia.org/wiki/Summation_sign "Summation sign"), leaving the summation implicit. Any repeated index symbol is summed over: if the index $i$ is used twice in a given term of a tensor expression, it means that the term is to be summed for all $i$. Several distinct pairs of indices may be summed this way.
 
 
 ### Penrose graphical notation
-[Penrose graphical notation](https://en.wikipedia.org/wiki/Penrose_graphical_notation "Penrose graphical notation") is a diagrammatic notation which replaces the symbols for tensors with shapes, and their indices by lines and curves. It is independent of basis elements, and requires no symbols for the indices.
+[Penrose graphical notation](https://en.wikipedia.org/wiki/Penrose_graphical_notation) is a diagrammatic notation which replaces the symbols for tensors with shapes, and their indices by lines and curves. It is independent of basis elements, and requires no symbols for the indices.
 
 
 ### Abstract index notation
@@ -310,15 +310,15 @@ There are several operations on tensors that again produce a tensor. The linear 
 
 
 ### Tensor product
-Main article: [Tensor product](https://en.wikipedia.org/wiki/Tensor_product "Tensor product")
+Main article: [Tensor product](https://en.wikipedia.org/wiki/Tensor_product)
 
 The [tensor product](https://en.wikipedia.org/wiki/Tensor_product "Tensor product") takes two tensors, *S* and *T*, and produces a new tensor, $S ⊗ T$, whose order is the sum of the orders of the original tensors. When described as multilinear maps, the tensor product simply multiplies the two tensors, i.e., $(S\otimes T)(v_{1},\ldots ,v_{n},v_{n+1},\ldots ,v_{n+m})=S(v_{1},\ldots ,v_{n})T(v_{n+1},\ldots ,v_{n+m}),$ which again produces a map that is linear in all its arguments. On components, the effect is to multiply the components of the two input tensors pairwise, i.e., $(S\otimes T)_{j_{1}\ldots j_{k}j_{k+1}\ldots j_{k+m}}^{i_{1}\ldots i_{l}i_{l+1}\ldots i_{l+n}}=S_{j_{1}\ldots j_{k}}^{i_{1}\ldots i_{l}}T_{j_{k+1}\ldots j_{k+m}}^{i_{l+1}\ldots i_{l+n}}.$ If $S$ is of type $(l, k)$ and $T$ is of type $(n, m)$, then the tensor product $S ⊗ T$ has type $(l + n, k + m)$.
 
 
 ### Contraction
-Main article: [Tensor contraction](https://en.wikipedia.org/wiki/Tensor_contraction "Tensor contraction")
+Main article: [Tensor contraction](https://en.wikipedia.org/wiki/Tensor_contraction)
 
-[Tensor contraction](https://en.wikipedia.org/wiki/Tensor_contraction "Tensor contraction") is an operation that reduces a type (*n*, *m*) tensor to a type (*n* − 1, *m* − 1) tensor, of which the [trace](https://en.wikipedia.org/wiki/Trace_%28linear_algebra%29 "Trace (linear algebra)") is a special case. It thereby reduces the total order of a tensor by two. The operation is achieved by summing components for which one specified contravariant index is the same as one specified covariant index to produce a new component. Components for which those two indices are different are discarded. For example, a (1, 1)-tensor $T_{i}^{j}$ can be contracted to a scalar through $T_{i}^{i}$, where the summation is again implied. When the (1, 1)-tensor is interpreted as a linear map, this operation is known as the [trace](https://en.wikipedia.org/wiki/Trace_%28linear_algebra%29 "Trace (linear algebra)").
+[Tensor contraction](https://en.wikipedia.org/wiki/Tensor_contraction) is an operation that reduces a type (*n*, *m*) tensor to a type (*n* − 1, *m* − 1) tensor, of which the [trace](https://en.wikipedia.org/wiki/Trace_%28linear_algebra%29 "Trace (linear algebra)") is a special case. It thereby reduces the total order of a tensor by two. The operation is achieved by summing components for which one specified contravariant index is the same as one specified covariant index to produce a new component. Components for which those two indices are different are discarded. For example, a (1, 1)-tensor $T_{i}^{j}$ can be contracted to a scalar through $T_{i}^{i}$, where the summation is again implied. When the (1, 1)-tensor is interpreted as a linear map, this operation is known as the [trace](https://en.wikipedia.org/wiki/Trace_%28linear_algebra%29 "Trace (linear algebra)").
 
 The contraction is often used in conjunction with the tensor product to contract an index from each tensor.
 
@@ -338,7 +338,7 @@ In a vector space with an [inner product](https://en.wikipedia.org/wiki/Inner_pr
 
 
 ### Raising or lowering an index
-Main article: [Raising and lowering indices](https://en.wikipedia.org/wiki/Raising_and_lowering_indices "Raising and lowering indices")
+Main article: [Raising and lowering indices](https://en.wikipedia.org/wiki/Raising_and_lowering_indices)
 
 When a vector space is equipped with a [nondegenerate bilinear form](https://en.wikipedia.org/wiki/Nondegenerate_bilinear_form "Nondegenerate bilinear form") (or *[metric tensor](https://en.wikipedia.org/wiki/Metric_tensor "Metric tensor")* as it is often called in this context), operations can be defined that convert a contravariant (upper) index into a covariant (lower) index and vice versa. A metric tensor is a (symmetric) (0, 2)-tensor; it is thus possible to contract an upper index of a tensor with one of the lower indices of the metric tensor in the product. This produces a new tensor with the same index structure as the previous tensor, but with lower index generally shown in the same position of the contracted upper index. This operation is quite graphically known as *lowering an index*.
 
@@ -356,29 +356,29 @@ If a particular [surface element](https://en.wikipedia.org/wiki/Volume_form "Vol
 ### Other examples from physics
 Common applications include:
 
-- [Electromagnetic tensor](https://en.wikipedia.org/wiki/Electromagnetic_tensor "Electromagnetic tensor") (or Faraday tensor) in [electromagnetism](https://en.wikipedia.org/wiki/Electromagnetism "Electromagnetism")
-- [Finite deformation tensors](https://en.wikipedia.org/wiki/Finite_deformation_tensors "Finite deformation tensors") for describing deformations and [strain tensor](https://en.wikipedia.org/wiki/Strain_tensor "Strain tensor") for [strain](https://en.wikipedia.org/wiki/Strain_%28materials_science%29 "Strain (materials science)") in [continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics "Continuum mechanics")
-- [Permittivity](https://en.wikipedia.org/wiki/Permittivity "Permittivity") and [electric susceptibility](https://en.wikipedia.org/wiki/Electric_susceptibility "Electric susceptibility") are tensors in [anisotropic](https://en.wikipedia.org/wiki/Anisotropic "Anisotropic") media
-- [Four-tensors](https://en.wikipedia.org/wiki/Four-tensors "Four-tensors") in [general relativity](https://en.wikipedia.org/wiki/General_relativity "General relativity") (e.g. [stress–energy tensor](https://en.wikipedia.org/wiki/Stress–energy_tensor "Stress–energy tensor")), used to represent [momentum](https://en.wikipedia.org/wiki/Momentum "Momentum") [fluxes](https://en.wikipedia.org/wiki/Flux "Flux")
+- [Electromagnetic tensor](https://en.wikipedia.org/wiki/Electromagnetic_tensor) (or Faraday tensor) in [electromagnetism](https://en.wikipedia.org/wiki/Electromagnetism "Electromagnetism")
+- [Finite deformation tensors](https://en.wikipedia.org/wiki/Finite_deformation_tensors) for describing deformations and [strain tensor](https://en.wikipedia.org/wiki/Strain_tensor "Strain tensor") for [strain](https://en.wikipedia.org/wiki/Strain_%28materials_science%29 "Strain (materials science)") in [continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics "Continuum mechanics")
+- [Permittivity](https://en.wikipedia.org/wiki/Permittivity) and [electric susceptibility](https://en.wikipedia.org/wiki/Electric_susceptibility "Electric susceptibility") are tensors in [anisotropic](https://en.wikipedia.org/wiki/Anisotropic "Anisotropic") media
+- [Four-tensors](https://en.wikipedia.org/wiki/Four-tensors) in [general relativity](https://en.wikipedia.org/wiki/General_relativity "General relativity") (e.g. [stress–energy tensor](https://en.wikipedia.org/wiki/Stress–energy_tensor "Stress–energy tensor")), used to represent [momentum](https://en.wikipedia.org/wiki/Momentum "Momentum") [fluxes](https://en.wikipedia.org/wiki/Flux "Flux")
 - Spherical tensor operators are the eigenfunctions of the quantum [angular momentum operator](https://en.wikipedia.org/wiki/Angular_momentum_operator "Angular momentum operator") in [spherical coordinates](https://en.wikipedia.org/wiki/Spherical_coordinates "Spherical coordinates")
 - Diffusion tensors, the basis of [diffusion tensor imaging](https://en.wikipedia.org/wiki/Diffusion_tensor_imaging "Diffusion tensor imaging"), represent rates of diffusion in biological environments
-- [Quantum mechanics](https://en.wikipedia.org/wiki/Quantum_mechanics "Quantum mechanics") and [quantum computing](https://en.wikipedia.org/wiki/Quantum_computing "Quantum computing") utilize tensor products for combination of quantum states
+- [Quantum mechanics](https://en.wikipedia.org/wiki/Quantum_mechanics) and [quantum computing](https://en.wikipedia.org/wiki/Quantum_computing "Quantum computing") utilize tensor products for combination of quantum states
 
 
 ### Computer vision and optics
 The concept of a tensor of order two is often conflated with that of a matrix. Tensors of higher order do however capture ideas important in science and engineering, as has been shown successively in numerous areas as they develop. This happens, for instance, in the field of [computer vision](https://en.wikipedia.org/wiki/Computer_vision "Computer vision"), with the [trifocal tensor](https://en.wikipedia.org/wiki/Trifocal_tensor "Trifocal tensor") generalizing the [fundamental matrix](https://en.wikipedia.org/wiki/Fundamental_matrix_%28computer_vision%29 "Fundamental matrix (computer vision)").
 
-The field of [nonlinear optics](https://en.wikipedia.org/wiki/Nonlinear_optics "Nonlinear optics") studies the changes to material [polarization density](https://en.wikipedia.org/wiki/Polarization_density#Relation_between_P_and_E_in_various_materials "Polarization density") under extreme electric fields. The polarization waves generated are related to the generating [electric fields](https://en.wikipedia.org/wiki/Electric_field "Electric field") through the nonlinear susceptibility tensor. If the polarization **P** is not linearly proportional to the electric field **E**, the medium is termed *nonlinear*. To a good approximation (for sufficiently weak fields, assuming no permanent dipole moments are present), **P** is given by a [Taylor series](https://en.wikipedia.org/wiki/Taylor_series "Taylor series") in **E** whose coefficients are the nonlinear susceptibilities:
+The field of [nonlinear optics](https://en.wikipedia.org/wiki/Nonlinear_optics "Nonlinear optics") studies the changes to material [polarization density](https://en.wikipedia.org/wiki/Polarization_density#Relation_between_P_and_E_in_various_materials "Polarization density") under extreme electric fields. The polarization waves generated are related to the generating [electric fields](https://en.wikipedia.org/wiki/Electric_field "Electric field") through the nonlinear susceptibility tensor. If the polarization **P** is not linearly proportional to the electric field **E**, the medium is termed *nonlinear*. To a good approximation (for sufficiently weak fields, assuming no permanent dipole moments are present), **P** is given by a [Taylor series](https://en.wikipedia.org/wiki/Taylor_series) in **E** whose coefficients are the nonlinear susceptibilities:
 
 $$
 {\frac{P_{i}}{\varepsilon_{0}}}=\sum_{j}\chi_{ij}^{(1)}E_{j}+\sum_{jk}\chi_{ijk}^{(2)}E_{j}E_{k}+\sum_{jk\ell }\chi_{ijk\ell }^{(3)}E_{j}E_{k}E_{\ell }+\cdots .\!
 $$
 
-Here $\chi^{(1)}$ is the linear susceptibility, $\chi^{(2)}$ gives the [Pockels effect](https://en.wikipedia.org/wiki/Pockels_effect "Pockels effect") and [second harmonic generation](https://en.wikipedia.org/wiki/Second_harmonic_generation "Second harmonic generation"), and $\chi^{(3)}$ gives the [Kerr effect](https://en.wikipedia.org/wiki/Kerr_effect "Kerr effect"). This expansion shows the way higher-order tensors arise naturally in the subject matter.
+Here $\chi^{(1)}$ is the linear susceptibility, $\chi^{(2)}$ gives the [Pockels effect](https://en.wikipedia.org/wiki/Pockels_effect) and [second harmonic generation](https://en.wikipedia.org/wiki/Second_harmonic_generation "Second harmonic generation"), and $\chi^{(3)}$ gives the [Kerr effect](https://en.wikipedia.org/wiki/Kerr_effect). This expansion shows the way higher-order tensors arise naturally in the subject matter.
 
 
 ### Machine learning
-Main article: [Tensor (machine learning)](https://en.wikipedia.org/wiki/Tensor_%28machine_learning%29 "Tensor (machine learning)")
+Main article: [Tensor (machine learning)](https://en.wikipedia.org/wiki/Tensor_%28machine_learning%29)
 
 The properties of tensors, especially [tensor decomposition](https://en.wikipedia.org/wiki/Tensor_decomposition "Tensor decomposition"), have enabled their use in [machine learning](https://en.wikipedia.org/wiki/Machine_learning "Machine learning") to embed higher dimensional data in [artificial neural networks](https://en.wikipedia.org/wiki/Artificial_neural_networks "Artificial neural networks"). This notion of tensor differs significantly from that in other areas of mathematics and physics, in the sense that a tensor is the same thing as a multidimensional array. Abstractly, a tensor belongs to tensor product of spaces, each of which has a fixed basis, and the dimensions of the factor spaces can be different. Thus, an example of a tensor in this context is a rectangular matrix. Just as a rectangular matrix has two axes, a horizontal and vertical axis to indicate the position of each entry, a more general tensor has as many axes as there are factors in the tensor product to which it belongs, and an entry of the tensor is referred to be a tuple of integers. The various axes have different dimensions in general.
 
@@ -394,7 +394,7 @@ The notion of a tensor can be generalized in a variety of ways to [infinite dime
 
 
 ### Tensor densities
-Main article: [Tensor density](https://en.wikipedia.org/wiki/Tensor_density "Tensor density")
+Main article: [Tensor density](https://en.wikipedia.org/wiki/Tensor_density)
 
 Suppose that a homogeneous medium fills $R^{3}$, so that the density of the medium is described by a single [scalar](https://en.wikipedia.org/wiki/Scalar_%28physics%29 "Scalar (physics)") value $ρ$ in $kg⋅m^{−3}$. The mass, in kg, of a region $Ω$ is obtained by multiplying $ρ$ by the volume of the region $Ω$, or equivalently integrating the constant $ρ$ over the region:
 
@@ -410,7 +410,7 @@ $$
 
 The numerical value of the density $ρ$ must then also transform by $100^{−3} m^{3}/cm^{3}$ to compensate, so that the numerical value of the mass in kg is still given by integral of $\rho \,dx\,dy\,dz$. Thus $\rho '=100^{-3}\rho$ (in units of $kg⋅cm^{−3}$).
 
-More generally, if the Cartesian coordinates $x$, $y$, $z$ undergo a linear transformation, then the numerical value of the density $ρ$ must change by a factor of the reciprocal of the absolute value of the [determinant](https://en.wikipedia.org/wiki/Determinant "Determinant") of the coordinate transformation, so that the integral remains invariant, by the [change of variables formula](https://en.wikipedia.org/wiki/Change_of_variables_formula "Change of variables formula") for integration. Such a quantity that scales by the reciprocal of the absolute value of the determinant of the coordinate transition map is called a [scalar density](https://en.wikipedia.org/wiki/Scalar_density "Scalar density"). To model a non-constant density, $ρ$ is a function of the variables $x$, $y$, $z$ (a [scalar field](https://en.wikipedia.org/wiki/Scalar_field "Scalar field")), and under a [curvilinear](https://en.wikipedia.org/wiki/Curvilinear_coordinates "Curvilinear coordinates") change of coordinates, it transforms by the reciprocal of the [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant "Jacobian matrix and determinant") of the coordinate change. For more on the intrinsic meaning, see *[Density on a manifold](https://en.wikipedia.org/wiki/Density_on_a_manifold "Density on a manifold")*.
+More generally, if the Cartesian coordinates $x$, $y$, $z$ undergo a linear transformation, then the numerical value of the density $ρ$ must change by a factor of the reciprocal of the absolute value of the [determinant](https://en.wikipedia.org/wiki/Determinant "Determinant") of the coordinate transformation, so that the integral remains invariant, by the [change of variables formula](https://en.wikipedia.org/wiki/Change_of_variables_formula "Change of variables formula") for integration. Such a quantity that scales by the reciprocal of the absolute value of the determinant of the coordinate transition map is called a [scalar density](https://en.wikipedia.org/wiki/Scalar_density "Scalar density"). To model a non-constant density, $ρ$ is a function of the variables $x$, $y$, $z$ (a [scalar field](https://en.wikipedia.org/wiki/Scalar_field "Scalar field")), and under a [curvilinear](https://en.wikipedia.org/wiki/Curvilinear_coordinates "Curvilinear coordinates") change of coordinates, it transforms by the reciprocal of the [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant "Jacobian matrix and determinant") of the coordinate change. For more on the intrinsic meaning, see *[Density on a manifold](https://en.wikipedia.org/wiki/Density_on_a_manifold)*.
 
 A tensor density transforms like a tensor under a coordinate change, except that it in addition picks up a factor of the absolute value of the determinant of the coordinate transition:[\[34\]](#cite_note-37)
 
@@ -432,7 +432,7 @@ The transformation law for a tensor behaves as a [functor](https://en.wikipedia.
 
 
 ### Spinors
-Main article: [Spinor](https://en.wikipedia.org/wiki/Spinor "Spinor")
+Main article: [Spinor](https://en.wikipedia.org/wiki/Spinor)
 
 When changing from one [orthonormal basis](https://en.wikipedia.org/wiki/Orthonormal_basis "Orthonormal basis") (called a *frame*) to another by a rotation, the components of a tensor transform by that same rotation. This transformation does not depend on the path taken through the space of frames. However, the space of frames is not [simply connected](https://en.wikipedia.org/wiki/Simply_connected "Simply connected") (see [orientation entanglement](https://en.wikipedia.org/wiki/Orientation_entanglement "Orientation entanglement") and [plate trick](https://en.wikipedia.org/wiki/Plate_trick "Plate trick")): there are continuous paths in the space of frames with the same beginning and ending configurations that are not deformable one into the other. It is possible to attach an additional discrete invariant to each frame that incorporates this path dependence, and which turns out (locally) to have values of ±1.[\[41\]](#cite_note-44) A [spinor](https://en.wikipedia.org/wiki/Spinor "Spinor") is an object that transforms like a tensor under rotations in the frame, apart from a possible sign that is determined by the value of this discrete invariant.[\[42\]](#cite_note-45)[\[43\]](#cite_note-46)
 
@@ -441,35 +441,35 @@ Spinors are elements of the [spin representation](https://en.wikipedia.org/wiki/
 
 ## See also
 - [![](https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Wiktionary-logo-en-v2.svg/20px-Wiktionary-logo-en-v2.svg.png)](https://en.wikipedia.org/wiki/File:Wiktionary-logo-en-v2.svg) The dictionary definition of [*tensor*](https://en.wiktionary.org/wiki/tensor "wiktionary:tensor") at Wiktionary
-- [Array data type](https://en.wikipedia.org/wiki/Array_data_type "Array data type"), for tensor storage and manipulation
-- [Bitensor](https://en.wikipedia.org/wiki/Bitensor "Bitensor")
+- [Array data type](https://en.wikipedia.org/wiki/Array_data_type), for tensor storage and manipulation
+- [Bitensor](https://en.wikipedia.org/wiki/Bitensor)
 
 
 ### Foundational
-- [Cartesian tensor](https://en.wikipedia.org/wiki/Cartesian_tensor "Cartesian tensor")
-- [Fibre bundle](https://en.wikipedia.org/wiki/Fibre_bundle "Fibre bundle")
-- [Glossary of tensor theory](https://en.wikipedia.org/wiki/Glossary_of_tensor_theory "Glossary of tensor theory")
+- [Cartesian tensor](https://en.wikipedia.org/wiki/Cartesian_tensor)
+- [Fibre bundle](https://en.wikipedia.org/wiki/Fibre_bundle)
+- [Glossary of tensor theory](https://en.wikipedia.org/wiki/Glossary_of_tensor_theory)
 - [Multilinear projection](https://en.wikipedia.org/wiki/Multilinear_subspace_learning#Multilinear_projection "Multilinear subspace learning")
-- [One-form](https://en.wikipedia.org/wiki/One-form "One-form")
-- [Tensor product of modules](https://en.wikipedia.org/wiki/Tensor_product_of_modules "Tensor product of modules")
+- [One-form](https://en.wikipedia.org/wiki/One-form)
+- [Tensor product of modules](https://en.wikipedia.org/wiki/Tensor_product_of_modules)
 
 
 ### Applications
-- [Application of tensor theory in engineering](https://en.wikipedia.org/wiki/Application_of_tensor_theory_in_engineering "Application of tensor theory in engineering")
-- [Continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics "Continuum mechanics")
-- [Covariant derivative](https://en.wikipedia.org/wiki/Covariant_derivative "Covariant derivative")
-- [Curvature](https://en.wikipedia.org/wiki/Curvature "Curvature")
+- [Application of tensor theory in engineering](https://en.wikipedia.org/wiki/Application_of_tensor_theory_in_engineering)
+- [Continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics)
+- [Covariant derivative](https://en.wikipedia.org/wiki/Covariant_derivative)
+- [Curvature](https://en.wikipedia.org/wiki/Curvature)
 - [Diffusion tensor MRI](https://en.wikipedia.org/wiki/Diffusion_MRI#Mathematical_foundation—tensors "Diffusion MRI")
-- [Einstein field equations](https://en.wikipedia.org/wiki/Einstein_field_equations "Einstein field equations")
-- [Fluid mechanics](https://en.wikipedia.org/wiki/Fluid_mechanics "Fluid mechanics")
-- [Gravity](https://en.wikipedia.org/wiki/Gravity "Gravity")
-- [Multilinear subspace learning](https://en.wikipedia.org/wiki/Multilinear_subspace_learning "Multilinear subspace learning")
-- [Riemannian geometry](https://en.wikipedia.org/wiki/Riemannian_geometry "Riemannian geometry")
-- [Structure tensor](https://en.wikipedia.org/wiki/Structure_tensor "Structure tensor")
-- [Tensor Contraction Engine](https://en.wikipedia.org/wiki/Tensor_Contraction_Engine "Tensor Contraction Engine")
-- [Tensor decomposition](https://en.wikipedia.org/wiki/Tensor_decomposition "Tensor decomposition")
-- [Tensor derivative](https://en.wikipedia.org/wiki/Tensor_derivative "Tensor derivative")
-- [Tensor software](https://en.wikipedia.org/wiki/Tensor_software "Tensor software")
+- [Einstein field equations](https://en.wikipedia.org/wiki/Einstein_field_equations)
+- [Fluid mechanics](https://en.wikipedia.org/wiki/Fluid_mechanics)
+- [Gravity](https://en.wikipedia.org/wiki/Gravity)
+- [Multilinear subspace learning](https://en.wikipedia.org/wiki/Multilinear_subspace_learning)
+- [Riemannian geometry](https://en.wikipedia.org/wiki/Riemannian_geometry)
+- [Structure tensor](https://en.wikipedia.org/wiki/Structure_tensor)
+- [Tensor Contraction Engine](https://en.wikipedia.org/wiki/Tensor_Contraction_Engine)
+- [Tensor decomposition](https://en.wikipedia.org/wiki/Tensor_decomposition)
+- [Tensor derivative](https://en.wikipedia.org/wiki/Tensor_derivative)
+- [Tensor software](https://en.wikipedia.org/wiki/Tensor_software)
 
 
 ## Explanatory notes
@@ -482,20 +482,20 @@ Spinors are elements of the [spin representation](https://en.wikipedia.org/wiki/
 
 ### Specific
 1. <a id="cite_note-Kline-1"></a> Kline, Morris (1990). [*Mathematical Thought From Ancient to Modern Times*](https://books.google.com/books?id=-OsRDAAAQBAJ). Vol. 3. Oxford University Press. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-19-506137-6](https://en.wikipedia.org/wiki/Special:BookSources/978-0-19-506137-6 "Special:BookSources/978-0-19-506137-6").
-2. <a id="cite_note-DeLathauwerEtAl2000-2"></a> De Lathauwer, Lieven; De Moor, Bart; Vandewalle, Joos (2000). ["A Multilinear Singular Value Decomposition"](https://alterlab.org/teaching/BME6780/papers+patents/De_Lathauwer_2000.pdf) (PDF). *[SIAM J. Matrix Anal. Appl.](https://en.wikipedia.org/wiki/SIAM_J._Matrix_Anal._Appl. "SIAM J. Matrix Anal. Appl.")* **21** (4): 1253–1278. [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1137/S0895479896305696](https://doi.org/10.1137/S0895479896305696). [S2CID](https://en.wikipedia.org/wiki/S2CID_%28identifier%29 "S2CID (identifier)") [14344372](https://api.semanticscholar.org/CorpusID:14344372).
+2. <a id="cite_note-DeLathauwerEtAl2000-2"></a> De Lathauwer, Lieven; De Moor, Bart; Vandewalle, Joos (2000). ["A Multilinear Singular Value Decomposition"](https://alterlab.org/teaching/BME6780/papers+patents/De_Lathauwer_2000.pdf) (PDF). *[SIAM J. Matrix Anal. Appl.](https://en.wikipedia.org/wiki/SIAM_J._Matrix_Anal._Appl.)* **21** (4): 1253–1278. [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1137/S0895479896305696](https://doi.org/10.1137/S0895479896305696). [S2CID](https://en.wikipedia.org/wiki/S2CID_%28identifier%29 "S2CID (identifier)") [14344372](https://api.semanticscholar.org/CorpusID:14344372).
 3. <a id="cite_note-Vasilescu2002Tensorfaces-3"></a> Vasilescu, M.A.O.; Terzopoulos, D. (2002). ["Multilinear Analysis of Image Ensembles: TensorFaces"](https://web.archive.org/web/20221229090931/http://www.cs.toronto.edu/~maov/tensorfaces/Springer%20ECCV%202002_files/eccv02proceeding_23500447.pdf) (PDF). *Computer Vision — ECCV 2002*. Lecture Notes in Computer Science. Vol. 2350. pp. 447–460. [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1007/3-540-47969-4_30](https://doi.org/10.1007/3-540-47969-4_30). [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-3-540-43745-1](https://en.wikipedia.org/wiki/Special:BookSources/978-3-540-43745-1 "Special:BookSources/978-3-540-43745-1"). [S2CID](https://en.wikipedia.org/wiki/S2CID_%28identifier%29 "S2CID (identifier)") [12793247](https://api.semanticscholar.org/CorpusID:12793247). Archived from [the original](http://www.cs.toronto.edu/~maov/tensorfaces/Springer%20ECCV%202002_files/eccv02proceeding_23500447.pdf) (PDF) on 2022-12-29. Retrieved 2022-12-29.
-4. <a id="cite_note-KoldaBader2009-4"></a> Kolda, Tamara; Bader, Brett (2009). ["Tensor Decompositions and Applications"](https://www.kolda.net/publication/TensorReview.pdf) (PDF). *[SIAM Review](https://en.wikipedia.org/wiki/SIAM_Review "SIAM Review")*. **51** (3): 455–500. [Bibcode](https://en.wikipedia.org/wiki/Bibcode_%28identifier%29 "Bibcode (identifier)"):[2009SIAMR..51..455K](https://ui.adsabs.harvard.edu/abs/2009SIAMR..51..455K). [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1137/07070111X](https://doi.org/10.1137/07070111X). [S2CID](https://en.wikipedia.org/wiki/S2CID_%28identifier%29 "S2CID (identifier)") [16074195](https://api.semanticscholar.org/CorpusID:16074195).
+4. <a id="cite_note-KoldaBader2009-4"></a> Kolda, Tamara; Bader, Brett (2009). ["Tensor Decompositions and Applications"](https://www.kolda.net/publication/TensorReview.pdf) (PDF). *[SIAM Review](https://en.wikipedia.org/wiki/SIAM_Review)*. **51** (3): 455–500. [Bibcode](https://en.wikipedia.org/wiki/Bibcode_%28identifier%29 "Bibcode (identifier)"):[2009SIAMR..51..455K](https://ui.adsabs.harvard.edu/abs/2009SIAMR..51..455K). [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1137/07070111X](https://doi.org/10.1137/07070111X). [S2CID](https://en.wikipedia.org/wiki/S2CID_%28identifier%29 "S2CID (identifier)") [16074195](https://api.semanticscholar.org/CorpusID:16074195).
 5. <a id="cite_note-Sharpe2000-6"></a> Sharpe, R.W. (2000). [*Differential Geometry: Cartan's Generalization of Klein's Erlangen Program*](https://books.google.com/books?id=Ytqs4xU5QKAC&pg=PA194). Springer. p. 194. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-387-94732-7](https://en.wikipedia.org/wiki/Special:BookSources/978-0-387-94732-7 "Special:BookSources/978-0-387-94732-7").
 6. <a id="cite_note-7"></a> [Schouten, Jan Arnoldus](https://en.wikipedia.org/wiki/Jan_Arnoldus_Schouten "Jan Arnoldus Schouten") (1954), ["Chapter II"](https://books.google.com/books?id=WROiC9st58gC), [*Tensor analysis for physicists*](https://archive.org/details/isbn_9780486655826), Courier Corporation, [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-486-65582-6](https://en.wikipedia.org/wiki/Special:BookSources/978-0-486-65582-6 "Special:BookSources/978-0-486-65582-6") `{{[citation](https://en.wikipedia.org/wiki/Template:Citation "Template:Citation")}}`: ISBN / Date incompatibility ([help](https://en.wikipedia.org/wiki/Help:CS1_errors#invalid_isbn_date "Help:CS1 errors"))
-7. <a id="cite_note-8"></a> Kobayashi, Shoshichi; Nomizu, Katsumi (1996), [*Foundations of Differential Geometry*](https://en.wikipedia.org/wiki/Foundations_of_Differential_Geometry "Foundations of Differential Geometry"), vol. 1 (New ed.), [Wiley Interscience](https://en.wikipedia.org/wiki/Wiley_Interscience "Wiley Interscience"), [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-471-15733-5](https://en.wikipedia.org/wiki/Special:BookSources/978-0-471-15733-5 "Special:BookSources/978-0-471-15733-5")
+7. <a id="cite_note-8"></a> Kobayashi, Shoshichi; Nomizu, Katsumi (1996), [*Foundations of Differential Geometry*](https://en.wikipedia.org/wiki/Foundations_of_Differential_Geometry "Foundations of Differential Geometry"), vol. 1 (New ed.), [Wiley Interscience](https://en.wikipedia.org/wiki/Wiley_Interscience), [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-471-15733-5](https://en.wikipedia.org/wiki/Special:BookSources/978-0-471-15733-5 "Special:BookSources/978-0-471-15733-5")
 8. <a id="cite_note-9"></a> Lee, John (2000), [*Introduction to smooth manifolds*](https://books.google.com/books?id=4sGuQgAACAAJ&pg=PA173), Springer, p. 173, [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-387-95495-0](https://en.wikipedia.org/wiki/Special:BookSources/978-0-387-95495-0 "Special:BookSources/978-0-387-95495-0")
 9. <a id="cite_note-10"></a> Dodson, C.T.J.; Poston, T. (2013) [1991]. *Tensor geometry: The Geometric Viewpoint and Its Uses*. Graduate Texts in Mathematics. Vol. 130 (2nd ed.). Springer. p. 105. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [9783642105142](https://en.wikipedia.org/wiki/Special:BookSources/9783642105142 "Special:BookSources/9783642105142").
-10. <a id="cite_note-11"></a> ["Affine tensor"](https://www.encyclopediaofmath.org/index.php?title=Affine_tensor), *[Encyclopedia of Mathematics](https://en.wikipedia.org/wiki/Encyclopedia_of_Mathematics "Encyclopedia of Mathematics")*, [EMS Press](https://en.wikipedia.org/wiki/European_Mathematical_Society "European Mathematical Society"), 2001 [1994]
+10. <a id="cite_note-11"></a> ["Affine tensor"](https://www.encyclopediaofmath.org/index.php?title=Affine_tensor), *[Encyclopedia of Mathematics](https://en.wikipedia.org/wiki/Encyclopedia_of_Mathematics)*, [EMS Press](https://en.wikipedia.org/wiki/European_Mathematical_Society "European Mathematical Society"), 2001 [1994]
 11. <a id="cite_note-12"></a> ["Why are Tensors (Vectors of the form a⊗b...⊗z) multilinear maps?"](https://math.stackexchange.com/q/4163471). *Mathematics Stackexchange*. June 5, 2021.
 12. <a id="cite_note-14"></a> Bourbaki, N. (1998). ["3"](https://books.google.com/books?id=STS9aZ6F204C). *Algebra I: Chapters 1-3*. Springer. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-3-540-64243-5](https://en.wikipedia.org/wiki/Special:BookSources/978-3-540-64243-5 "Special:BookSources/978-3-540-64243-5"). where the case of finitely generated projective modules is treated. The global sections of sections of a vector bundle over a compact space form a projective module over the ring of smooth functions. All statements for coherent sheaves are true locally.
-13. <a id="cite_note-15"></a> Joyal, André; Street, Ross (1993), "Braided tensor categories", *[Advances in Mathematics](https://en.wikipedia.org/wiki/Advances_in_Mathematics "Advances in Mathematics")*, **102**: 20–78, [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1006/aima.1993.1055](https://doi.org/10.1006/aima.1993.1055)
+13. <a id="cite_note-15"></a> Joyal, André; Street, Ross (1993), "Braided tensor categories", *[Advances in Mathematics](https://en.wikipedia.org/wiki/Advances_in_Mathematics)*, **102**: 20–78, [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1006/aima.1993.1055](https://doi.org/10.1006/aima.1993.1055)
 14. <a id="cite_note-16"></a> Reich, Karin (1994). [*Die Entwicklung des Tensorkalküls*](https://books.google.com/books?id=O6lixBzbc0gC). Science networks historical studies. Vol. 11. Birkhäuser. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-3-7643-2814-6](https://en.wikipedia.org/wiki/Special:BookSources/978-3-7643-2814-6 "Special:BookSources/978-3-7643-2814-6"). [OCLC](https://en.wikipedia.org/wiki/OCLC_%28identifier%29 "OCLC (identifier)") [31468174](https://search.worldcat.org/oclc/31468174).
-15. <a id="cite_note-17"></a> Hamilton, William Rowan (1854–1855). Wilkins, David R. (ed.). ["On some Extensions of Quaternions"](http://www.emis.de/classics/Hamilton/ExtQuat.pdf) (PDF). *[Philosophical Magazine](https://en.wikipedia.org/wiki/Philosophical_Magazine "Philosophical Magazine")* (7–9): 492–9, 125–137, 261–9, 46–51, 280–290. [ISSN](https://en.wikipedia.org/wiki/ISSN_%28identifier%29 "ISSN (identifier)") [0302-7597](https://search.worldcat.org/issn/0302-7597). From p. 498: "And if we agree to call the *square root* (taken with a suitable sign) of this scalar product of two conjugate polynomes, P and KP, the common TENSOR of each, ... "
+15. <a id="cite_note-17"></a> Hamilton, William Rowan (1854–1855). Wilkins, David R. (ed.). ["On some Extensions of Quaternions"](http://www.emis.de/classics/Hamilton/ExtQuat.pdf) (PDF). *[Philosophical Magazine](https://en.wikipedia.org/wiki/Philosophical_Magazine)* (7–9): 492–9, 125–137, 261–9, 46–51, 280–290. [ISSN](https://en.wikipedia.org/wiki/ISSN_%28identifier%29 "ISSN (identifier)") [0302-7597](https://search.worldcat.org/issn/0302-7597). From p. 498: "And if we agree to call the *square root* (taken with a suitable sign) of this scalar product of two conjugate polynomes, P and KP, the common TENSOR of each, ... "
 16. <a id="cite_note-auto-19"></a> Guo, Hongyu (2021-06-16). [*What Are Tensors Exactly?*](https://books.google.com/books?id=5dM3EAAAQBAJ&q=array+vector+matrix+tensor). World Scientific. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-981-12-4103-1](https://en.wikipedia.org/wiki/Special:BookSources/978-981-12-4103-1 "Special:BookSources/978-981-12-4103-1").
 17. <a id="cite_note-Voigt1898-20"></a> Voigt, Woldemar (1898). [*Die fundamentalen physikalischen Eigenschaften der Krystalle in elementarer Darstellung*](https://books.google.com/books?id=QhBDAAAAIAAJ&pg=PA20) [*The fundamental physical properties of crystals in an elementary presentation*]. Von Veit. pp. 20–.
     > Wir wollen uns deshalb nur darauf stützen, dass Zustände der geschilderten Art bei Spannungen und Dehnungen nicht starrer Körper auftreten, und sie deshalb tensorielle, die für sie charakteristischen physikalischen Grössen aber Tensoren nennen. [We therefore want [our presentation] to be based only on [the assumption that] conditions of the type described occur during stresses and strains of non-rigid bodies, and therefore call them "tensorial" but call the characteristic physical quantities for them "tensors".]
@@ -515,17 +515,17 @@ Spinors are elements of the [spin representation](https://en.wikipedia.org/wiki/
 28. <a id="cite_note-31"></a> Schobeiri, Meinhard T. (2021). "Vector and Tensor Analysis, Applications to Fluid Mechanics". *Fluid Mechanics for Engineers*. Springer. pp. 11–29.
 29. <a id="cite_note-Maia2011-32"></a> Maia, M. D. (2011). [*Geometry of the Fundamental Interactions: On Riemann's Legacy to High Energy Physics and Cosmology*](https://books.google.com/books?id=wEWw_vGBDW8C&pg=PA48). Springer. p. 48. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-1-4419-8273-5](https://en.wikipedia.org/wiki/Special:BookSources/978-1-4419-8273-5 "Special:BookSources/978-1-4419-8273-5").
 30. <a id="cite_note-Hogben2013-33"></a> [Hogben, Leslie](https://en.wikipedia.org/wiki/Leslie_Hogben "Leslie Hogben"), ed. (2013). [*Handbook of Linear Algebra*](https://books.google.com/books?id=Er7MBQAAQBAJ&pg=PA7) (2nd ed.). CRC Press. pp. 15–7. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-1-4665-0729-6](https://en.wikipedia.org/wiki/Special:BookSources/978-1-4665-0729-6 "Special:BookSources/978-1-4665-0729-6").
-31. <a id="cite_note-34"></a> Segal, I. E. (January 1956). ["Tensor Algebras Over Hilbert Spaces. I"](https://doi.org/10.2307/1992855). *[Transactions of the American Mathematical Society](https://en.wikipedia.org/wiki/Transactions_of_the_American_Mathematical_Society "Transactions of the American Mathematical Society")*. **81** (1): 106–134. [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.2307/1992855](https://doi.org/10.2307/1992855). [JSTOR](https://en.wikipedia.org/wiki/JSTOR_%28identifier%29 "JSTOR (identifier)") [1992855](https://www.jstor.org/stable/1992855).
+31. <a id="cite_note-34"></a> Segal, I. E. (January 1956). ["Tensor Algebras Over Hilbert Spaces. I"](https://doi.org/10.2307/1992855). *[Transactions of the American Mathematical Society](https://en.wikipedia.org/wiki/Transactions_of_the_American_Mathematical_Society)*. **81** (1): 106–134. [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.2307/1992855](https://doi.org/10.2307/1992855). [JSTOR](https://en.wikipedia.org/wiki/JSTOR_%28identifier%29 "JSTOR (identifier)") [1992855](https://www.jstor.org/stable/1992855).
 32. <a id="cite_note-35"></a> Abraham, Ralph; Marsden, Jerrold E.; Ratiu, Tudor S. (February 1988). ["5. Tensors"](https://books.google.com/books?id=dWHet_zgyCAC). *Manifolds, Tensor Analysis and Applications*. Applied Mathematical Sciences. Vol. 75 (2nd ed.). Springer. pp. 338–9. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-387-96790-5](https://en.wikipedia.org/wiki/Special:BookSources/978-0-387-96790-5 "Special:BookSources/978-0-387-96790-5"). [OCLC](https://en.wikipedia.org/wiki/OCLC_%28identifier%29 "OCLC (identifier)") [18562688](https://search.worldcat.org/oclc/18562688).
     > Elements of T^r_s are called tensors on E, [...].
-33. <a id="cite_note-36"></a> [Lang, Serge](https://en.wikipedia.org/wiki/Serge_Lang "Serge Lang") (1972). [*Differential manifolds*](https://books.google.com/books?id=dn7rBwAAQBAJ). [Addison-Wesley](https://en.wikipedia.org/wiki/Addison-Wesley "Addison-Wesley"). [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-201-04166-8](https://en.wikipedia.org/wiki/Special:BookSources/978-0-201-04166-8 "Special:BookSources/978-0-201-04166-8").
+33. <a id="cite_note-36"></a> [Lang, Serge](https://en.wikipedia.org/wiki/Serge_Lang "Serge Lang") (1972). [*Differential manifolds*](https://books.google.com/books?id=dn7rBwAAQBAJ). [Addison-Wesley](https://en.wikipedia.org/wiki/Addison-Wesley). [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-201-04166-8](https://en.wikipedia.org/wiki/Special:BookSources/978-0-201-04166-8 "Special:BookSources/978-0-201-04166-8").
 34. <a id="cite_note-37"></a> [Schouten, Jan Arnoldus](https://en.wikipedia.org/wiki/Jan_Arnoldus_Schouten "Jan Arnoldus Schouten"), ["§II.8: Densities"](https://books.google.com/books?id=WROiC9st58gC), *Tensor analysis for physicists*
 35. <a id="cite_note-38"></a> McConnell, A.J. (2014) [1957]. [*Applications of tensor analysis*](https://books.google.com/books?id=ZCP0AwAAQBAJ). Dover. p. 28. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [9780486145020](https://en.wikipedia.org/wiki/Special:BookSources/9780486145020 "Special:BookSources/9780486145020").
 36. <a id="cite_note-FOOTNOTEKay198827-39"></a> [Kay 1988](#CITEREFKay1988), p. 27.
 37. <a id="cite_note-40"></a> Olver, Peter (1995), [*Equivalence, invariants, and symmetry*](https://books.google.com/books?id=YuTzf61HILAC&pg=PA77), Cambridge University Press, p. 77, [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [9780521478113](https://en.wikipedia.org/wiki/Special:BookSources/9780521478113 "Special:BookSources/9780521478113")
 38. <a id="cite_note-41"></a> Haantjes, J.; [Laman, G.](https://en.wikipedia.org/wiki/Gerard_Laman "Gerard Laman") (1953). "On the definition of geometric objects. I". *Proceedings of the Koninklijke Nederlandse Akademie van Wetenschappen: Series A: Mathematical Sciences*. **56** (3): 208–215.
 39. <a id="cite_note-42"></a> [Nijenhuis, Albert](https://en.wikipedia.org/wiki/Albert_Nijenhuis "Albert Nijenhuis") (1960), ["Geometric aspects of formal differential operations on tensor fields"](https://web.archive.org/web/20171027025011/http://www.mathunion.org/ICM/ICM1958/Main/icm1958.0463.0469.ocr.pdf) (PDF), *Proc. Internat. Congress Math.(Edinburgh, 1958)*, Cambridge University Press, pp. 463–9, archived from [the original](http://www.mathunion.org/ICM/ICM1958/Main/icm1958.0463.0469.ocr.pdf) (PDF) on 2017-10-27, retrieved 2017-10-26.
-40. <a id="cite_note-43"></a> Salviori, Sarah (1972), ["On the theory of geometric objects"](https://projecteuclid.org/download/pdf_1/euclid.jdg/1214430830), *[Journal of Differential Geometry](https://en.wikipedia.org/wiki/Journal_of_Differential_Geometry "Journal of Differential Geometry")*, **7** (1–2): 257–278, [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.4310/jdg/1214430830](https://doi.org/10.4310/jdg/1214430830).
+40. <a id="cite_note-43"></a> Salviori, Sarah (1972), ["On the theory of geometric objects"](https://projecteuclid.org/download/pdf_1/euclid.jdg/1214430830), *[Journal of Differential Geometry](https://en.wikipedia.org/wiki/Journal_of_Differential_Geometry)*, **7** (1–2): 257–278, [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.4310/jdg/1214430830](https://doi.org/10.4310/jdg/1214430830).
 41. <a id="cite_note-44"></a> [Penrose, Roger](https://en.wikipedia.org/wiki/Roger_Penrose "Roger Penrose") (2005). [*The road to reality: a complete guide to the laws of our universe*](https://books.google.com/books?id=VWTNCwAAQBAJ&pg=PA203). Knopf. pp. 203–206.
 42. <a id="cite_note-45"></a> Meinrenken, E. (2013). "The spin representation". *Clifford Algebras and Lie Theory*. Ergebnisse der Mathematik undihrer Grenzgebiete. 3. Folge / A Series of Modern Surveys in Mathematics. Vol. 58. Springer. pp. 49–85. [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1007/978-3-642-36216-3_3](https://doi.org/10.1007/978-3-642-36216-3_3). [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-3-642-36215-6](https://en.wikipedia.org/wiki/Special:BookSources/978-3-642-36215-6 "Special:BookSources/978-3-642-36215-6").
 43. <a id="cite_note-46"></a> Dong, S. H. (2011), "2. Special Orthogonal Group SO(*N*)", *Wave Equations in Higher Dimensions*, Springer, pp. 13–38
@@ -540,12 +540,12 @@ Spinors are elements of the [spin representation](https://en.wikipedia.org/wiki/
 - Lebedev, Leonid P.; Cloud, Michael J. (2003). *Tensor Analysis*. World Scientific. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-981-238-360-0](https://en.wikipedia.org/wiki/Special:BookSources/978-981-238-360-0 "Special:BookSources/978-981-238-360-0").
 - Lovelock, David; Rund, Hanno (1989) [1975]. [*Tensors, Differential Forms, and Variational Principles*](https://books.google.com/books?id=Tl3dCgAAQBAJ). Dover. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-486-65840-7](https://en.wikipedia.org/wiki/Special:BookSources/978-0-486-65840-7 "Special:BookSources/978-0-486-65840-7").
 - Munkres, James R. (1997). [*Analysis On Manifolds*](https://books.google.com/books?id=tGT6K6HdFfwC). Avalon. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-8133-4548-2](https://en.wikipedia.org/wiki/Special:BookSources/978-0-8133-4548-2 "Special:BookSources/978-0-8133-4548-2"). Chapter six gives a "from scratch" introduction to covariant tensors.
-- [Ricci, Gregorio](https://en.wikipedia.org/wiki/Gregorio_Ricci-Curbastro "Gregorio Ricci-Curbastro"); Levi-Civita, Tullio (March 1900). ["Méthodes de calcul différentiel absolu et leurs applications"](https://zenodo.org/record/1428270). *[Mathematische Annalen](https://en.wikipedia.org/wiki/Mathematische_Annalen "Mathematische Annalen")*. **54** (1–2): 125–201. [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1007/BF01454201](https://doi.org/10.1007/BF01454201). [S2CID](https://en.wikipedia.org/wiki/S2CID_%28identifier%29 "S2CID (identifier)") [120009332](https://api.semanticscholar.org/CorpusID:120009332).
+- [Ricci, Gregorio](https://en.wikipedia.org/wiki/Gregorio_Ricci-Curbastro "Gregorio Ricci-Curbastro"); Levi-Civita, Tullio (March 1900). ["Méthodes de calcul différentiel absolu et leurs applications"](https://zenodo.org/record/1428270). *[Mathematische Annalen](https://en.wikipedia.org/wiki/Mathematische_Annalen)*. **54** (1–2): 125–201. [doi](https://en.wikipedia.org/wiki/Doi_%28identifier%29 "Doi (identifier)"):[10.1007/BF01454201](https://doi.org/10.1007/BF01454201). [S2CID](https://en.wikipedia.org/wiki/S2CID_%28identifier%29 "S2CID (identifier)") [120009332](https://api.semanticscholar.org/CorpusID:120009332).
 - Kay, David C (1988-04-01). [*Schaum's Outline of Tensor Calculus*](https://books.google.com/books?id=6tUU3KruG14C). McGraw-Hill. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-07-033484-7](https://en.wikipedia.org/wiki/Special:BookSources/978-0-07-033484-7 "Special:BookSources/978-0-07-033484-7").
 - Schutz, Bernard F. (28 January 1980). [*Geometrical Methods of Mathematical Physics*](https://books.google.com/books?id=HAPMB2e643kC). Cambridge University Press. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-521-29887-2](https://en.wikipedia.org/wiki/Special:BookSources/978-0-521-29887-2 "Special:BookSources/978-0-521-29887-2").
 - Synge, John Lighton; Schild, Alfred (1969). [*Tensor Calculus*](https://books.google.com/books?id=8vlGhlxqZjsC). Courier Corporation. [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [978-0-486-63612-2](https://en.wikipedia.org/wiki/Special:BookSources/978-0-486-63612-2 "Special:BookSources/978-0-486-63612-2").
 
-- *This article incorporates material from tensor on [PlanetMath](https://en.wikipedia.org/wiki/PlanetMath "PlanetMath"), which is licensed under the [Creative Commons Attribution/Share-Alike License](https://en.wikipedia.org/wiki/Wikipedia:CC-BY-SA "Wikipedia:CC-BY-SA").*
+- *This article incorporates material from tensor on [PlanetMath](https://en.wikipedia.org/wiki/PlanetMath), which is licensed under the [Creative Commons Attribution/Share-Alike License](https://en.wikipedia.org/wiki/Wikipedia:CC-BY-SA "Wikipedia:CC-BY-SA").*
 
 
 ## External links
@@ -553,10 +553,10 @@ Spinors are elements of the [spin representation](https://en.wikipedia.org/wiki/
 
 Wikimedia Commons has media related to [Tensors](https://commons.wikimedia.org/wiki/Category:Tensors "commons:Category:Tensors").
 
-- [Weisstein, Eric W.](https://en.wikipedia.org/wiki/Eric_W._Weisstein "Eric W. Weisstein") ["Tensor"](https://mathworld.wolfram.com/Tensor.html). *[MathWorld](https://en.wikipedia.org/wiki/MathWorld "MathWorld")*.
+- [Weisstein, Eric W.](https://en.wikipedia.org/wiki/Eric_W._Weisstein "Eric W. Weisstein") ["Tensor"](https://mathworld.wolfram.com/Tensor.html). *[MathWorld](https://en.wikipedia.org/wiki/MathWorld)*.
 - [Bowen, Ray M.](https://en.wikipedia.org/wiki/Ray_M._Bowen "Ray M. Bowen"); Wang, C.C. (1976). *Linear and Multilinear Algebra*. Introduction to Vectors and Tensors. Vol. 1. Plenum Press. [hdl](https://en.wikipedia.org/wiki/Hdl_%28identifier%29 "Hdl (identifier)"):[1969.1/2502](https://hdl.handle.net/1969.1/2502). [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [9780306375088](https://en.wikipedia.org/wiki/Special:BookSources/9780306375088 "Special:BookSources/9780306375088").
 - Bowen, Ray M.; Wang, C.C. (2006). *Vector and Tensor Analysis*. Introduction to Vectors and Tensors. Vol. 2. [hdl](https://en.wikipedia.org/wiki/Hdl_%28identifier%29 "Hdl (identifier)"):[1969.1/3609](https://hdl.handle.net/1969.1/3609). [ISBN](https://en.wikipedia.org/wiki/ISBN_%28identifier%29 "ISBN (identifier)") [9780306375095](https://en.wikipedia.org/wiki/Special:BookSources/9780306375095 "Special:BookSources/9780306375095").
-- Kolecki, Joseph C. (2002). ["An Introduction to Tensors for Students of Physics and Engineering"](https://ntrs.nasa.gov/citations/20020083040). Cleveland, Ohio: [NASA](https://en.wikipedia.org/wiki/NASA "NASA") Glenn Research Center. 20020083040.
+- Kolecki, Joseph C. (2002). ["An Introduction to Tensors for Students of Physics and Engineering"](https://ntrs.nasa.gov/citations/20020083040). Cleveland, Ohio: [NASA](https://en.wikipedia.org/wiki/NASA) Glenn Research Center. 20020083040.
 - Kolecki, Joseph C. (2005). ["Foundations of Tensor Analysis for Students of Physics and Engineering With an Introduction to the Theory of Relativity"](https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20050175884.pdf) (PDF). Cleveland, Ohio: NASA Glenn Research Center. 20050175884.
 - [A discussion of the various approaches to teaching tensors, and recommendations of textbooks](https://web.archive.org/web/20051104201543/http://nrich.maths.org/askedNRICH/edited/2604.html)
 - Sharipov, Ruslan (2004). "Quick introduction to tensor analysis". [arXiv](https://en.wikipedia.org/wiki/ArXiv_%28identifier%29 "ArXiv (identifier)"):[math.HO/0403252](https://arxiv.org/abs/math.HO/0403252).
@@ -564,110 +564,110 @@ Wikimedia Commons has media related to [Tensors](https://commons.wikimedia.org/w
 
 :::navbox  
 - **Tensors**
-- *[Glossary of tensor theory](https://en.wikipedia.org/wiki/Glossary_of_tensor_theory "Glossary of tensor theory")*
+- *[Glossary of tensor theory](https://en.wikipedia.org/wiki/Glossary_of_tensor_theory)*
 - Scope
-  - [Mathematics](https://en.wikipedia.org/wiki/Mathematics "Mathematics")
-    - [Coordinate system](https://en.wikipedia.org/wiki/Coordinate_system "Coordinate system")
-    - [Differential geometry](https://en.wikipedia.org/wiki/Differential_geometry "Differential geometry")
+  - [Mathematics](https://en.wikipedia.org/wiki/Mathematics)
+    - [Coordinate system](https://en.wikipedia.org/wiki/Coordinate_system)
+    - [Differential geometry](https://en.wikipedia.org/wiki/Differential_geometry)
     - [Dyadic algebra](https://en.wikipedia.org/wiki/Dyadics "Dyadics")
-    - [Euclidean geometry](https://en.wikipedia.org/wiki/Euclidean_geometry "Euclidean geometry")
-    - [Exterior calculus](https://en.wikipedia.org/wiki/Exterior_calculus "Exterior calculus")
-    - [Multilinear algebra](https://en.wikipedia.org/wiki/Multilinear_algebra "Multilinear algebra")
-    - [Tensor algebra](https://en.wikipedia.org/wiki/Tensor_algebra "Tensor algebra")
-    - [Tensor calculus](https://en.wikipedia.org/wiki/Tensor_calculus "Tensor calculus")
-  - [Physics](https://en.wikipedia.org/wiki/Physics "Physics") • [Engineering](https://en.wikipedia.org/wiki/Engineering "Engineering")
-    - [Computer vision](https://en.wikipedia.org/wiki/Computer_vision "Computer vision")
-    - [Continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics "Continuum mechanics")
-    - [Electromagnetism](https://en.wikipedia.org/wiki/Electromagnetism "Electromagnetism")
-    - [General relativity](https://en.wikipedia.org/wiki/General_relativity "General relativity")
-    - [Transport phenomena](https://en.wikipedia.org/wiki/Transport_phenomena "Transport phenomena")
+    - [Euclidean geometry](https://en.wikipedia.org/wiki/Euclidean_geometry)
+    - [Exterior calculus](https://en.wikipedia.org/wiki/Exterior_calculus)
+    - [Multilinear algebra](https://en.wikipedia.org/wiki/Multilinear_algebra)
+    - [Tensor algebra](https://en.wikipedia.org/wiki/Tensor_algebra)
+    - [Tensor calculus](https://en.wikipedia.org/wiki/Tensor_calculus)
+  - [Physics](https://en.wikipedia.org/wiki/Physics) • [Engineering](https://en.wikipedia.org/wiki/Engineering)
+    - [Computer vision](https://en.wikipedia.org/wiki/Computer_vision)
+    - [Continuum mechanics](https://en.wikipedia.org/wiki/Continuum_mechanics)
+    - [Electromagnetism](https://en.wikipedia.org/wiki/Electromagnetism)
+    - [General relativity](https://en.wikipedia.org/wiki/General_relativity)
+    - [Transport phenomena](https://en.wikipedia.org/wiki/Transport_phenomena)
 - Notation
-  - [Abstract index notation](https://en.wikipedia.org/wiki/Abstract_index_notation "Abstract index notation")
-  - [Einstein notation](https://en.wikipedia.org/wiki/Einstein_notation "Einstein notation")
-  - [Index notation](https://en.wikipedia.org/wiki/Index_notation "Index notation")
-  - [Multi-index notation](https://en.wikipedia.org/wiki/Multi-index_notation "Multi-index notation")
-  - [Penrose graphical notation](https://en.wikipedia.org/wiki/Penrose_graphical_notation "Penrose graphical notation")
-  - [Ricci calculus](https://en.wikipedia.org/wiki/Ricci_calculus "Ricci calculus")
-  - [Tetrad (index notation)](https://en.wikipedia.org/wiki/Tetrad_%28index_notation%29 "Tetrad (index notation)")
-  - [Van der Waerden notation](https://en.wikipedia.org/wiki/Van_der_Waerden_notation "Van der Waerden notation")
-  - [Voigt notation](https://en.wikipedia.org/wiki/Voigt_notation "Voigt notation")
+  - [Abstract index notation](https://en.wikipedia.org/wiki/Abstract_index_notation)
+  - [Einstein notation](https://en.wikipedia.org/wiki/Einstein_notation)
+  - [Index notation](https://en.wikipedia.org/wiki/Index_notation)
+  - [Multi-index notation](https://en.wikipedia.org/wiki/Multi-index_notation)
+  - [Penrose graphical notation](https://en.wikipedia.org/wiki/Penrose_graphical_notation)
+  - [Ricci calculus](https://en.wikipedia.org/wiki/Ricci_calculus)
+  - [Tetrad (index notation)](https://en.wikipedia.org/wiki/Tetrad_%28index_notation%29)
+  - [Van der Waerden notation](https://en.wikipedia.org/wiki/Van_der_Waerden_notation)
+  - [Voigt notation](https://en.wikipedia.org/wiki/Voigt_notation)
 - Tensor definitions
-  - [Tensor (intrinsic definition)](https://en.wikipedia.org/wiki/Tensor_%28intrinsic_definition%29 "Tensor (intrinsic definition)")
-  - [Tensor field](https://en.wikipedia.org/wiki/Tensor_field "Tensor field")
-  - [Tensor density](https://en.wikipedia.org/wiki/Tensor_density "Tensor density")
-  - [Tensors in curvilinear coordinates](https://en.wikipedia.org/wiki/Tensors_in_curvilinear_coordinates "Tensors in curvilinear coordinates")
-  - [Mixed tensor](https://en.wikipedia.org/wiki/Mixed_tensor "Mixed tensor")
-  - [Antisymmetric tensor](https://en.wikipedia.org/wiki/Antisymmetric_tensor "Antisymmetric tensor")
-  - [Symmetric tensor](https://en.wikipedia.org/wiki/Symmetric_tensor "Symmetric tensor")
-  - [Tensor operator](https://en.wikipedia.org/wiki/Tensor_operator "Tensor operator")
-  - [Tensor bundle](https://en.wikipedia.org/wiki/Tensor_bundle "Tensor bundle")
-  - [Two-point tensor](https://en.wikipedia.org/wiki/Two-point_tensor "Two-point tensor")
+  - [Tensor (intrinsic definition)](https://en.wikipedia.org/wiki/Tensor_%28intrinsic_definition%29)
+  - [Tensor field](https://en.wikipedia.org/wiki/Tensor_field)
+  - [Tensor density](https://en.wikipedia.org/wiki/Tensor_density)
+  - [Tensors in curvilinear coordinates](https://en.wikipedia.org/wiki/Tensors_in_curvilinear_coordinates)
+  - [Mixed tensor](https://en.wikipedia.org/wiki/Mixed_tensor)
+  - [Antisymmetric tensor](https://en.wikipedia.org/wiki/Antisymmetric_tensor)
+  - [Symmetric tensor](https://en.wikipedia.org/wiki/Symmetric_tensor)
+  - [Tensor operator](https://en.wikipedia.org/wiki/Tensor_operator)
+  - [Tensor bundle](https://en.wikipedia.org/wiki/Tensor_bundle)
+  - [Two-point tensor](https://en.wikipedia.org/wiki/Two-point_tensor)
 - [Operations](https://en.wikipedia.org/wiki/Operation_%28mathematics%29 "Operation (mathematics)")
-  - [Covariant derivative](https://en.wikipedia.org/wiki/Covariant_derivative "Covariant derivative")
-  - [Exterior covariant derivative](https://en.wikipedia.org/wiki/Exterior_covariant_derivative "Exterior covariant derivative")
-  - [Exterior derivative](https://en.wikipedia.org/wiki/Exterior_derivative "Exterior derivative")
-  - [Exterior product](https://en.wikipedia.org/wiki/Exterior_product "Exterior product")
-  - [Hodge star operator](https://en.wikipedia.org/wiki/Hodge_star_operator "Hodge star operator")
-  - [Lie derivative](https://en.wikipedia.org/wiki/Lie_derivative "Lie derivative")
-  - [Raising and lowering indices](https://en.wikipedia.org/wiki/Raising_and_lowering_indices "Raising and lowering indices")
-  - [Symmetrization](https://en.wikipedia.org/wiki/Symmetrization "Symmetrization")
-  - [Tensor contraction](https://en.wikipedia.org/wiki/Tensor_contraction "Tensor contraction")
-  - [Tensor product](https://en.wikipedia.org/wiki/Tensor_product "Tensor product")
-  - [Transpose](https://en.wikipedia.org/wiki/Transpose "Transpose") (2nd-order tensors)
+  - [Covariant derivative](https://en.wikipedia.org/wiki/Covariant_derivative)
+  - [Exterior covariant derivative](https://en.wikipedia.org/wiki/Exterior_covariant_derivative)
+  - [Exterior derivative](https://en.wikipedia.org/wiki/Exterior_derivative)
+  - [Exterior product](https://en.wikipedia.org/wiki/Exterior_product)
+  - [Hodge star operator](https://en.wikipedia.org/wiki/Hodge_star_operator)
+  - [Lie derivative](https://en.wikipedia.org/wiki/Lie_derivative)
+  - [Raising and lowering indices](https://en.wikipedia.org/wiki/Raising_and_lowering_indices)
+  - [Symmetrization](https://en.wikipedia.org/wiki/Symmetrization)
+  - [Tensor contraction](https://en.wikipedia.org/wiki/Tensor_contraction)
+  - [Tensor product](https://en.wikipedia.org/wiki/Tensor_product)
+  - [Transpose](https://en.wikipedia.org/wiki/Transpose) (2nd-order tensors)
 - Related abstractions
-  - [Affine connection](https://en.wikipedia.org/wiki/Affine_connection "Affine connection")
+  - [Affine connection](https://en.wikipedia.org/wiki/Affine_connection)
   - [Basis](https://en.wikipedia.org/wiki/Basis_%28linear_algebra%29 "Basis (linear algebra)")
-  - [Cartan formalism (physics)](https://en.wikipedia.org/wiki/Cartan_formalism_%28physics%29 "Cartan formalism (physics)")
-  - [Connection form](https://en.wikipedia.org/wiki/Connection_form "Connection form")
-  - [Covariance and contravariance of vectors](https://en.wikipedia.org/wiki/Covariance_and_contravariance_of_vectors "Covariance and contravariance of vectors")
-  - [Differential form](https://en.wikipedia.org/wiki/Differential_form "Differential form")
-  - [Dimension](https://en.wikipedia.org/wiki/Dimension "Dimension")
-  - [Exterior form](https://en.wikipedia.org/wiki/Exterior_form "Exterior form")
-  - [Fiber bundle](https://en.wikipedia.org/wiki/Fiber_bundle "Fiber bundle")
-  - [Geodesic](https://en.wikipedia.org/wiki/Geodesic "Geodesic")
-  - [Levi-Civita connection](https://en.wikipedia.org/wiki/Levi-Civita_connection "Levi-Civita connection")
-  - [Linear map](https://en.wikipedia.org/wiki/Linear_map "Linear map")
-  - [Manifold](https://en.wikipedia.org/wiki/Manifold "Manifold")
+  - [Cartan formalism (physics)](https://en.wikipedia.org/wiki/Cartan_formalism_%28physics%29)
+  - [Connection form](https://en.wikipedia.org/wiki/Connection_form)
+  - [Covariance and contravariance of vectors](https://en.wikipedia.org/wiki/Covariance_and_contravariance_of_vectors)
+  - [Differential form](https://en.wikipedia.org/wiki/Differential_form)
+  - [Dimension](https://en.wikipedia.org/wiki/Dimension)
+  - [Exterior form](https://en.wikipedia.org/wiki/Exterior_form)
+  - [Fiber bundle](https://en.wikipedia.org/wiki/Fiber_bundle)
+  - [Geodesic](https://en.wikipedia.org/wiki/Geodesic)
+  - [Levi-Civita connection](https://en.wikipedia.org/wiki/Levi-Civita_connection)
+  - [Linear map](https://en.wikipedia.org/wiki/Linear_map)
+  - [Manifold](https://en.wikipedia.org/wiki/Manifold)
   - [Matrix](https://en.wikipedia.org/wiki/Matrix_%28mathematics%29 "Matrix (mathematics)")
-  - [Multivector](https://en.wikipedia.org/wiki/Multivector "Multivector")
-  - [Pseudotensor](https://en.wikipedia.org/wiki/Pseudotensor "Pseudotensor")
-  - [Spinor](https://en.wikipedia.org/wiki/Spinor "Spinor")
+  - [Multivector](https://en.wikipedia.org/wiki/Multivector)
+  - [Pseudotensor](https://en.wikipedia.org/wiki/Pseudotensor)
+  - [Spinor](https://en.wikipedia.org/wiki/Spinor)
   - [Vector](https://en.wikipedia.org/wiki/Vector_%28mathematics_and_physics%29 "Vector (mathematics and physics)")
-  - [Vector space](https://en.wikipedia.org/wiki/Vector_space "Vector space")
+  - [Vector space](https://en.wikipedia.org/wiki/Vector_space)
 - Notable tensors
   - Mathematics
-    - [Kronecker delta](https://en.wikipedia.org/wiki/Kronecker_delta "Kronecker delta")
-    - [Levi-Civita symbol](https://en.wikipedia.org/wiki/Levi-Civita_symbol "Levi-Civita symbol")
-    - [Metric tensor](https://en.wikipedia.org/wiki/Metric_tensor "Metric tensor")
-    - [Nonmetricity tensor](https://en.wikipedia.org/wiki/Nonmetricity_tensor "Nonmetricity tensor")
-    - [Ricci curvature](https://en.wikipedia.org/wiki/Ricci_curvature "Ricci curvature")
-    - [Riemann curvature tensor](https://en.wikipedia.org/wiki/Riemann_curvature_tensor "Riemann curvature tensor")
-    - [Torsion tensor](https://en.wikipedia.org/wiki/Torsion_tensor "Torsion tensor")
-    - [Weyl tensor](https://en.wikipedia.org/wiki/Weyl_tensor "Weyl tensor")
+    - [Kronecker delta](https://en.wikipedia.org/wiki/Kronecker_delta)
+    - [Levi-Civita symbol](https://en.wikipedia.org/wiki/Levi-Civita_symbol)
+    - [Metric tensor](https://en.wikipedia.org/wiki/Metric_tensor)
+    - [Nonmetricity tensor](https://en.wikipedia.org/wiki/Nonmetricity_tensor)
+    - [Ricci curvature](https://en.wikipedia.org/wiki/Ricci_curvature)
+    - [Riemann curvature tensor](https://en.wikipedia.org/wiki/Riemann_curvature_tensor)
+    - [Torsion tensor](https://en.wikipedia.org/wiki/Torsion_tensor)
+    - [Weyl tensor](https://en.wikipedia.org/wiki/Weyl_tensor)
   - Physics
-    - [Moment of inertia](https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor "Moment of inertia")
+    - [Moment of inertia](https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor)
     - [Angular momentum tensor](https://en.wikipedia.org/wiki/Angular_momentum#Angular_momentum_in_relativistic_mechanics "Angular momentum")
-    - [Spin tensor](https://en.wikipedia.org/wiki/Spin_tensor "Spin tensor")
-    - [Cauchy stress tensor](https://en.wikipedia.org/wiki/Cauchy_stress_tensor "Cauchy stress tensor")
+    - [Spin tensor](https://en.wikipedia.org/wiki/Spin_tensor)
+    - [Cauchy stress tensor](https://en.wikipedia.org/wiki/Cauchy_stress_tensor)
     - [stress–energy tensor](https://en.wikipedia.org/wiki/Stress–energy_tensor "Stress–energy tensor")
-    - [Einstein tensor](https://en.wikipedia.org/wiki/Einstein_tensor "Einstein tensor")
+    - [Einstein tensor](https://en.wikipedia.org/wiki/Einstein_tensor)
     - [EM tensor](https://en.wikipedia.org/wiki/Electromagnetic_tensor "Electromagnetic tensor")
-    - [Gluon field strength tensor](https://en.wikipedia.org/wiki/Gluon_field_strength_tensor "Gluon field strength tensor")
+    - [Gluon field strength tensor](https://en.wikipedia.org/wiki/Gluon_field_strength_tensor)
     - [Metric tensor (GR)](https://en.wikipedia.org/wiki/Metric_tensor_%28general_relativity%29 "Metric tensor (general relativity)")
 - [Mathematicians](https://en.wikipedia.org/wiki/Mathematician "Mathematician")
-  - [Élie Cartan](https://en.wikipedia.org/wiki/Élie_Cartan "Élie Cartan")
-  - [Augustin-Louis Cauchy](https://en.wikipedia.org/wiki/Augustin-Louis_Cauchy "Augustin-Louis Cauchy")
-  - [Elwin Bruno Christoffel](https://en.wikipedia.org/wiki/Elwin_Bruno_Christoffel "Elwin Bruno Christoffel")
-  - [Albert Einstein](https://en.wikipedia.org/wiki/Albert_Einstein "Albert Einstein")
-  - [Leonhard Euler](https://en.wikipedia.org/wiki/Leonhard_Euler "Leonhard Euler")
-  - [Carl Friedrich Gauss](https://en.wikipedia.org/wiki/Carl_Friedrich_Gauss "Carl Friedrich Gauss")
-  - [Hermann Grassmann](https://en.wikipedia.org/wiki/Hermann_Grassmann "Hermann Grassmann")
-  - [Tullio Levi-Civita](https://en.wikipedia.org/wiki/Tullio_Levi-Civita "Tullio Levi-Civita")
-  - [Gregorio Ricci-Curbastro](https://en.wikipedia.org/wiki/Gregorio_Ricci-Curbastro "Gregorio Ricci-Curbastro")
-  - [Bernhard Riemann](https://en.wikipedia.org/wiki/Bernhard_Riemann "Bernhard Riemann")
-  - [Jan Arnoldus Schouten](https://en.wikipedia.org/wiki/Jan_Arnoldus_Schouten "Jan Arnoldus Schouten")
-  - [Woldemar Voigt](https://en.wikipedia.org/wiki/Woldemar_Voigt "Woldemar Voigt")
-  - [Hermann Weyl](https://en.wikipedia.org/wiki/Hermann_Weyl "Hermann Weyl")
+  - [Élie Cartan](https://en.wikipedia.org/wiki/Élie_Cartan)
+  - [Augustin-Louis Cauchy](https://en.wikipedia.org/wiki/Augustin-Louis_Cauchy)
+  - [Elwin Bruno Christoffel](https://en.wikipedia.org/wiki/Elwin_Bruno_Christoffel)
+  - [Albert Einstein](https://en.wikipedia.org/wiki/Albert_Einstein)
+  - [Leonhard Euler](https://en.wikipedia.org/wiki/Leonhard_Euler)
+  - [Carl Friedrich Gauss](https://en.wikipedia.org/wiki/Carl_Friedrich_Gauss)
+  - [Hermann Grassmann](https://en.wikipedia.org/wiki/Hermann_Grassmann)
+  - [Tullio Levi-Civita](https://en.wikipedia.org/wiki/Tullio_Levi-Civita)
+  - [Gregorio Ricci-Curbastro](https://en.wikipedia.org/wiki/Gregorio_Ricci-Curbastro)
+  - [Bernhard Riemann](https://en.wikipedia.org/wiki/Bernhard_Riemann)
+  - [Jan Arnoldus Schouten](https://en.wikipedia.org/wiki/Jan_Arnoldus_Schouten)
+  - [Woldemar Voigt](https://en.wikipedia.org/wiki/Woldemar_Voigt)
+  - [Hermann Weyl](https://en.wikipedia.org/wiki/Hermann_Weyl)
 
 :::
 

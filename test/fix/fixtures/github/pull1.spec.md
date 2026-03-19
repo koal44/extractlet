@@ -56,7 +56,7 @@ Signed-off-by: sumittlearnbay <sumit.learnbay@gmail.com>
 
 
 ## Comment 4
-[Add 9 non-overlapping grammars and compilation test under antlr_grammars](https://github.com/antlr/antlr4/pull/4894/commits/66e3fda7cf9311591928ecd5e3881506ca74cb03 "Add 9 non-overlapping grammars and compilation test under antlr_grammars")
+[Add 9 non-overlapping grammars and compilation test under antlr_grammars](https://github.com/antlr/antlr4/pull/4894/commits/66e3fda7cf9311591928ecd5e3881506ca74cb03)
 
 :::details
 Signed-off-by: sumittlearnbay <sumit.learnbay@gmail.com>
@@ -66,7 +66,7 @@ Signed-off-by: sumittlearnbay <sumit.learnbay@gmail.com>
 
 
 ## Comment 5
-[Move grammars to src/main/antlr4 for automatic generation](https://github.com/antlr/antlr4/pull/4894/commits/7d84b56f65ce6524f38efd89d89a65419d2c42d5 "Move grammars to src/main/antlr4 for automatic generation")
+[Move grammars to src/main/antlr4 for automatic generation](https://github.com/antlr/antlr4/pull/4894/commits/7d84b56f65ce6524f38efd89d89a65419d2c42d5)
 
 :::details
 Signed-off-by: sumittlearnbay <sumit.learnbay@gmail.com>
@@ -76,7 +76,7 @@ Signed-off-by: sumittlearnbay <sumit.learnbay@gmail.com>
 
 
 ## Comment 6
-[Add non-overlapping grammars under runtime-testsuite/src/main/antlr4](https://github.com/antlr/antlr4/pull/4894/commits/b340cb9b63924eb8919ab28d04d2eda99b906889 "Add non-overlapping grammars under runtime-testsuite/src/main/antlr4")
+[Add non-overlapping grammars under runtime-testsuite/src/main/antlr4](https://github.com/antlr/antlr4/pull/4894/commits/b340cb9b63924eb8919ab28d04d2eda99b906889)
 
 :::details
 Signed-off-by: sumittlearnbay <sumit.learnbay@gmail.com>
@@ -106,7 +106,7 @@ Also, I don't think your BooleanExpr grammar is a good example. Typically, the `
 
 
 ## Comment 10
-[Add EOF-terminated fixed grammars following Boolean precedence standards](https://github.com/antlr/antlr4/pull/4894/commits/3c310e94b5d9aed0619a6abea5c9291e572ba116 "Add EOF-terminated fixed grammars following Boolean precedence standards")
+[Add EOF-terminated fixed grammars following Boolean precedence standards](https://github.com/antlr/antlr4/pull/4894/commits/3c310e94b5d9aed0619a6abea5c9291e572ba116)
 
 :::details
 Signed-off-by: sumittlearnbay <sumit.learnbay@gmail.com>

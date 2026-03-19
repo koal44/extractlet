@@ -322,37 +322,37 @@ Going to hide these as off-topic in the PR just to clean it up.
 
 
 ## Comment 28
-[build(typescript): bump typescript dev dependency to v5](https://github.com/rollup/plugins/pull/1949/commits/9dc295ecf9db6bc8639f450131a02d45b21a6d67 "build(typescript): bump typescript dev dependency to v5")
+[build(typescript): bump typescript dev dependency to v5](https://github.com/rollup/plugins/pull/1949/commits/9dc295ecf9db6bc8639f450131a02d45b21a6d67)
 
 [[ ychavoya on 2026-03-05 (in 3 days) ]]
 
 
 ## Comment 29
-[test(typescript): add test for arbitrary extensions](https://github.com/rollup/plugins/pull/1949/commits/c5f258cdb5ea05c37b98a687c5d9df991dd5cf71 "test(typescript): add test for arbitrary extensions")
+[test(typescript): add test for arbitrary extensions](https://github.com/rollup/plugins/pull/1949/commits/c5f258cdb5ea05c37b98a687c5d9df991dd5cf71)
 
 [[ ychavoya on 2026-03-05 (in 3 days) ]]
 
 
 ## Comment 30
-[fix(typescript): correct rollup version to match with full releases](https://github.com/rollup/plugins/pull/1949/commits/b2b1a292cb0a489178238180177a0b84a2ef04e3 "fix(typescript): correct rollup version to match with full releases")
+[fix(typescript): correct rollup version to match with full releases](https://github.com/rollup/plugins/pull/1949/commits/b2b1a292cb0a489178238180177a0b84a2ef04e3)
 
 [[ ychavoya on 2026-03-05 (in 3 days) ]]
 
 
 ## Comment 31
-[refactor: reuse code](https://github.com/rollup/plugins/pull/1949/commits/ede6ecdc2fb42a00b3a9ab901cc8465dc75c2d20 "refactor: reuse code")
+[refactor: reuse code](https://github.com/rollup/plugins/pull/1949/commits/ede6ecdc2fb42a00b3a9ab901cc8465dc75c2d20)
 
 [[ ychavoya on 2026-03-05 (in 3 days) ]]
 
 
 ## Comment 32
-[chore: update .tsbuildinfo](https://github.com/rollup/plugins/pull/1949/commits/15574629ccd4bcc899c08257847684cb236fa142 "chore: update .tsbuildinfo")
+[chore: update .tsbuildinfo](https://github.com/rollup/plugins/pull/1949/commits/15574629ccd4bcc899c08257847684cb236fa142)
 
 [[ ychavoya on 2026-03-05 (in 3 days) ]]
 
 
 ## Comment 33
-[test(typescript): fix tests related to rollup's new logging](https://github.com/rollup/plugins/pull/1949/commits/750ee7f0d89aa3038ffbea83ec6a5a96bef05e9d "test(typescript): fix tests related to rollup's new logging")
+[test(typescript): fix tests related to rollup's new logging](https://github.com/rollup/plugins/pull/1949/commits/750ee7f0d89aa3038ffbea83ec6a5a96bef05e9d)
 
 :::details
 See [rollup/rollup#5424](https://github.com/rollup/rollup/pull/5424)
@@ -362,13 +362,13 @@ See [rollup/rollup#5424](https://github.com/rollup/rollup/pull/5424)
 
 
 ## Comment 34
-[test(typescript): update test to not have declare type](https://github.com/rollup/plugins/pull/1949/commits/d42dd01abe42c1f9b59fe18101a810b0048d0dc0 "test(typescript): update test to not have declare type")
+[test(typescript): update test to not have declare type](https://github.com/rollup/plugins/pull/1949/commits/d42dd01abe42c1f9b59fe18101a810b0048d0dc0)
 
 [[ ychavoya on 2026-03-05 (in 3 days) ]]
 
 
 ## Comment 35
-[style(typescript): change type to primitive in test](https://github.com/rollup/plugins/pull/1949/commits/a9530db653e3c780ff8b1696ef98a4b24a47c9fb "style(typescript): change type to primitive in test")
+[style(typescript): change type to primitive in test](https://github.com/rollup/plugins/pull/1949/commits/a9530db653e3c780ff8b1696ef98a4b24a47c9fb)
 
 [[ ychavoya on 2026-03-05 (in 3 days) ]]
 

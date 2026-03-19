@@ -442,7 +442,7 @@ test('toMd img without src renders alt only (ignores title)', () => {
 test('toMd img keeps alt even if redundant with filename', () => {
   const html = '<img src="/images/a.png" alt="a.png" title="a.png">';
   const result = toMd(el(html, 'https://example.com/'));
-  const expected = '![a.png](https://example.com/images/a.png "a.png")';
+  const expected = '![a.png](https://example.com/images/a.png)';
   strictEqual(result, expected);
 });
 

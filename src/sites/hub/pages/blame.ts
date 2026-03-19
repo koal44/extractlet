@@ -94,7 +94,7 @@ const blocks: BlockSpec[] = [
     },
     normalize: (root) => {
       const blames = extractMany(root, blameManySpec);
-      return h('section', {}, h('h2', {}, 'Blame'), h('ul', {}, ...blames));
+      return h('section', {}, h('h2', {}, 'Blame'), ...blames);
     },
   },
 ];
