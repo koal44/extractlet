@@ -14,6 +14,7 @@ import { createRepoPage } from './hub/pages/repo';
 import { createTreePage } from './hub/pages/tree';
 import { createCommitPage } from './hub/pages/commit';
 import { createBlobPage } from './hub/pages/blob';
+import { createBlamePage } from './hub/pages/blame';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -42,6 +43,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'tree': page = await createTreePage({ sourceDoc, ctxs, state }); break;
     case 'commit': page = await createCommitPage({ sourceDoc, ctxs, state }); break;
     case 'blob': page = await createBlobPage({ sourceDoc, ctxs, state }); break;
+    case 'blame': page = await createBlamePage({ sourceDoc, ctxs, state }); break;
   }
 
   if (!page) {
