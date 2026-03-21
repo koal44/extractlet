@@ -1,3 +1,4 @@
+import { type XletContexts } from '../settings';
 import {
   findCommonAncestor, h, isDiv, isDoc, isElement, isInlineElement, isSpan,
 } from './dom';
@@ -12,13 +13,13 @@ export type TransformSpec =
   | { kind: 'removeNextSiblings'; selectors: string[]; }
   | { kind: 'unwrap'; selectors: string[]; }
   | { kind: 'replace'; selectors: string[]; with: keyof HTMLElementTagNameMap; }
-  | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element) => Element | null; }
+  | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element, ctxs: XletContexts) => Element | null; }
 
 export type BlockSpec = {
   name: string;
   select?: SelectSpec;
   transforms?: TransformSpec[];
-  normalize?: (root: Element) => Element | null;
+  normalize?: (root: Element, ctxs: XletContexts) => Element | null;
 };
 
 export type ManySelectSpec =
@@ -28,18 +29,18 @@ export type ManySelectSpec =
 export type ManySpec = {
   select: ManySelectSpec;
   transforms?: TransformSpec[];
-  normalize?: (root: Element) => Element | null;
+  normalize?: (root: Element, ctxs: XletContexts) => Element | null;
 };
 
-export function extractBlocks(root: ParentNode, specs: BlockSpec[], doc?: Document): (Element | null)[] {
+export function extractBlocks(root: ParentNode, specs: BlockSpec[], ctxs: XletContexts): (Element | null)[] {
   const blocks: (Element | null)[] = [];
   for (const spec of specs) {
-    blocks.push(extractBlock(root, spec, doc));
+    blocks.push(extractBlock(root, spec, ctxs));
   }
   return blocks;
 }
 
-export function extractMany(root: ParentNode, spec: ManySpec, doc?: Document): Element[] {
+export function extractMany(root: ParentNode, spec: ManySpec, ctxs: XletContexts): Element[] {
   let matches: Element[] = [];
   switch (spec.select.kind) {
     case 'matchAll': {
@@ -71,7 +72,7 @@ export function extractMany(root: ParentNode, spec: ManySpec, doc?: Document): E
         transforms: spec.transforms,
         normalize: spec.normalize,
       },
-      doc
+      ctxs,
     );
 
     if (item) out.push(item);
@@ -79,7 +80,7 @@ export function extractMany(root: ParentNode, spec: ManySpec, doc?: Document): E
   return out;
 }
 
-function extractBlock(root: ParentNode, spec: BlockSpec, doc?: Document): Element | null {
+function extractBlock(root: ParentNode, spec: BlockSpec, ctxs: XletContexts): Element | null {
   let found: Element | null = null;
 
   if (spec.select?.kind === 'match') {
@@ -103,18 +104,18 @@ function extractBlock(root: ParentNode, spec: BlockSpec, doc?: Document): Elemen
   const clone = found.cloneNode(true);
   if (!isElement(clone)) return null;
 
-  const normalized = spec.normalize ? spec.normalize(clone) : clone;
+  const normalized = spec.normalize ? spec.normalize(clone, ctxs) : clone;
   if (!normalized) return null;
 
-  const transformed = applyTransforms(normalized, spec.transforms, doc);
+  const transformed = applyTransforms(normalized, spec.transforms ?? [], ctxs);
   if (!transformed) return null;
 
   const cleaned = clean(transformed);
   return cleaned;
 }
 
-function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Document): Element | null {
-  if (!transforms?.length) return root;
+function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletContexts): Element | null {
+  if (!transforms.length) return root;
 
   const removeSelectors = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'remove'; }> => f.kind === 'remove')
@@ -147,7 +148,7 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
     return tag ?? null;
   }
 
-  function getReplacementFn(n: Node): ((el: Element) => Element | null) | null {
+  function getReplacementFn(n: Node): ((el: Element, ctxs: XletContexts) => Element | null) | null {
     if (!isElement(n)) return null;
     const fn = replaceFns.find((r) => n.matches(r.selector))?.fn;
     return fn ?? null;
@@ -187,7 +188,7 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
 
       const replaceFn = getReplacementFn(child);
       if (isElement(child) && replaceFn) {
-        const newChild = replaceFn(child);
+        const newChild = replaceFn(child, ctxs);
         if (newChild) {
           child.replaceWith(newChild);
           child = newChild;
@@ -200,7 +201,7 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
 
       const tag = getReplacementTag(child);
       if (tag) {
-        const newChild = h(tag, { __doc: doc }, ...child.childNodes);
+        const newChild = h(tag, {}, ...child.childNodes);
         child.replaceWith(newChild);
         child = newChild;
       }
@@ -219,14 +220,14 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
   walk(root);
 
   const replaceFn = getReplacementFn(root);
-  if (replaceFn) return replaceFn(root);
+  if (replaceFn) return replaceFn(root, ctxs);
 
   const tag = getReplacementTag(root);
-  if (tag) return h(tag, { __doc: doc }, ...root.childNodes);
+  if (tag) return h(tag, {}, ...root.childNodes);
 
   if (shouldUnwrap(root)) {
     const wrapper = isInlineElement(root) ? 'span' : 'div';
-    return h(wrapper, { __doc: doc }, ...root.childNodes);
+    return h(wrapper, {}, ...root.childNodes);
   }
 
   return root;

@@ -4,6 +4,7 @@ import { extractBlocks, extractMany, type ManySpec, type BlockSpec } from '../..
 import { brWrap, scrapePermaUrl } from '../dom';
 import { toHtml, toMd } from '../convert';
 import { parseGhPath } from '../route';
+import { formatDateWithRelative } from '../../../utils/strings';
 
 const blocks: BlockSpec[] = [
   {
@@ -66,8 +67,8 @@ const blocks: BlockSpec[] = [
     select: {
       kind: 'root',
     },
-    normalize: (root) => {
-      const history = extractMany(root, historyManySpec);
+    normalize: (root, ctxs) => {
+      const history = extractMany(root, historyManySpec, ctxs);
       return h('section', {}, h('h2', {}, 'History'), ...history);
     },
   },
@@ -78,8 +79,8 @@ const historyManySpec: ManySpec = {
     kind: 'matchAll',
     selectors: ['.Timeline-Item'],
   },
-  normalize: (root) => {
-    return h('div', {}, ...extractBlocks(root, historyFieldSpecs));
+  normalize: (root, ctxs) => {
+    return h('div', {}, ...extractBlocks(root, historyFieldSpecs, ctxs));
   },
 };
 
@@ -91,8 +92,8 @@ const historyFieldSpecs: BlockSpec[] = [
   {
     name: 'commits',
     select: { kind: 'root' },
-    normalize: (root) => {
-      const commits = extractMany(root, commitManySpec);
+    normalize: (root, ctxs) => {
+      const commits = extractMany(root, commitManySpec, ctxs);
       return h('div', {}, ...commits);
     },
   },
@@ -103,8 +104,8 @@ const commitManySpec: ManySpec = {
     kind: 'matchAll',
     selectors: ['li[class*="CommitRow"]'],
   },
-  normalize: (root) => {
-    const [title, shortLink, message, attribution, checks, commentCount] = extractBlocks(root, commitFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [title, shortLink, message, attribution, checks, commentCount] = extractBlocks(root, commitFieldSpecs, ctxs);
     return h('div', {},
       ...brWrap('span', [title]),
       ...brWrap('span', [shortLink]),
@@ -162,6 +163,15 @@ const commitFieldSpecs: BlockSpec[] = [
       { kind: 'removeNextSiblings', selectors: ['relative-time'] },
       { kind: 'unwrap', selectors: ['a'] },
       { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+      {
+        kind: 'replaceFn',
+        selectors: ['relative-time'],
+        fn: (el, ctxs) => {
+          const iso = el.getAttribute('datetime');
+          const text = formatDateWithRelative(iso, { utc: true, now: ctxs.md?.now });
+          return h('span', {}, text);
+        },
+      },
     ],
   },
   {
@@ -194,7 +204,7 @@ export const createHistoryPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const main = sourceDoc.querySelector('main');
   if (!main) return;
 
-  const extract = extractBlocks(main, blocks);
+  const extract = extractBlocks(main, blocks, ctxs);
   for (const [i, entry] of extract.entries()) {
     if (!entry && blocks[i].name !== 'breadcrumbs') {
       console.warn(`History page: ${blocks[i].name} not found`);

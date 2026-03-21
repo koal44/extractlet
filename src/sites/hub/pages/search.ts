@@ -9,8 +9,8 @@ const blocks: BlockSpec[] = [
   {
     name: 'search-header',
     select: { kind: 'root' },
-    normalize: (root) => {
-      const [count, pages] = extractBlocks(root, searchHeaderBlocks);
+    normalize: (root, ctxs) => {
+      const [count, pages] = extractBlocks(root, searchHeaderBlocks, ctxs);
       return h('div', {},
         h('h2', {}, 'Search'),
         joinWrap('div', [count, pages], ' · '),
@@ -123,7 +123,7 @@ const blocks: BlockSpec[] = [
   {
     name: 'results',
     select: { kind: 'root' },
-    normalize: (root) => {
+    normalize: (root, ctxs) => {
       const info = getSearchInfo(root.ownerDocument);
       if (!info) return null;
 
@@ -143,7 +143,7 @@ const blocks: BlockSpec[] = [
       }
       if (!manySpec) return null;
 
-      const results = extractMany(root, manySpec);
+      const results = extractMany(root, manySpec, ctxs);
       if (!results.length) return null;
 
       return h('section', {},
@@ -182,9 +182,9 @@ const searchHeaderBlocks: BlockSpec[] = [
 
 const codeResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
+  normalize: (root, ctxs) => {
     if (root.querySelector('svg.octicon-info')) return null;
-    const [file, repo, language, hits, snippet, groupedMatches] = extractBlocks(root, codeResultFieldSpecs);
+    const [file, repo, language, hits, snippet, groupedMatches] = extractBlocks(root, codeResultFieldSpecs, ctxs);
     if (!file || !repo) return null;
     return h('div', {},
       h('h3', {}, file),
@@ -240,8 +240,8 @@ const codeResultFieldSpecs: BlockSpec[] = [
 
 const commitResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [repo, title, attribution, message] = extractBlocks(root, commitResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [repo, title, attribution, message] = extractBlocks(root, commitResultFieldSpecs, ctxs);
     if (!title || !repo) return null;
 
     return h('div', {},
@@ -302,8 +302,8 @@ const commitResultFieldSpecs: BlockSpec[] = [
 
 const discussionResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [repo, title, matchLine, attribution, comments] = extractBlocks(root, discussionResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [repo, title, matchLine, attribution, comments] = extractBlocks(root, discussionResultFieldSpecs, ctxs);
     if (!title || !repo) return null;
 
     return h('div', {},
@@ -375,8 +375,8 @@ const discussionResultFieldSpecs: BlockSpec[] = [
 
 const issueResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [repo, title, matchLine, attribution, comments] = extractBlocks(root, issueResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [repo, title, matchLine, attribution, comments] = extractBlocks(root, issueResultFieldSpecs, ctxs);
     if (!title || !repo) return null;
 
     return h('div', {},
@@ -444,8 +444,8 @@ const issueResultFieldSpecs: BlockSpec[] = [
 
 const marketplaceResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [title, description, attribution, tags] = extractBlocks(root, marketplaceResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [title, description, attribution, tags] = extractBlocks(root, marketplaceResultFieldSpecs, ctxs);
     if (!title) return null;
 
     return h('div', {},
@@ -503,8 +503,8 @@ const marketplaceResultFieldSpecs: BlockSpec[] = [
 
 const packageResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [repo, title, description, packageType, downloads, updated] = extractBlocks(root, packageResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [repo, title, description, packageType, downloads, updated] = extractBlocks(root, packageResultFieldSpecs, ctxs);
     if (!title || !repo) return null;
 
     return h('div', {},
@@ -576,8 +576,8 @@ const packageResultFieldSpecs: BlockSpec[] = [
 
 const prResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [repo, title, matchLine, attribution, comments, status] = extractBlocks(root, prResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [repo, title, matchLine, attribution, comments, status] = extractBlocks(root, prResultFieldSpecs, ctxs);
     if (!title || !repo) return null;
 
     return h('div', {},
@@ -660,8 +660,8 @@ const prResultFieldSpecs: BlockSpec[] = [
 
 const repoResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [repo, description, topics, language, stars, updated] = extractBlocks(root, repoResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [repo, description, topics, language, stars, updated] = extractBlocks(root, repoResultFieldSpecs, ctxs);
     if (!repo) return null;
 
     return h('div', {},
@@ -745,8 +745,8 @@ const repoResultFieldSpecs: BlockSpec[] = [
 
 const topicResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [title, repoCount] = extractBlocks(root, topicResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [title, repoCount] = extractBlocks(root, topicResultFieldSpecs, ctxs);
     if (!title) return null;
 
     return h('div', {},
@@ -776,8 +776,8 @@ const topicResultFieldSpecs: BlockSpec[] = [
 
 const userResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [name, handle, bio, location, repos, followers] = extractBlocks(root, userResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [name, handle, bio, location, repos, followers] = extractBlocks(root, userResultFieldSpecs, ctxs);
     if (!name) return null;
 
     return h('div', {},
@@ -870,8 +870,8 @@ const userResultFieldSpecs: BlockSpec[] = [
 
 const wikiResultsManySpec: ManySpec = {
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root) => {
-    const [repo, title, snippet, updated] = extractBlocks(root, wikiResultFieldSpecs);
+  normalize: (root, ctxs) => {
+    const [repo, title, snippet, updated] = extractBlocks(root, wikiResultFieldSpecs, ctxs);
     if (!title || !repo) return null;
 
     return h('div', {},
@@ -944,7 +944,7 @@ export const createSearchPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const main = sourceDoc.querySelector('main');
   if (!main) return;
 
-  const extract = extractBlocks(main, blocks);
+  const extract = extractBlocks(main, blocks, ctxs);
   if (extract.length === 0) {
     console.warn('Search page: no content extracted');
   }

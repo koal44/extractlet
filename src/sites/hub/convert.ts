@@ -27,7 +27,7 @@ function shouldSkip(node: Node | null): boolean {
   return true;
 }
 
-const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
+const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
   if (shouldSkip(node)) return { skip: true };
   if (node.matches('td.comment-body')) {
     const md = gc(node, 'block');
@@ -45,7 +45,7 @@ const toMdElemHandler: ToMdElementHandler = (node, _ctx, gc) => {
   }
   if (node.matches('relative-time')) {
     const dt = node.getAttribute('datetime');
-    const now = _ctx.now;
+    const now = ctx.now;
     return { md: dt ? formatDateWithRelative(dt, { now }) : (node.textContent?.trim() ?? '') };
   }
 

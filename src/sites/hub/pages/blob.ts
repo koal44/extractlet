@@ -140,7 +140,7 @@ export const createBlobPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const main = sourceDoc.querySelector('main');
   if (!main) return;
 
-  const extract = extractBlocks(main, blocks);
+  const extract = extractBlocks(main, blocks, ctxs);
   for (const [i, entry] of extract.entries()) {
     if (!entry) console.warn(`Blob page: ${blocks[i].name} not found`);
   }

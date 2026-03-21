@@ -99,8 +99,8 @@ const blocks: BlockSpec[] = [
     select: {
       kind: 'root',
     },
-    normalize: (root) => {
-      const blames = extractMany(root, blameManySpec);
+    normalize: (root, ctxs) => {
+      const blames = extractMany(root, blameManySpec, ctxs);
       return h('section', {}, h('h2', {}, 'Blame'), ...blames);
     },
   },
@@ -111,8 +111,8 @@ const blameManySpec: ManySpec = {
     kind: 'childrenOfMatch',
     selectors: ['.virtual-blame-wrapper'],
   },
-  normalize: (root) => {
-    const [time, author, message, code, lines] = extractBlocks(root, fieldSpecs);
+  normalize: (root, ctxs) => {
+    const [time, author, message, code, lines] = extractBlocks(root, fieldSpecs, ctxs);
     return h('div', {},
       lines,
       message, h('br'),
@@ -197,7 +197,7 @@ export const createBlamePage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const main = sourceDoc.querySelector('main');
   if (!main) return;
 
-  const extract = extractBlocks(main, blocks);
+  const extract = extractBlocks(main, blocks, ctxs);
   for (const [i, entry] of extract.entries()) {
     if (!entry) console.warn(`Blame page: ${blocks[i].name} not found`);
   }

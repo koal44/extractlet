@@ -228,8 +228,8 @@ const diffManySpec: ManySpec = {
     kind: 'matchAll',
     selectors: ['#diff-content-parent [role="region"]'],
   },
-  normalize: (root) => {
-    const [path, info, body] = extractBlocks(root, diffFieldSpecs, root.ownerDocument);
+  normalize: (root, ctxs) => {
+    const [path, info, body] = extractBlocks(root, diffFieldSpecs, ctxs);
     return h('section', {},
       ...(path ? [path] : []),
       ...(info ? [info] : []),
@@ -239,8 +239,8 @@ const diffManySpec: ManySpec = {
 };
 
 export const createCommitPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
-  const commitBlocks = extractBlocks(sourceDoc, specs, sourceDoc);
-  const diffRoots = extractMany(sourceDoc, diffManySpec);
+  const commitBlocks = extractBlocks(sourceDoc, specs, ctxs);
+  const diffRoots = extractMany(sourceDoc, diffManySpec, ctxs);
 
   const wrapper = h('div', { class: 'hub-commit', __doc: sourceDoc },
     ...commitBlocks,

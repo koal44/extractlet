@@ -4,6 +4,7 @@ import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../..
 import { warn } from '../../../utils/logging';
 import { brWrap, joinWrap, scrapePermaUrl } from '../dom';
 import { toHtml, toMd } from '../convert';
+import { type XletContexts } from '../../../settings';
 
 const metaSpecs: BlockSpec[] = [
   {
@@ -171,9 +172,9 @@ const fieldSpecs: BlockSpec[] = [
   },
 ];
 
-function normalizeRow(root: Element): Element | null {
+function normalizeRow(root: Element, ctxs: XletContexts): Element | null {
   const [title, description, assignees, status, comments, prs, badges] =
-    extractBlocks(root, fieldSpecs, root.ownerDocument);
+    extractBlocks(root, fieldSpecs, ctxs);
 
   if (!title) return null;
 
@@ -190,12 +191,12 @@ export const createListIssuePage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const permalink = scrapePermaUrl(sourceDoc);
   if (!permalink) return warn(undefined, '[xlet:lists-create] Failed to scrape permalink');
 
-  let listItems = extractMany(sourceDoc, rowSpec1);
-  if (!listItems.length) listItems = extractMany(sourceDoc, rowSpec2);
+  let listItems = extractMany(sourceDoc, rowSpec1, ctxs);
+  if (!listItems.length) listItems = extractMany(sourceDoc, rowSpec2, ctxs);
   if (!listItems.length) return warn(undefined, '[xlet:lists-create] Failed to extract list items');
 
   const ul = h('ul', {}, ...listItems);
-  const [pagination, counts] = extractBlocks(sourceDoc, metaSpecs);
+  const [pagination, counts] = extractBlocks(sourceDoc, metaSpecs, ctxs);
   const wrapper = h('div', { class: 'hub-list', __doc: sourceDoc },
     joinWrap('div', [pagination, counts]),
     ul,

@@ -32,9 +32,9 @@ const rowSpec: ManySpec = {
       '.js-navigation-container > .js-navigation-item',
     ],
   },
-  normalize: (root) => {
+  normalize: (root, ctxs) => {
     const [title, description, participants, upvotes, comments] =
-      extractBlocks(root, fieldSpecs, root.ownerDocument);
+      extractBlocks(root, fieldSpecs, ctxs);
     if (!title) return null;
     return h('li', {},
       h('span', {}, title),
@@ -129,9 +129,9 @@ export const createListDiscPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const permalink = scrapePermaUrl(sourceDoc);
   if (!permalink) return warn(undefined, '[xlet:createListDisc] Failed to scrape permalink');
 
-  const listItems = extractMany(sourceDoc, rowSpec);
+  const listItems = extractMany(sourceDoc, rowSpec, ctxs);
   const ul = h('ul', {}, ...listItems);
-  const [pagination] = extractBlocks(sourceDoc, metaSpecs);
+  const [pagination] = extractBlocks(sourceDoc, metaSpecs, ctxs);
 
   const wrapper = h('div', { class: 'hub-list', __doc: sourceDoc },
     joinWrap('div', [pagination]),

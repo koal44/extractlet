@@ -407,7 +407,7 @@ Signed-off-by: Roman Zippel <zippel@linux-m68k.org>
 Signed-off-by: Andrew Morton <akpm@osdl.org>
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
 ```  
-Roman Zippel authored and Sam Ravnborg committed 2006-06-08 (20 years ago)
+Roman Zippel authored and Sam Ravnborg committed 2006-06-09 (20 years ago)
 
 ### Commits on Apr 16, 2005
 

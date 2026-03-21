@@ -24,7 +24,7 @@ Merge pull request #5698 from ntomoya/fix/ime-middle-composition-suffix
 
 Fix IME input when composing in the middle of the textarea
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Update src/browser/input/CompositionHelper.ts  
@@ -32,7 +32,7 @@ Tyriar authored 2026-03-10 (9 days ago)
 ```
 Update src/browser/input/CompositionHelper.ts
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Merge branch 'master' into fix/ime-middle-composition-suffix  
@@ -40,7 +40,7 @@ Tyriar authored 2026-03-10 (9 days ago)
 ```
 Merge branch 'master' into fix/ime-middle-composition-suffix
 ```  
-Tyriar authored 2026-03-10 (9 days ago)
+Tyriar authored 2026-03-11 (9 days ago)
 
 #### Merge pull request #5762 from Tyriar/5760  
 [fd1e53c](https://github.com/xtermjs/xterm.js/commit/fd1e53c63ffbbf086fa4772e9cb1d773e4ad4cf9)  
@@ -49,7 +49,7 @@ Merge pull request #5762 from Tyriar/5760
 
 Fix RTL breaking IME composition rendering
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Merge pull request #5761 from SergioChan/fix/textarea-sync-on-resize-3390  
@@ -59,7 +59,7 @@ Merge pull request #5761 from SergioChan/fix/textarea-sync-on-resize-3390
 
 fix: sync helper textarea position after resize
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Fix RTL breaking IME composition rendering  
@@ -69,7 +69,7 @@ Fix RTL breaking IME composition rendering
 
 Fixes #5760
 ```  
-Tyriar committed 2026-03-10 (9 days ago)  
+Tyriar committed 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Merge pull request #5685 from Tyriar/5377_scroll  
@@ -79,7 +79,7 @@ Merge pull request #5685 from Tyriar/5377_scroll
 
 Fix scrolling with touch
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Merge branch 'master' into 5377_scroll  
@@ -87,7 +87,7 @@ Tyriar authored 2026-03-10 (9 days ago)
 ```
 Merge branch 'master' into 5377_scroll
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Merge pull request #5759 from SergioChan/fix/ime-sync-on-compositionstart-5734  
@@ -97,7 +97,7 @@ Merge pull request #5759 from SergioChan/fix/ime-sync-on-compositionstart-5734
 
 fix(ime): resync textarea position when composition starts
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 11/12 checks
 
 #### Merge remote-tracking branch 'upstream/master' into 5377_scroll  
@@ -105,7 +105,7 @@ Tyriar authored 2026-03-10 (9 days ago)
 ```
 Merge remote-tracking branch 'upstream/master' into 5377_scroll
 ```  
-Tyriar committed 2026-03-10 (9 days ago)  
+Tyriar committed 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Update src/browser/CoreBrowserTerminal.ts  
@@ -113,7 +113,7 @@ Tyriar committed 2026-03-10 (9 days ago)
 ```
 Update src/browser/CoreBrowserTerminal.ts
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Merge pull request #5758 from Tyriar/5754__5756  
@@ -123,7 +123,7 @@ Merge pull request #5758 from Tyriar/5754__5756
 
 CoreMouseService -> MouseStateService, make mouse services more focused
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Fix assertion, bring back triggerMouseEvent tests  
@@ -131,7 +131,7 @@ Tyriar authored 2026-03-10 (9 days ago)
 ```
 Fix assertion, bring back triggerMouseEvent tests
 ```  
-Tyriar committed 2026-03-10 (9 days ago)  
+Tyriar committed 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Merge branch 'master' into 5754__5756  
@@ -139,7 +139,7 @@ Tyriar committed 2026-03-10 (9 days ago)
 ```
 Merge branch 'master' into 5754__5756
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 8/12 checks
 
 #### Move non-state methods into MouseService  
@@ -149,7 +149,7 @@ Move non-state methods into MouseService
 
 Fixes #5756
 ```  
-Tyriar committed 2026-03-10 (9 days ago)  
+Tyriar committed 2026-03-11 (9 days ago)  
 8/12 checks
 
 #### Move custom mouse event handler into MouseStateService  
@@ -159,7 +159,7 @@ Move custom mouse event handler into MouseStateService
 
 Don't need to keep it in CoreBrowserTerminal
 ```  
-Tyriar committed 2026-03-10 (9 days ago)
+Tyriar committed 2026-03-11 (9 days ago)
 
 #### Merge pull request #5757 from Tyriar/5754  
 [1400398](https://github.com/xtermjs/xterm.js/commit/1400398abbba1c6849eff034d82da556ea7753d1)  
@@ -168,7 +168,7 @@ Merge pull request #5757 from Tyriar/5754
 
 Move bindMouse into MouseService
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Rename CoreMouseService to MouseStateService  
@@ -178,14 +178,14 @@ Rename CoreMouseService to MouseStateService
 
 Part of #5756
 ```  
-Tyriar committed 2026-03-10 (9 days ago)
+Tyriar committed 2026-03-11 (9 days ago)
 
 #### Avoid unnecessary  
 [b66128b](https://github.com/xtermjs/xterm.js/commit/b66128b239a00e76837929792defcf235645c67d)  
 ```
 Avoid unnecessary
 ```  
-Tyriar committed 2026-03-10 (9 days ago)  
+Tyriar committed 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Fix cyclic dependency  
@@ -195,7 +195,7 @@ Fix cyclic dependency
 
 Linkifier -> MouseService -> SelectionService -> Linkifier
 ```  
-Tyriar committed 2026-03-10 (9 days ago)  
+Tyriar committed 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Move bindMouse into MouseService  
@@ -205,7 +205,7 @@ Move bindMouse into MouseService
 
 Fixes #5754
 ```  
-Tyriar committed 2026-03-10 (9 days ago)
+Tyriar committed 2026-03-11 (9 days ago)
 
 #### Merge pull request #5753 from Tyriar/scrollbar_warn  
 [73adfdf](https://github.com/xtermjs/xterm.js/commit/73adfdfd56b411b6abcc162ba48cb9fbd071aaee)  
@@ -214,7 +214,7 @@ Merge pull request #5753 from Tyriar/scrollbar_warn
 
 Suppress scrollbar warning in demo
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Suppress scrollbar warning in demo  
@@ -222,7 +222,7 @@ Tyriar authored 2026-03-10 (9 days ago)
 ```
 Suppress scrollbar warning in demo
 ```  
-Tyriar committed 2026-03-10 (9 days ago)  
+Tyriar committed 2026-03-11 (9 days ago)  
 12/12 checks
 
 #### Merge pull request #5751 from Tyriar/5750  
@@ -232,7 +232,7 @@ Merge pull request #5751 from Tyriar/5750
 
 Fix error in loadTestLongLines
 ```  
-Tyriar authored 2026-03-10 (9 days ago)  
+Tyriar authored 2026-03-11 (9 days ago)  
 12/12 checks
 
 <!-- XLET-END -->
