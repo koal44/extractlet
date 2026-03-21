@@ -8,6 +8,7 @@ export const XLET_ATTRS = {
   tex: 'data-xlet-tex',
   mathml: 'data-xlet-mathml',
   lang: 'data-xlet-lang',
+  preserve: 'data-xlet-preserve', // white-space
 } as const;
 
 export type XletAttrKey = keyof typeof XLET_ATTRS;
@@ -43,6 +44,15 @@ export function setLang(el: Element, lang: string): void {
 
 export function getLang(el: Element): string | null {
   return el.getAttribute(XLET_ATTRS.lang);
+}
+
+export function setPreserve(el: Element, preserve: boolean): void {
+  // eslint-disable-next-line no-restricted-syntax
+  el.toggleAttribute(XLET_ATTRS.preserve, preserve);
+}
+
+export function getPreserve(el: Element): boolean {
+  return el.hasAttribute(XLET_ATTRS.preserve);
 }
 
 export function normalizeDoc(site: SiteKind): void {

@@ -1,4 +1,6 @@
-import { findCommonAncestor, h, isDoc, isElement } from './dom';
+import {
+  findCommonAncestor, h, isDiv, isDoc, isElement, isInlineElement, isSpan,
+} from './dom';
 
 export type SelectSpec =
   | { kind: 'match'; selectors: string[]; } // fallbacks
@@ -107,7 +109,8 @@ function extractBlock(root: ParentNode, spec: BlockSpec, doc?: Document): Elemen
   const transformed = applyTransforms(normalized, spec.transforms, doc);
   if (!transformed) return null;
 
-  return transformed;
+  const cleaned = clean(transformed);
+  return cleaned;
 }
 
 function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Document): Element | null {
@@ -219,9 +222,12 @@ function applyTransforms(root: Element, transforms?: TransformSpec[], doc?: Docu
   if (replaceFn) return replaceFn(root);
 
   const tag = getReplacementTag(root);
-  if (tag) return h(tag, { __doc: doc }, ...Array.from(root.childNodes));
+  if (tag) return h(tag, { __doc: doc }, ...root.childNodes);
 
-  if (shouldUnwrap(root)) return h('div', { __doc: doc }, ...Array.from(root.childNodes));
+  if (shouldUnwrap(root)) {
+    const wrapper = isInlineElement(root) ? 'span' : 'div';
+    return h(wrapper, { __doc: doc }, ...root.childNodes);
+  }
 
   return root;
 }
@@ -230,4 +236,25 @@ function resolveRootElement(root: ParentNode): Element | null {
   if (isElement(root)) return root;
   if (isDoc(root)) return root.body; //root.documentElement;
   return null;
+}
+
+function clean(root: Element): Element | null {
+  function isDisposable(node: Node): boolean {
+    return (isDiv(node) || isSpan(node)) && node.children.length === 0 && !(node.textContent);
+  }
+
+  function walk(node: Node): void {
+    let child = node.firstChild;
+    while (child) {
+      const next = child.nextSibling;
+      if (isElement(child)) {
+        walk(child);
+        if (isDisposable(child)) child.remove();
+      }
+      child = next;
+    }
+  }
+
+  walk(root);
+  return isDisposable(root) ? null : root;
 }

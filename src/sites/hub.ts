@@ -16,6 +16,7 @@ import { createCommitPage } from './hub/pages/commit';
 import { createBlobPage } from './hub/pages/blob';
 import { createBlamePage } from './hub/pages/blame';
 import { createHistoryPage } from './hub/pages/history';
+import { createSearchPage } from './hub/pages/search';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -46,6 +47,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'blob': page = await createBlobPage({ sourceDoc, ctxs, state }); break;
     case 'blame': page = await createBlamePage({ sourceDoc, ctxs, state }); break;
     case 'commits': page = await createHistoryPage({ sourceDoc, ctxs, state }); break;
+    case 'search': page = await createSearchPage({ sourceDoc, ctxs, state }); break;
   }
 
   if (!page) {

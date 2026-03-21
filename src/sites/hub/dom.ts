@@ -1,8 +1,9 @@
 import { pickVal, asAbsUrl, type Locator } from '../../utils/locator';
-import { h, isTable } from '../../utils/dom';
+import { h, isTable, isText } from '../../utils/dom';
 import { warn } from '../../utils/logging';
 import { chooseCanonicalUrl } from '../../utils/strings';
 import { matchGhUrl } from './route';
+import { setLang } from '../../normalize';
 
 const locators: Record<string, Locator[]> = {
   permalink: [
@@ -259,4 +260,85 @@ function renderUnifiedEntries(entries: UnifiedEntry[]): string[] {
   });
 
   return lines;
+}
+
+export function normalizeCodeTable(root: Element): HTMLPreElement | null {
+  if (!isTable(root)) return null;
+  if (!root.querySelector('td[data-line-number], .blob-num')) return null;
+  if (!root.querySelector('.blob-code-inner, td.blob-code')) return null;
+
+  type Entry = { leftNo: string; rightNo: string; op: DiffOp; code: string; };
+
+  const getSnippetLineNo = (cell: HTMLTableCellElement | undefined): string => {
+    if (!cell) return '';
+    return cell.getAttribute('data-line-number')?.trim() ?? cell.textContent?.trim() ?? '';
+  };
+
+  const entries: Entry[] = [];
+  let lang = '';
+
+  const lineNoCols = new Set<number>();
+  for (const tr of [...root.rows]) {
+    for (const c of [...tr.cells]) {
+      if (c.hasAttribute('data-line-number') || c.classList.contains('blob-num')) {
+        lineNoCols.add(c.cellIndex);
+      }
+    }
+  }
+
+  if (!lineNoCols.size || lineNoCols.size > 2) return null;
+
+  const leftCol = Math.min(...lineNoCols);
+  const rightCol = lineNoCols.has(leftCol + 1) ? leftCol + 1 : null;
+
+  for (const tr of [...root.rows]) {
+    const leftTd = tr.cells[leftCol] as HTMLTableCellElement | undefined;
+    const rightTd = rightCol !== null
+      ? (tr.cells[rightCol] as HTMLTableCellElement | undefined)
+      : undefined;
+
+    const leftNo = getSnippetLineNo(leftTd);
+    const rightNo = getSnippetLineNo(rightTd);
+
+    const codeTd = tr.querySelector<HTMLElement>('td.blob-code, td.blob-code-inner');
+    if (!codeTd) continue;
+
+    let code = '';
+    const kids = [...codeTd.childNodes];
+    for (let i = 0; i < kids.length; i++) {
+      const t = kids[i].textContent ?? '';
+      if ((i === 0 || i === kids.length - 1) && isText(kids[i]) && /[\r\n]/.test(t)) continue;
+      code += t;
+    }
+
+    const classList = [...codeTd.classList, ...tr.classList];
+    const op: DiffOp =
+      classList.some((c) => /addition/.test(c)) ? '+'
+      : classList.some((c) => /deletion/.test(c)) ? '-'
+      : ' ';
+
+    entries.push({ leftNo, rightNo, op, code });
+
+    lang ||= classList.find((c) => c.endsWith('-file-line'))?.replace(/-file-line$/, '') ?? '';
+  }
+
+  if (!entries.length) return null;
+
+  const maxPropLen = (prop: 'leftNo' | 'rightNo') =>
+    entries.reduce((m, e) => Math.max(m, e[prop].length), 0);
+
+  const leftW = maxPropLen('leftNo');
+  const rightW = maxPropLen('rightNo');
+  const opUse = entries.some((e) => e.op !== ' ');
+
+  const lines = entries.map(({ leftNo, rightNo, op, code }) => {
+    let out = leftNo.padStart(leftW, ' ');
+    if (rightW > 0) out += ` ${rightNo.padStart(rightW, ' ')}`;
+    if (opUse) out += ` ${op}`;
+    return code ? `${out} ${code}` : out;
+  });
+
+  const pre = h('pre', {}, h('code', {}, lines.join('\n')));
+  if (lang) setLang(pre, lang);
+  return pre;
 }

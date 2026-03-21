@@ -1,4 +1,4 @@
-import { getLang } from './normalize.js';
+import { getLang, getPreserve } from './normalize.js';
 import { hasOfType, isNumberish, parseJsonAs } from './utils/typing.js';
 
 import { mathVendorToHtml, mathVendorToMd } from './math-vendor';
@@ -561,7 +561,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
 
       case 'Q':
       case 'BLOCKQUOTE': {
-        result = glueChildren(node, 'block');
+        result = glueChildren(node, 'block', getPreserve(node) ? { wsMode: 'pre' } : {});
         const bqPrefix = result.match(new RegExp('^\\n*'))?.[0] ?? '';
         const bqSuffix = result.match(/\n*$/)?.[0] ?? '';
 

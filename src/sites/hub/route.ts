@@ -1,4 +1,5 @@
 export type GhDomain =
+  | 'search'
   | 'issue' | 'pr' | 'disc' | 'repo'
   | 'issues' | 'pulls' | 'discussions'
   | 'owner' | 'tree' | 'commit'
@@ -12,6 +13,7 @@ type GhPath = {
   id?: string;
   hash: string;
   tail: string[];
+  search: string;
 };
 
 export function parseGhPath(str: string): GhPath | undefined {
@@ -23,7 +25,7 @@ export function parseGhPath(str: string): GhPath | undefined {
     if (parts.length < 1) return;
 
     const [owner, repo, kind, id, ...tail] = parts;
-    return { owner, repo, kind, id, tail, hash: u.hash };
+    return { owner, repo, kind, id, tail, hash: u.hash, search: u.search };
   } catch {
     return;
   }
@@ -34,6 +36,10 @@ export function matchGhUrl(str: string, withHash = false): string | null {
   if (!p?.owner) return null;
 
   let base = `https://github.com/${p.owner}`;
+
+  if (p.owner === 'search') {
+    return withHash && p.hash ? `${base}${p.search}${p.hash}` : `${base}${p.search}`;
+  }
 
   if (p.repo) base += `/${p.repo}`;
   if (p.kind) base += `/${p.kind}`;
@@ -46,6 +52,7 @@ export function matchGhUrl(str: string, withHash = false): string | null {
 export function detectGhDomain(str: string): GhDomain | undefined {
   const p = parseGhPath(str);
   if (!p?.owner) return;
+  if (p.owner === 'search') return 'search';
   if (!p.repo) return 'owner';
   if (!p.kind) return 'repo';
 

@@ -518,3 +518,12 @@ export function isSub(x: unknown): x is HTMLElement {
 export function isAttr(x: unknown): x is Attr {
   return !!x && typeof Attr !== 'undefined' && x instanceof Attr;
 }
+
+const INLINE_TAGS = new Set([
+  'a', 'abbr', 'b', 'bdi', 'bdo', 'button', 'cite', 'code', 'data', 'dfn',
+  'em', 'i', 'kbd', 'label', 'mark', 'q', 'ruby', 's', 'samp', 'small',
+  'span', 'strong', 'sub', 'sup', 'time', 'u', 'var', 'wbr',
+]);
+export function isInlineElement(x: Element): boolean {
+  return INLINE_TAGS.has(x.tagName.toLowerCase());
+}
