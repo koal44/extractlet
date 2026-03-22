@@ -1,10 +1,11 @@
+import { setPreserve } from '../../../normalize';
 import type { CreatePage } from '../../../snapshot-loader';
 import { h, isTable } from '../../../utils/dom';
 import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../../utils/extract';
 import { toHtml, toMd } from '../convert';
-import { normalizeDiffTable } from '../dom';
+import { brWrap, joinWrap, normalizeDiffTable } from '../dom';
 
-const specs: BlockSpec[] = [
+export const blocks: BlockSpec[] = [
   {
     name: 'header',
     select: {
@@ -40,6 +41,59 @@ const specs: BlockSpec[] = [
     ],
   },
   {
+    name: 'main',
+    select: { kind: 'root' },
+    normalize: (root, ctxs) => {
+      const [short, attribution, checks, message, branch, info] = extractBlocks(root, mainBlocks, ctxs);
+      return h('section', {},
+        short,
+        joinWrap('div', [attribution, checks], ' · '),
+        joinWrap('div', [message]),
+        joinWrap('div', [branch]),
+        ...brWrap('div', [info]),
+      );
+    },
+  },
+  {
+    name: 'tree',
+    select: {
+      kind: 'match',
+      selectors: ['#diff_file_tree ul[role="tree"]'],
+    },
+    normalize: (root) => {
+      return h('section', {}, h('h2', {}, 'Files changed'), root);
+    },
+    transforms: [
+      { kind: 'unwrap', selectors: ['a'] },
+    ],
+  },
+  {
+    name: 'diffs',
+    normalize: (root, ctxs) => {
+      const diffRoots = extractMany(root, diffManySpec, ctxs);
+      return h('section', {}, ...diffRoots);
+    },
+  },
+  {
+    name: 'comments',
+    select: {
+      kind: 'match',
+      selectors: ['#comments'],
+    },
+    normalize: (root, ctxs) => {
+      const comments = extractMany(root, commentManySpec, ctxs);
+      if (!comments.length) return null;
+
+      return h('section', {},
+        h('h2', {}, 'Comments'),
+        ...comments,
+      );
+    },
+  },
+];
+
+export const mainBlocks: BlockSpec[] = [
+  {
     name: 'short',
     select: {
       kind: 'match',
@@ -51,30 +105,32 @@ const specs: BlockSpec[] = [
   },
   {
     name: 'attribution',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[class*="CommitAttribution-"]',
-      ],
-    },
+    select: { kind: 'match', selectors: ['[class*="CommitAttribution"]'] },
     normalize: (root) => {
-      const author = root.querySelector('a[aria-label^="commits by"]') ?? root.querySelector('a[class*="AuthorAvatar"]') ?? root.querySelector('a');
-      if (author?.textContent?.trim()) {
-        author.insertAdjacentElement('afterend', h('span', {}, ' · '));
-      }
+      root.querySelectorAll('[data-testid="author-link"], [data-testid="author-avatar"], relative-time').forEach((el) => {
+        el.insertAdjacentElement('afterend', h('span', {}, ' '));
+        el.insertAdjacentElement('beforebegin', h('span', {}, ' '));
+      });
       const date = root.querySelector('relative-time');
       date?.insertAdjacentElement('beforebegin', h('span', {}, ' on '));
-      return h('section', {}, root);
+      return root;
     },
     transforms: [
-      {
-        kind: 'remove', selectors: [
-          'button',
-          'img',
-        ],
-      },
+      { kind: 'remove', selectors: ['img'] },
+      { kind: 'removeNextSiblings', selectors: ['relative-time'] },
       { kind: 'unwrap', selectors: ['a'] },
       { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+    ],
+  },
+  {
+    name: 'checks',
+    select: { kind: 'match', selectors: ['[data-testid="checks-status-badge-button"]'] },
+    normalize: (root) => {
+      const text = root.textContent?.replace(/\s+/g, '').trim();
+      return text ? h('span', {}, `${text} checks`) : null;
+    },
+    transforms: [
+      { kind: 'unwrap', selectors: ['button'] },
     ],
   },
   {
@@ -82,6 +138,9 @@ const specs: BlockSpec[] = [
     select: {
       kind: 'match',
       selectors: ['[class*="commitMessageContainer"]'],
+    },
+    normalize: (root) => {
+      return h('blockquote', { 'data-xlet-preserve': true }, root);
     },
   },
   {
@@ -147,19 +206,6 @@ const specs: BlockSpec[] = [
       { kind: 'replace', with: 'span', selectors: ['div', 'p', 'h2'] },
     ],
   },
-  {
-    name: 'tree',
-    select: {
-      kind: 'match',
-      selectors: ['#diff_file_tree ul[role="tree"]'],
-    },
-    normalize: (root) => {
-      return h('section', {}, h('h2', {}, 'Files changed'), root);
-    },
-    transforms: [
-      { kind: 'unwrap', selectors: ['a'] },
-    ],
-  },
 ];
 
 const diffFieldSpecs: BlockSpec[] = [
@@ -213,6 +259,59 @@ const diffFieldSpecs: BlockSpec[] = [
   },
 ];
 
+const commentManySpec: ManySpec = {
+  select: {
+    kind: 'matchAll',
+    selectors: ['#comments div[id^="commitcomment-"]'],
+  },
+  normalize: (root, ctxs) => {
+    const [author, time, body] = extractBlocks(root, commentFieldSpecs, ctxs);
+
+    return h('section', {},
+      ...brWrap('div', [author, time], ' · '),
+      ...brWrap('div', [body]),
+    );
+  },
+};
+
+const commentFieldSpecs: BlockSpec[] = [
+  {
+    name: 'author',
+    select: {
+      kind: 'match',
+      selectors: [
+        '[data-testid="avatar-link"]',
+      ],
+    },
+    transforms: [
+      { kind: 'unwrap', selectors: ['a'] },
+    ],
+  },
+  {
+    name: 'time',
+    select: {
+      kind: 'match',
+      selectors: [
+        '[data-testid="comment-header"] relative-time',
+      ],
+    },
+  },
+  {
+    name: 'body',
+    select: {
+      kind: 'match',
+      selectors: [
+        ':scope > div > .markdown-body',
+      ],
+    },
+    normalize: (root) => {
+      const bq = h('blockquote', {}, root);
+      setPreserve(bq, true);
+      return bq;
+    },
+  },
+];
+
 function scrubBidiText(node: Node): void {
   for (const child of node.childNodes) {
     if (child.nodeType === Node.TEXT_NODE && child.textContent) {
@@ -239,12 +338,12 @@ const diffManySpec: ManySpec = {
 };
 
 export const createCommitPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
-  const commitBlocks = extractBlocks(sourceDoc, specs, ctxs);
-  const diffRoots = extractMany(sourceDoc, diffManySpec, ctxs);
+  const commitBlocks = extractBlocks(sourceDoc, blocks, ctxs);
+  // const diffRoots = extractMany(sourceDoc, diffManySpec, ctxs);
 
   const wrapper = h('div', { class: 'hub-commit', __doc: sourceDoc },
     ...commitBlocks,
-    ...diffRoots,
+    // ...diffRoots,
   );
 
   return {

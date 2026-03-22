@@ -9,12 +9,11 @@
 
 # Commit 22d6470
 
-fregante · authored on 2022-03-16 (4 years ago)
+fregante authored on 2022-03-16 (4 years ago)
 
-Meta: Add prepare script for Safari ([#5491](https://github.com/refined-github/refined-github/pull/5491))
+> Meta: Add prepare script for Safari ([#5491](https://github.com/refined-github/refined-github/pull/5491))
 
-main (#5491) · 1 parent 6c8f0f1
-
+main (#5491) · 1 parent 6c8f0f1  
 8 files changed · +50 -19 lines changed
 
 ## Files changed

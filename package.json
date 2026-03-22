@@ -10,6 +10,7 @@
     "test:watch": "vitest",
     "test:fix": "vitest run test/fix",
     "test:unit": "vitest run test/unit",
+    "test:blocks": "vitest run test/blocks",
     "coverage": "vitest run --coverage",
     "watch:b": "npm-watch build",
     "printfix-mjx": "vite-node scripts/printfix-mjx.ts",
