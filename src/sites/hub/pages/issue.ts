@@ -91,10 +91,10 @@ export function extractPosts(srcDoc: Document, ctxs?: XletContexts): Post[] {
 
 export const createIssuePage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const permalink = scrapePermaUrl(sourceDoc);
-  if (!permalink) return warn(undefined, '[xlet:hub-create] Failed to scrape permalink');
+  if (!permalink) return warn(undefined, '[xlet:issue-create] Failed to scrape permalink');
 
   const posts = extractPosts(sourceDoc, ctxs);
-  if (!posts.length) return warn(undefined, '[xlet:hub-create] Failed to extract data from document');
+  if (!posts.length) return warn(undefined, '[xlet:issue-create] Failed to extract data from document');
 
   const title = pickVal(locators.title, sourceDoc);
   return {

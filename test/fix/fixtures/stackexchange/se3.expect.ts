@@ -10,9 +10,9 @@ export default {
     clone.querySelector('head > meta[property="og:title"]')?.remove();
 
     let r = extractFromDoc(clone, { md: { mathFence: 'bracket' } });
-    expect(r?.title).toBe('\\({\\Lambda}_k(V)\\) is spanned by a basis \\(\\mathcal{B}\\)');
+    expect(r.title).toBe('\\({\\Lambda}_k(V)\\) is spanned by a basis \\(\\mathcal{B}\\)');
 
     r = extractFromDoc(clone, { md: { mathFence: 'dollar' } });
-    expect(r?.title).toBe('${\\Lambda}_k(V)$ is spanned by a basis $\\mathcal{B}$');
+    expect(r.title).toBe('${\\Lambda}_k(V)$ is spanned by a basis $\\mathcal{B}$');
   },
 } satisfies Sidecar;

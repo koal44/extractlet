@@ -1,6 +1,6 @@
 import { h } from '../utils/dom';
 
-export function attachStickyHeader(root: HTMLElement, toggle: HTMLElement): HTMLDivElement {
+export function attachStickyHeader(root: HTMLElement, toggle: HTMLElement | null): HTMLDivElement {
   const container = h('div', { class: 'view-toggle' }, toggle);
   root.appendChild(container);
 

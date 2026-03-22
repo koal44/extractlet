@@ -28,8 +28,7 @@
  *
  */
 
-import { htmlToElementK, isElement, isText } from '../utils/dom';
-import { warn } from '../utils/logging';
+import { h, htmlToElementK, isElement, isText } from '../utils/dom';
 import type { ToMdElementHandler, ToHtmlElementHandler, ToHtmlContext, ToMdContext } from '../core';
 import { toHtml as _toHtml, toMd as _toMd } from '../core';
 import type { Locator } from '../utils/locator';
@@ -38,7 +37,7 @@ import { getLang, hasSkip, markSkip, setLang } from '../normalize';
 import type { XletContexts } from '../settings';
 import type { CreatePage, RenderPage } from '../snapshot-loader';
 import { formatDateWithRelative } from '../utils/strings';
-import { renderXletPage } from '../xlet-page';
+import { createNoticePage, ISSUE_LINK_ATTRS, renderXletPage } from '../xlet-page';
 
 type Contributor = {
   contributorType: 'author' | 'editor' | 'commenter';
@@ -65,7 +64,7 @@ type Post = {
 }
 
 export type SEResult = {
-  permalink: string;
+  permalink?: string;
   title?: string;
   posts: Post[];
 }
@@ -366,22 +365,11 @@ function buildContribsAndVotes(contributors: Contributor[], voteCount: number, n
   return `[[ ${contribsText} | ${voteText} ]]`;
 }
 
-export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): SEResult | undefined {
+export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): SEResult {
   const posts = scrapePosts(sourceDoc, ctxs);
-  if (posts.length === 0) {
-    alert('No posts found on this page.');
-    return;
-  }
-
-  const permalink = scrapePermalink(sourceDoc) || '';
+  const permalink = scrapePermalink(sourceDoc);
   const title = scrapeTitle(sourceDoc, ctxs);
-  const result: SEResult = {
-    permalink,
-    title,
-    posts,
-  };
-
-  return result;
+  return { permalink, title, posts };
 }
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
@@ -392,9 +380,18 @@ export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc
 
 export const createSePage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const result = extractFromDoc(sourceDoc, ctxs);
-  if (!result) return warn(undefined, '[xlet:se-create] Failed to extract data from document');
-
   const { title, permalink, posts } = result;
+
+  if (result.posts.length === 0) {
+    return createNoticePage({
+      kind: 'error', siteLabel: 'Stack Exchange', title, permalink,
+      message: h('div', {},
+        h('p', {}, `Extractlet couldn't find any posts on this page.`),
+        h('p', {}, `If this seems wrong, you can `,
+          h('a', ISSUE_LINK_ATTRS, 'report it here')),
+      ),
+    });
+  }
 
   return {
     siteLabel: 'Stack Exchange',

@@ -181,3 +181,7 @@ export type AddExtras<T extends readonly unknown[], U, N extends number> =
 // plus up to MaxExtra duplicates of any members anywhere.
 export type CoversWithDupes<U extends string, MaxExtra extends number> =
   AddExtras<Permutations<U>, U, MaxExtra>;
+
+export function assertNever(x: never): never {
+  throw new Error(`Unhandled domain: ${String(x)}`);
+}

@@ -1,10 +1,10 @@
-import { toHtml as _toHtml, toMd as _toMd } from '../core';
 import type { CreatePage, RenderPage } from '../snapshot-loader';
-import { warn } from '../utils/logging';
-import { renderXletPage, type XletPage } from '../xlet-page';
-import { createDiscPage } from './hub/pages/disc';
-import { detectGhDomain } from './hub/route';
+import { h } from '../utils/dom';
+import { assertNever } from '../utils/typing';
+import { createNoticePage, ISSUE_LINK_ATTRS, renderXletPage, type XletPage } from '../xlet-page';
 import { scrapePermaUrl, scrapeTitle } from './hub/dom';
+import { detectGhDomain } from './hub/route';
+import { createDiscPage } from './hub/pages/disc';
 import { createIssuePage } from './hub/pages/issue';
 import { createListDiscPage } from './hub/pages/list-disc';
 import { createListIssuePage } from './hub/pages/list-issue';
@@ -25,13 +25,31 @@ export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc
 };
 
 export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
+  const title = scrapeTitle(sourceDoc) ?? '???';
+
   const permalink = scrapePermaUrl(sourceDoc);
-  if (!permalink) return warn(undefined, '[xlet:hub-create] Failed to scrape permalink');
+  if (!permalink) {
+    return createNoticePage({
+      kind: 'error', siteLabel: 'GitHub', title,
+      message: h('div', {},
+        h('p', {}, `Extractlet couldn't find this page's permalink.`),
+        h('p', {}, `That's probably a bug. If you feel like helping, you can `,
+          h('a', ISSUE_LINK_ATTRS, 'let us know')),
+      ),
+    });
+  }
 
   const domain = detectGhDomain(permalink);
-  if (!domain) return warn(undefined, '[xlet:hub-create] Failed to detect GitHub domain');
-
-  const title = scrapeTitle(sourceDoc) ?? '???';
+  if (!domain) {
+    return createNoticePage({
+      kind: 'info', siteLabel: 'GitHub', permalink, title,
+      message: h('div', {},
+        h('p', {}, `Extractlet doesn't know about this GitHub page type yet.`),
+        h('p', {}, `If you'd like to see it supported, you can `,
+          h('a', ISSUE_LINK_ATTRS, 'ask for it here')),
+      ),
+    });
+  }
 
   let page: XletPage | undefined;
   switch (domain) {
@@ -48,10 +66,19 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'blame': page = await createBlamePage({ sourceDoc, ctxs, state }); break;
     case 'commits': page = await createHistoryPage({ sourceDoc, ctxs, state }); break;
     case 'search': page = await createSearchPage({ sourceDoc, ctxs, state }); break;
+    case 'owner': throw new Error('Not implemented: owner page');
+    default: return assertNever(domain);
   }
 
   if (!page) {
-    return warn(undefined, `[xlet:hub-create] Failed to create page for domain "${domain}"`);
+    return createNoticePage({
+      kind: 'error', siteLabel: 'GitHub', title, permalink,
+      message: h('div', {},
+        h('p', {}, `Extractlet recognized this as a GitHub "${domain}" page, but couldn't extract it.`),
+        h('p', {}, `This is probably a bug. If you feel like helping, you can `,
+          h('a', ISSUE_LINK_ATTRS, 'let us know')),
+      ),
+    });
   }
 
   page.siteLabel ??= 'GitHub';

@@ -50,12 +50,12 @@ import {
 } from '../utils/dom';
 import { log, repr, warn } from '../utils/logging';
 import { jaroWinklerSimilarity } from '../utils/strings';
-import { renderXletPage, type XletNode } from '../xlet-page';
+import { createNoticePage, createSettingsLink, ISSUE_LINK_ATTRS, renderXletPage, type XletNode } from '../xlet-page';
 
 export type WikiResult = {
-  baseUrl: string; // Base URL of the wiki page
-  rawUrl: string; // Raw URL of the wiki page
-  data: WikiNode | null; // The WikiNode tree representing the page structure
+  permaUrl?: string; // Base URL of the wiki page
+  rawUrl?: string; // Raw URL of the wiki page
+  tree?: WikiNode; // The WikiNode tree representing the page structure
 }
 
 function shouldSkip(node: Node | null): boolean {
@@ -348,9 +348,9 @@ export class WikiNode {
     this.children = [];
   }
 
-  static buildFromHTML(root: Element | Document, ctxs?: XletContexts): WikiNode | null {
+  static buildFromHTML(root: Element | Document, ctxs?: XletContexts): WikiNode | undefined {
     const title = root.querySelector('h1#firstHeading')?.textContent?.trim() ?? '';
-    if (!title) return warn(null, '[xlet:wiki-build] No title found in the provided root element');
+    if (!title) return warn(undefined, '[xlet:wiki-build] No title found in the provided root element');
 
     let curSectionNum = 0;
     let currentNode = new WikiNode(title, 1, curSectionNum);
@@ -395,15 +395,15 @@ export class WikiNode {
     return rootNode;
   }
 
-  static buildFromParsoidHTML(root: Document | Element, ctxs?: XletContexts): WikiNode | null {
+  static buildFromParsoidHTML(root: Document | Element, ctxs?: XletContexts): WikiNode | undefined {
     let childElems: Element[] = [];
     let curWikiNode: WikiNode | null = null;
 
     if (isDoc(root)) {
       const sect0 = root.querySelector('section[data-mw-section-id="0"]');
-      if (!sect0) return warn(null, '[xlet:wiki-build] No section[data-mw-section-id="0"] found in the provided document');
+      if (!sect0) return warn(undefined, '[xlet:wiki-build] No section[data-mw-section-id="0"] found in the provided document');
       const title = root.querySelector('head > title')?.textContent?.trim() ?? '';
-      if (!title) return warn(null, '[xlet:wiki-build] No title found in the provided document');
+      if (!title) return warn(undefined, '[xlet:wiki-build] No title found in the provided document');
 
       curWikiNode = new WikiNode(title, 1, 0);
       const bodyChildren = [...root.body.children].filter((el) => el !== sect0);
@@ -411,12 +411,12 @@ export class WikiNode {
     } else {
       const firstElem = root.firstElementChild;
       const heading = firstElem && isHeading(firstElem) ? firstElem : null;
-      if (!heading) return warn(null, '[xlet:wiki-build] No heading found in the provided element');
+      if (!heading) return warn(undefined, '[xlet:wiki-build] No heading found in the provided element');
       const title = heading.textContent?.trim() ?? '';
-      if (!title) return warn(null, '[xlet:wiki-build] No title found in the provided element');
+      if (!title) return warn(undefined, '[xlet:wiki-build] No title found in the provided element');
       const level = parseHeadingLevel(heading);
       const sectionId = root.getAttribute('data-mw-section-id');
-      if (!sectionId) return warn(null, '[xlet:wiki-build] No data-mw-section-id found in the section element');
+      if (!sectionId) return warn(undefined, '[xlet:wiki-build] No data-mw-section-id found in the section element');
 
       curWikiNode = new WikiNode(title, level, +sectionId);
       const sectChildren = [...root.children].filter((el) => el !== heading);
@@ -450,8 +450,8 @@ export class WikiNode {
     return node;
   }
 
-  addChild(section: WikiNode | null) {
-    if (section !== null) this.children.push(section);
+  addChild(section: WikiNode | undefined) {
+    if (section) this.children.push(section);
   }
 
   *[Symbol.iterator](): Generator<WikiNode, void, unknown> {
@@ -609,7 +609,7 @@ function getRawBody(node: WikiNode): string {
   return raw;
 }
 
-function getPermaUrl(srcDoc: Document): string | null {
+function getPermaUrl(srcDoc: Document): string | undefined {
   // classic pages
   const canonical = srcDoc.querySelector<HTMLLinkElement>('head > link[rel="canonical"]');
   if (canonical) return new URL(canonical.href, srcDoc.baseURI).href;
@@ -618,7 +618,7 @@ function getPermaUrl(srcDoc: Document): string | null {
   const dcLink = srcDoc.querySelector<HTMLLinkElement>('head > link[rel="dc:isVersionOf"]');
   if (dcLink) return new URL(dcLink.href, srcDoc.baseURI).href;
 
-  return null;
+  return undefined;
 }
 
 function getRawUrl(srcDoc: Document, baseUrl: string): string {
@@ -676,12 +676,9 @@ async function fetchRawPage(rawUrl: string, ctxs?: XletContexts): Promise<string
   }
 }
 
-export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): WikiResult | undefined {
+export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): WikiResult {
   const permaUrl = getPermaUrl(sourceDoc);
-  if (!permaUrl) {
-    return warn(undefined, '[xlet:wiki-extract] No base URL found in the document');
-  }
-  const rawUrl = getRawUrl(sourceDoc, permaUrl);
+  const rawUrl = permaUrl ? getRawUrl(sourceDoc, permaUrl) : undefined;
 
   const isParsoidPage = sourceDoc.querySelector('head > meta[property="mw:htmlVersion"]') !== null;
   const tree = isParsoidPage
@@ -689,14 +686,7 @@ export function extractFromDoc(sourceDoc: Document, ctxs?: XletContexts): WikiRe
     : WikiNode.buildFromHTML(sourceDoc, ctxs);
 
   if (tree) tree.serialize();
-
-  const result: WikiResult = {
-    data: tree,
-    baseUrl: permaUrl,
-    rawUrl: rawUrl,
-  };
-
-  return result;
+  return { tree, permaUrl, rawUrl };
 }
 
 type WikiPageState = {
@@ -712,38 +702,40 @@ export const renderPage: RenderPage<WikiPageState> = async ({ sourceDoc, ctxs, s
 
 export const createWikiPage: CreatePage<WikiPageState> = async ({ sourceDoc, ctxs, state }) => {
   const result = extractFromDoc(sourceDoc, ctxs);
-  if (!result) return warn(undefined, '[xlet:wiki-create] Failed to extract data from document');
+  const { permaUrl, rawUrl, tree: pojoTree } = result;
+  if (!permaUrl || !pojoTree) {
+    const message = !permaUrl
+      ? `Extractlet couldn't find this page's permalink.`
+      : `Extractlet couldn't parse the wiki section tree.`;
+    return createNoticePage({
+      kind: 'error',
+      siteLabel: permaUrl ? new URL(permaUrl).hostname : 'Wikipedia',
+      title: sourceDoc.title || 'Wikipedia',
+      permalink: permaUrl ?? undefined,
+      message: h('div', {},
+        h('p', {}, message),
+        h('p', {}, `If this seems wrong, you can `, h('a', ISSUE_LINK_ATTRS, 'report it here')),
+      ),
+    });
+  }
 
-  const { baseUrl, rawUrl, data } = result;
-  if (!data) return warn(undefined, '[xlet:wiki-create] No tree data extracted from the document');
+  const tree = WikiNode.fromPojo(pojoTree);
 
-  const tree = WikiNode.fromPojo(data);
-
-  if (state.rawText === undefined) {
+  if (rawUrl && state.rawText === undefined) {
     state.rawText = await fetchRawPage(rawUrl, ctxs);
   }
   populateWikiNodeWithRaw(tree, state.rawText);
 
-  const settingsLink = h('a', { href: '#' }, 'fetch settings');
-  settingsLink.addEventListener('click', async (e) => {
-    e.preventDefault();
-    // TODO: use a data-xlet-action marker and centralize page actions in xlet-page
-    // Do not import browser directly into this module (tests won't be happy).
-    // wiki-page.html should source the polyfill.
-    type BrowserGlobal = { browser?: { runtime?: { openOptionsPage?: () => Promise<void>; }; }; };
-    const openOptsPageFn = (globalThis as BrowserGlobal).browser?.runtime?.openOptionsPage;
-    if (openOptsPageFn) await openOptsPageFn();
-  });
   const rawFallback = ctxs.general?.fetchMissingContent === false
-    ? h('p', {}, 'Raw wikitext is unavailable due to ', settingsLink, '.')
+    ? h('p', {}, 'Raw wikitext is unavailable due to ', createSettingsLink('fetch settings'), '.')
     : h('p', {}, 'Raw wikitext is unavailable.');
 
   return {
-    siteLabel: new URL(baseUrl).hostname,
+    siteLabel: new URL(permaUrl).hostname,
     title: tree.title,
     views: ['html', 'md', 'raw'],
     state,
-    root: wikiNodeToXletNode(tree, true, baseUrl),
+    root: wikiNodeToXletNode(tree, true, permaUrl),
     viewFallbacks: {
       raw: rawFallback,
     },

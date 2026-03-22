@@ -42,16 +42,19 @@ export function renderXletPage(page: XletPage, targetDoc: Document, root: HTMLEl
   }
 
   const viewClasses = page.views.map((v) => `show-${v}`);
-  const viewToggle = createMultiToggle({
-    initState: page.state.viewIdx,
-    onToggle: (newIdx) => {
-      page.state.viewIdx = newIdx;
-      root.classList.remove(...viewClasses);
-      root.classList.add(viewClasses[newIdx]);
-    },
-    labels: page.views,
-    labelSide: 'right',
-  });
+  const applyView = (newIdx: number) => {
+    page.state.viewIdx = newIdx;
+    root.classList.remove(...viewClasses);
+    root.classList.add(viewClasses[newIdx]);
+  };
+  const viewToggle = page.views.length > 1
+    ? createMultiToggle({
+      initState: page.state.viewIdx,
+      onToggle: applyView,
+      labels: page.views,
+      labelSide: 'right',
+    })
+    : null;
   attachStickyHeader(root, viewToggle);
 
   root.appendChild(buildNode(page.root, page, 1, targetDoc));
@@ -62,7 +65,9 @@ export function renderXletPage(page: XletPage, targetDoc: Document, root: HTMLEl
     }
   });
 
-  viewToggle.init(); // init at the end to ensure all dom elements used by onToggle are present
+  // init at the end to ensure all dom elements used by onToggle are present
+  if (viewToggle) viewToggle.init();
+  else applyView(page.state.viewIdx);
 }
 
 function buildCopyButton(node: XletNode, page: XletPage, targetDoc: Document) {
@@ -155,4 +160,46 @@ function hasSubtreeContent(node: XletNode, view: XletView): boolean {
   if (node.content?.[view] !== undefined) return true;
   if ((view === 'md' || view === 'html') && node.contrib) return true;
   return !!node.children?.some((child) => hasSubtreeContent(child, view));
+}
+
+// ---------- page helpers ----------
+
+export function createNoticePage(
+  { kind, siteLabel, title, message, permalink }:
+  { kind: 'error' | 'info'; siteLabel?: string; title?: string; message: string | Node; permalink?: string; }
+): XletPage {
+  const fallback = h('div', { class: `xlet-notice xlet-notice-${kind}` }, message);
+
+  return {
+    siteLabel,
+    title,
+    state: { viewIdx: 0 },
+    views: ['html'],
+    root: { permalink },
+    viewFallbacks: { html: fallback },
+  };
+};
+
+export const ISSUE_LINK_ATTRS = {
+  href: 'https://github.com/koal44/extractlet/issues',
+  target: '_blank',
+  rel: 'noopener noreferrer',
+};
+
+export function createSettingsLink(text = 'fetch settings', targetDoc?: Document): HTMLAnchorElement {
+  const link = h('a', { href: '#', __doc: targetDoc }, text);
+
+  link.addEventListener('click', async (e) => {
+    e.preventDefault();
+    // TODO: use a data-xlet-action marker and centralize page actions in xlet-page.
+    // Do not import browser directly into this module (tests won't be happy).
+    // wiki-page.html should source the polyfill.
+    type BrowserGlobal = {
+      browser?: { runtime?: { openOptionsPage?: () => Promise<void>; }; };
+    };
+    const openOptsPageFn = (globalThis as BrowserGlobal).browser?.runtime?.openOptionsPage;
+    if (openOptsPageFn) await openOptsPageFn();
+  });
+
+  return link;
 }
