@@ -17,6 +17,7 @@ import { createBlobPage } from './hub/pages/blob';
 import { createBlamePage } from './hub/pages/blame';
 import { createHistoryPage } from './hub/pages/history';
 import { createSearchPage } from './hub/pages/search';
+import { createPrCommitsPage } from './hub/pages/pr-commits';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -66,6 +67,11 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'blame': page = await createBlamePage({ sourceDoc, ctxs, state }); break;
     case 'commits': page = await createHistoryPage({ sourceDoc, ctxs, state }); break;
     case 'search': page = await createSearchPage({ sourceDoc, ctxs, state }); break;
+    case 'pr-commits': page = await createPrCommitsPage({ sourceDoc, ctxs, state }); break;
+    case 'pr-checks': throw new Error('Not implemented');
+    case 'pr-files': throw new Error('Not implemented');
+    // case 'pr-checks': page = await createPrChecksPage({ sourceDoc, ctxs, state }); break;
+    // case 'pr-files': page = await createPrFilesPage({ sourceDoc, ctxs, state }); break;
     case 'owner': throw new Error('Not implemented: owner page');
     default: return assertNever(domain);
   }
