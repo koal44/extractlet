@@ -3,14 +3,15 @@ import DOMPurify from 'dompurify';
 
 export type AttrValue = string | number | boolean | null | undefined;
 export type HAttrs = Record<string, AttrValue | Document> & { __doc?: Document; };
+export type HChild = string | Node | null | undefined;
 
-export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs?: HAttrs, ...children: (string | Node | null | undefined)[]): HTMLElementTagNameMap[K];
-export function h<K extends keyof SVGElementTagNameMap>(tag: `svg:${K}`, attrs?: HAttrs, ...children: (string | Node | null | undefined)[]): SVGElementTagNameMap[K];
-export function h<K extends keyof MathMLElementTagNameMap>(tag: `math:${K}`, attrs?: HAttrs, ...children: (string | Node | null | undefined)[]): MathMLElementTagNameMap[K];
+export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs?: HAttrs, ...children: HChild[]): HTMLElementTagNameMap[K];
+export function h<K extends keyof SVGElementTagNameMap>(tag: `svg:${K}`, attrs?: HAttrs, ...children: HChild[]): SVGElementTagNameMap[K];
+export function h<K extends keyof MathMLElementTagNameMap>(tag: `math:${K}`, attrs?: HAttrs, ...children: HChild[]): MathMLElementTagNameMap[K];
 export function h(
   tag: string, // e.g. 'div', 'svg:circle', 'math:mi'
   attrs: HAttrs = {}, // e.g. { class: 'my-class', id: 'my-id', 'xlink:href': '#foo', __doc: document }
-  ...children: (string | Node | null | undefined)[] // e.g. 'Hello', document.createElement('span'), null
+  ...children: HChild[] // e.g. 'Hello', document.createElement('span'), null
 ): HTMLElement | SVGElement | MathMLElement {
 
   const doc = attrs.__doc ?? document;
@@ -298,9 +299,11 @@ export function scrubSvgElement(e: Element): void {
 }
 
 export function findCommonAncestor(root: ParentNode, selectors: string[]): Element | null {
+  if (selectors.length === 0) return null;
   const descendants = [...root.querySelectorAll(selectors.join(', '))];
 
-  if (descendants.length < 2) return null;
+  if (descendants.length === 0) return null;
+  if (descendants.length === 1) return descendants[0];
 
   const [first, ...rest] = descendants;
   for (let candidate = first.parentElement; candidate; candidate = candidate.parentElement) {

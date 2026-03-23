@@ -207,6 +207,23 @@ export function formatDateWithRelative(
   return `${ymd} (${rel})`;
 }
 
+type TimeArg = string | Date | number;
+export function formatElapsedTime(start: TimeArg, end: TimeArg): string | null {
+  const toMs = (x: string | Date | number): number =>
+    x instanceof Date ? x.getTime() : typeof x === 'number' ? x : new Date(x).getTime();
+
+  const ms  = toMs(end) - toMs(start);
+  const sec = Math.round(ms / 1000);
+  const min = Math.floor(sec / 60);
+  const hr  = Math.floor(min / 60);
+
+  return ms < 0 || Number.isNaN(ms) ? null
+    // : ms < 1000 ? `${ms}ms`
+    : sec < 60  ? `${sec}s`
+    : min < 60  ? `${min}m ${sec % 60}s`
+    : `${hr}h ${min % 60}m`;
+};
+
 function resolveUrl(raw?: string, base?: string): URL | undefined {
   if (!raw) return;
   try {

@@ -1,5 +1,5 @@
 import { pickVal, asAbsUrl, type Locator } from '../../utils/locator';
-import { h, isTable, isText } from '../../utils/dom';
+import { h, type HChild, isTable, isText } from '../../utils/dom';
 import { warn } from '../../utils/logging';
 import { chooseCanonicalUrl } from '../../utils/strings';
 import { matchGhUrl } from './route';
@@ -31,12 +31,12 @@ export function scrapeTitle(srcDoc: Document): string | undefined {
   return title;
 }
 
-export function brWrap(wrapper: keyof HTMLElementTagNameMap, els: (Element | null)[], separator = ' · '): [] | [HTMLElement, HTMLElement] {
+export function brWrap(wrapper: keyof HTMLElementTagNameMap, els: HChild[], separator = ' · '): [] | [HTMLElement, HTMLElement] {
   const wrapped = joinWrap(wrapper, els, separator);
   return wrapped ? [h('br'), wrapped] : [];
 }
 
-export function joinWrap(wrapper: keyof HTMLElementTagNameMap, els: (Element | null)[], separator = ' · '): HTMLElement | null {
+export function joinWrap(wrapper: keyof HTMLElementTagNameMap, els: HChild[], separator = ' · '): HTMLElement | null {
   const present = els.filter((el): el is Element => !!el);
   if (!present.length) return null;
 
