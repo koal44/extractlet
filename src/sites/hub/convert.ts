@@ -20,6 +20,7 @@ function shouldSkip(node: Node | null): boolean {
       'svg.octicon',
       'link',
       'copilot-comment-mention-telemetry',
+      'themed-picture',
       // '.sr-only', '.visually-hidden', '[hidden]',
     ].join(','));
   }

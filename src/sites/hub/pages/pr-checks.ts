@@ -173,6 +173,19 @@ export const blocks: BlockSpec[] = [
     },
     itemsFn: (items) => h('ol', {}, ...items),
   },
+  {
+    name: 'checkrun-summary',
+    select: { kind: 'match', selectors: ['[id^="check_run_"]'] },
+    normalize: (root) => {
+      if (root.children.length === 0) return null;
+      return h('section', {}, h('h2', {}, 'Check Run Summary'), root);
+    },
+    transforms: [
+      { kind: 'replace', with: 'h3', selectors: ['[id^="check_run_"] h1', '[id^="check_run_"] h2'] },
+      { kind: 'replace', with: 'h4', selectors: ['[id^="check_run_"] h3'] },
+      { kind: 'unwrap', selectors: ['sub', 'sup'] },
+    ],
+  },
 ];
 
 const mainFieldSpecs: BlockSpec[] = [
