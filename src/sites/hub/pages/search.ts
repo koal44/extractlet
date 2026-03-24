@@ -1,7 +1,7 @@
 import { setPreserve } from '../../../normalize';
 import type { CreatePage } from '../../../snapshot-loader';
 import { h, isAnchor, isList } from '../../../utils/dom';
-import { extractBlocks, extractMany, type ManySpec, type BlockSpec } from '../../../utils/extract';
+import { extractBlocks, type BlockSpec } from '../../../utils/extract';
 import { toHtml, toMd } from '../convert';
 import { brWrap, joinWrap, normalizeCodeTable, scrapePermaUrl } from '../dom';
 
@@ -127,23 +127,23 @@ const blocks: BlockSpec[] = [
       const info = getSearchInfo(root.ownerDocument);
       if (!info) return null;
 
-      let manySpec: ManySpec | null = null;
+      let block: BlockSpec | null = null;
       switch (info.type) {
-        case 'code': manySpec = codeResultsManySpec; break;
-        case 'commits': manySpec = commitResultsManySpec; break;
-        case 'repositories': manySpec = repoResultsManySpec; break;
-        case 'issues': manySpec = issueResultsManySpec; break;
-        case 'pullrequests': manySpec = prResultsManySpec; break;
-        case 'discussions': manySpec = discussionResultsManySpec; break;
-        case 'users': manySpec = userResultsManySpec; break;
-        case 'wikis': manySpec = wikiResultsManySpec; break;
-        case 'topics': manySpec = topicResultsManySpec; break;
-        case 'marketplace': manySpec = marketplaceResultsManySpec; break;
-        case 'registrypackages': manySpec = packageResultsManySpec; break;
+        case 'code': block = codeResultsBlock; break;
+        case 'commits': block = commitResultsBlock; break;
+        case 'repositories': block = repoResultsBlock; break;
+        case 'issues': block = issueResultsBlock; break;
+        case 'pullrequests': block = prResultsBlock; break;
+        case 'discussions': block = discussionResultsBlock; break;
+        case 'users': block = userResultsBlock; break;
+        case 'wikis': block = wikiResultsBlock; break;
+        case 'topics': block = topicResultsBlock; break;
+        case 'marketplace': block = marketplaceResultsBlock; break;
+        case 'registrypackages': block = packageResultsBlock; break;
       }
-      if (!manySpec) return null;
+      if (!block) return null;
 
-      const results = extractMany(root, manySpec, ctxs);
+      const results = extractBlocks(root, [block], ctxs);
       if (!results.length) return null;
 
       return h('section', {},
@@ -179,21 +179,6 @@ const searchHeaderBlocks: BlockSpec[] = [
     ],
   },
 ];
-
-const codeResultsManySpec: ManySpec = {
-  select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    if (root.querySelector('svg.octicon-info')) return null;
-    const [file, repo, language, hits, snippet, groupedMatches] = extractBlocks(root, codeResultFieldSpecs, ctxs);
-    if (!file || !repo) return null;
-    return h('div', {},
-      h('h3', {}, file),
-      ...brWrap('span', [repo, language, hits], ' · '),
-      ...brWrap('div', [snippet]),
-      ...brWrap('div', [groupedMatches]),
-    );
-  },
-};
 
 const codeResultFieldSpecs: BlockSpec[] = [
   {
@@ -238,19 +223,22 @@ const codeResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const commitResultsManySpec: ManySpec = {
+const codeResultsBlock: BlockSpec = {
+  name: 'code-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [repo, title, attribution, message] = extractBlocks(root, commitResultFieldSpecs, ctxs);
-    if (!title || !repo) return null;
+  fields: codeResultFieldSpecs,
+  itemFn: ([file, repo, language, hits, snippet, groupedMatches], root) => {
+    if (root.querySelector('svg.octicon-info')) return null;
+    if (!file || !repo) return null;
 
     return h('div', {},
-      h('h3', {}, title),
-      ...brWrap('span', [repo], ' · '),
-      ...brWrap('div', [message]),
-      ...brWrap('div', [attribution]),
+      h('h3', {}, file),
+      ...brWrap('span', [repo, language, hits], ' · '),
+      ...brWrap('div', [snippet]),
+      ...brWrap('div', [groupedMatches]),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const commitResultFieldSpecs: BlockSpec[] = [
@@ -300,19 +288,20 @@ const commitResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const discussionResultsManySpec: ManySpec = {
+const commitResultsBlock: BlockSpec = {
+  name: 'commit-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [repo, title, matchLine, attribution, comments] = extractBlocks(root, discussionResultFieldSpecs, ctxs);
+  fields: commitResultFieldSpecs,
+  itemFn: ([repo, title, attribution, message]) => {
     if (!title || !repo) return null;
-
     return h('div', {},
       h('h3', {}, title),
-      ...brWrap('span', [repo]),
-      ...brWrap('div', [matchLine]),
-      ...brWrap('div', [attribution, comments], ' · '),
+      ...brWrap('span', [repo], ' · '),
+      ...brWrap('div', [message]),
+      ...brWrap('div', [attribution]),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const discussionResultFieldSpecs: BlockSpec[] = [
@@ -373,12 +362,12 @@ const discussionResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const issueResultsManySpec: ManySpec = {
+const discussionResultsBlock: BlockSpec = {
+  name: 'discussion-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [repo, title, matchLine, attribution, comments] = extractBlocks(root, issueResultFieldSpecs, ctxs);
+  fields: discussionResultFieldSpecs,
+  itemFn: ([repo, title, matchLine, attribution, comments]) => {
     if (!title || !repo) return null;
-
     return h('div', {},
       h('h3', {}, title),
       ...brWrap('span', [repo]),
@@ -386,6 +375,7 @@ const issueResultsManySpec: ManySpec = {
       ...brWrap('div', [attribution, comments], ' · '),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const issueResultFieldSpecs: BlockSpec[] = [
@@ -442,19 +432,20 @@ const issueResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const marketplaceResultsManySpec: ManySpec = {
+const issueResultsBlock: BlockSpec = {
+  name: 'issue-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [title, description, attribution, tags] = extractBlocks(root, marketplaceResultFieldSpecs, ctxs);
-    if (!title) return null;
-
+  fields: issueResultFieldSpecs,
+  itemFn: ([repo, title, matchLine, attribution, comments]) => {
+    if (!title || !repo) return null;
     return h('div', {},
       h('h3', {}, title),
-      ...brWrap('span', [description]),
-      ...brWrap('span', [tags]),
-      ...brWrap('span', [attribution]),
+      ...brWrap('span', [repo]),
+      ...brWrap('div', [matchLine]),
+      ...brWrap('div', [attribution, comments], ' · '),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const marketplaceResultFieldSpecs: BlockSpec[] = [
@@ -501,19 +492,21 @@ const marketplaceResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const packageResultsManySpec: ManySpec = {
+const marketplaceResultsBlock: BlockSpec = {
+  name: 'marketplace-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [repo, title, description, packageType, downloads, updated] = extractBlocks(root, packageResultFieldSpecs, ctxs);
-    if (!title || !repo) return null;
+  fields: marketplaceResultFieldSpecs,
+  itemFn: ([title, description, attribution, tags]) => {
+    if (!title) return null;
 
     return h('div', {},
       h('h3', {}, title),
-      ...brWrap('span', [repo]),
-      ...brWrap('div', [description]),
-      ...brWrap('span', [packageType, downloads, updated], ' · '),
+      ...brWrap('span', [description]),
+      ...brWrap('span', [tags]),
+      ...brWrap('span', [attribution]),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const packageResultFieldSpecs: BlockSpec[] = [
@@ -574,19 +567,20 @@ const packageResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const prResultsManySpec: ManySpec = {
+const packageResultsBlock: BlockSpec = {
+  name: 'package-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [repo, title, matchLine, attribution, comments, status] = extractBlocks(root, prResultFieldSpecs, ctxs);
+  fields: packageResultFieldSpecs,
+  itemFn: ([repo, title, description, packageType, downloads, updated]) => {
     if (!title || !repo) return null;
-
     return h('div', {},
       h('h3', {}, title),
       ...brWrap('span', [repo]),
-      ...brWrap('div', [matchLine]),
-      ...brWrap('div', [attribution, status, comments], ' · '),
+      ...brWrap('div', [description]),
+      ...brWrap('span', [packageType, downloads, updated], ' · '),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const prResultFieldSpecs: BlockSpec[] = [
@@ -658,19 +652,20 @@ const prResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const repoResultsManySpec: ManySpec = {
+const prResultsBlock: BlockSpec = {
+  name: 'pr-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [repo, description, topics, language, stars, updated] = extractBlocks(root, repoResultFieldSpecs, ctxs);
-    if (!repo) return null;
-
+  fields: prResultFieldSpecs,
+  itemFn: ([repo, title, matchLine, attribution, comments, status]) => {
+    if (!title || !repo) return null;
     return h('div', {},
-      h('h3', {}, repo),
-      ...brWrap('div', [description]),
-      ...brWrap('span', [topics]),
-      ...brWrap('span', [language, stars, updated], ' · '),
+      h('h3', {}, title),
+      ...brWrap('span', [repo]),
+      ...brWrap('div', [matchLine]),
+      ...brWrap('div', [attribution, status, comments], ' · '),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const repoResultFieldSpecs: BlockSpec[] = [
@@ -743,17 +738,20 @@ const repoResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const topicResultsManySpec: ManySpec = {
+const repoResultsBlock: BlockSpec = {
+  name: 'repo-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [title, repoCount] = extractBlocks(root, topicResultFieldSpecs, ctxs);
-    if (!title) return null;
-
+  fields: repoResultFieldSpecs,
+  itemFn: ([repo, description, topics, language, stars, updated]) => {
+    if (!repo) return null;
     return h('div', {},
-      h('h3', {}, title),
-      ...brWrap('span', [repoCount]),
+      h('h3', {}, repo),
+      ...brWrap('div', [description]),
+      ...brWrap('span', [topics]),
+      ...brWrap('span', [language, stars, updated], ' · '),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const topicResultFieldSpecs: BlockSpec[] = [
@@ -774,18 +772,18 @@ const topicResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const userResultsManySpec: ManySpec = {
+const topicResultsBlock: BlockSpec = {
+  name: 'topic-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [name, handle, bio, location, repos, followers] = extractBlocks(root, userResultFieldSpecs, ctxs);
-    if (!name) return null;
-
+  fields: topicResultFieldSpecs,
+  itemFn: ([title, repoCount]) => {
+    if (!title) return null;
     return h('div', {},
-      h('h3', {}, name),
-      ...brWrap('div', [handle, location, repos, followers], ' · '),
-      ...brWrap('div', [bio]),
+      h('h3', {}, title),
+      ...brWrap('span', [repoCount]),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const userResultFieldSpecs: BlockSpec[] = [
@@ -868,19 +866,19 @@ const userResultFieldSpecs: BlockSpec[] = [
   },
 ];
 
-const wikiResultsManySpec: ManySpec = {
+const userResultsBlock: BlockSpec = {
+  name: 'user-results',
   select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
-  normalize: (root, ctxs) => {
-    const [repo, title, snippet, updated] = extractBlocks(root, wikiResultFieldSpecs, ctxs);
-    if (!title || !repo) return null;
-
+  fields: userResultFieldSpecs,
+  itemFn: ([name, handle, bio, location, repos, followers]) => {
+    if (!name) return null;
     return h('div', {},
-      h('h3', {}, title),
-      ...brWrap('span', [repo]),
-      ...brWrap('div', [snippet]),
-      ...brWrap('span', [updated]),
+      h('h3', {}, name),
+      ...brWrap('div', [handle, location, repos, followers], ' · '),
+      ...brWrap('div', [bio]),
     );
   },
+  itemsFn: (items) => h('div', {}, ...items),
 };
 
 const wikiResultFieldSpecs: BlockSpec[] = [
@@ -919,6 +917,22 @@ const wikiResultFieldSpecs: BlockSpec[] = [
     ],
   },
 ];
+
+const wikiResultsBlock: BlockSpec = {
+  name: 'wiki-results',
+  select: { kind: 'childrenOfMatch', selectors: ['[data-testid="results-list"]'] },
+  fields: wikiResultFieldSpecs,
+  itemFn: ([repo, title, snippet, updated]) => {
+    if (!title || !repo) return null;
+    return h('div', {},
+      h('h3', {}, title),
+      ...brWrap('span', [repo]),
+      ...brWrap('div', [snippet]),
+      ...brWrap('span', [updated]),
+    );
+  },
+  itemsFn: (items) => h('div', {}, ...items),
+};
 
 type SearchInfo = { query: string; type: string; sort: string; order: string; };
 function getSearchInfo(doc: Document): SearchInfo | null {

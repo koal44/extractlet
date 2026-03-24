@@ -1,7 +1,7 @@
 import { setPreserve } from '../../../normalize';
 import type { CreatePage } from '../../../snapshot-loader';
 import { h, isTable } from '../../../utils/dom';
-import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../../utils/extract';
+import { extractBlocks, type BlockSpec } from '../../../utils/extract';
 import { toHtml, toMd } from '../convert';
 import { brWrap, joinWrap, normalizeDiffTable } from '../dom';
 
@@ -69,24 +69,125 @@ export const blocks: BlockSpec[] = [
   },
   {
     name: 'diffs',
-    normalize: (root, ctxs) => {
-      const diffRoots = extractMany(root, diffManySpec, ctxs);
-      return h('section', {}, ...diffRoots);
+    select: {
+      kind: 'matchAll',
+      selectors: ['#diff-content-parent [role="region"]'],
     },
+    fields:
+    [
+      {
+        name: 'path',
+        select: {
+          kind: 'match',
+          selectors: ['h3[id^="heading-"]'],
+        },
+        normalize: (root) => {
+          root.querySelectorAll('svg.octicon-arrow-right').forEach((svg) => {
+            svg.replaceWith(h('span', {}, ' → '));
+          });
+          scrubBidiText(root);
+          return root;
+        },
+        transforms: [
+          { kind: 'remove', selectors: ['.sr-only'] },
+          { kind: 'replace', with: 'span', selectors: ['a', 'code'] },
+        ],
+      },
+      {
+        name: 'info',
+        select: {
+          kind: 'root',
+        },
+        normalize: (root) => {
+          const texts = [...root.querySelectorAll('span')]
+            .map((el) => el.textContent?.trim())
+            .filter((t): t is string => !!t);
+
+          const plus = texts.find((t) => /^\+\d+$/.test(t));
+          const minus = texts.find((t) => /^-\d+$/.test(t));
+
+          if (!plus && !minus) return null;
+
+          return h('span', {}, [plus, minus].filter(Boolean).join(' '));
+        },
+      },
+      {
+        name: 'body',
+        select: {
+          kind: 'match',
+          // selectors: ['table'],
+          selectors: ['[data-diff-anchor]'],
+        },
+        normalize: (root) => {
+          if (isTable(root)) return normalizeDiffTable(root);
+          return root;
+        },
+      },
+    ],
+    itemFn: ([path, info, body]) => {
+      return h('section', {},
+        ...(path ? [path] : []),
+        ...(info ? [info] : []),
+        ...(body ? [body] : []),
+      );
+    },
+    itemsFn: (items) => h('section', {}, ...items),
   },
   {
     name: 'comments',
     select: {
-      kind: 'match',
-      selectors: ['#comments'],
+      kind: 'matchAll',
+      selectors: ['#comments div[id^="commitcomment-"]'],
     },
-    normalize: (root, ctxs) => {
-      const comments = extractMany(root, commentManySpec, ctxs);
-      if (!comments.length) return null;
-
+    fields:
+    [
+      {
+        name: 'author',
+        select: {
+          kind: 'match',
+          selectors: [
+            '[data-testid="avatar-link"]',
+          ],
+        },
+        transforms: [
+          { kind: 'unwrap', selectors: ['a'] },
+        ],
+      },
+      {
+        name: 'time',
+        select: {
+          kind: 'match',
+          selectors: [
+            '[data-testid="comment-header"] relative-time',
+          ],
+        },
+      },
+      {
+        name: 'body',
+        select: {
+          kind: 'match',
+          selectors: [
+            ':scope > div > .markdown-body',
+          ],
+        },
+        normalize: (root) => {
+          const bq = h('blockquote', {}, root);
+          setPreserve(bq, true);
+          return bq;
+        },
+      },
+    ],
+    itemFn: ([author, time, body]) => {
+      return h('section', {},
+        ...brWrap('div', [author, time], ' · '),
+        ...brWrap('div', [body]),
+      );
+    },
+    itemsFn: (items) => {
+      if (!items.length) return null;
       return h('section', {},
         h('h2', {}, 'Comments'),
-        ...comments,
+        ...items,
       );
     },
   },
@@ -208,110 +309,6 @@ export const mainBlocks: BlockSpec[] = [
   },
 ];
 
-const diffFieldSpecs: BlockSpec[] = [
-  {
-    name: 'path',
-    select: {
-      kind: 'match',
-      selectors: ['h3[id^="heading-"]'],
-    },
-    normalize: (root) => {
-      root.querySelectorAll('svg.octicon-arrow-right').forEach((svg) => {
-        svg.replaceWith(h('span', {}, ' → '));
-      });
-      scrubBidiText(root);
-      return root;
-    },
-    transforms: [
-      { kind: 'remove', selectors: ['.sr-only'] },
-      { kind: 'replace', with: 'span', selectors: ['a', 'code'] },
-    ],
-  },
-  {
-    name: 'info',
-    select: {
-      kind: 'root',
-    },
-    normalize: (root) => {
-      const texts = [...root.querySelectorAll('span')]
-        .map((el) => el.textContent?.trim())
-        .filter((t): t is string => !!t);
-
-      const plus = texts.find((t) => /^\+\d+$/.test(t));
-      const minus = texts.find((t) => /^-\d+$/.test(t));
-
-      if (!plus && !minus) return null;
-
-      return h('span', {}, [plus, minus].filter(Boolean).join(' '));
-    },
-  },
-  {
-    name: 'body',
-    select: {
-      kind: 'match',
-      // selectors: ['table'],
-      selectors: ['[data-diff-anchor]'],
-    },
-    normalize: (root) => {
-      if (isTable(root)) return normalizeDiffTable(root);
-      return root;
-    },
-  },
-];
-
-const commentManySpec: ManySpec = {
-  select: {
-    kind: 'matchAll',
-    selectors: ['#comments div[id^="commitcomment-"]'],
-  },
-  normalize: (root, ctxs) => {
-    const [author, time, body] = extractBlocks(root, commentFieldSpecs, ctxs);
-
-    return h('section', {},
-      ...brWrap('div', [author, time], ' · '),
-      ...brWrap('div', [body]),
-    );
-  },
-};
-
-const commentFieldSpecs: BlockSpec[] = [
-  {
-    name: 'author',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[data-testid="avatar-link"]',
-      ],
-    },
-    transforms: [
-      { kind: 'unwrap', selectors: ['a'] },
-    ],
-  },
-  {
-    name: 'time',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[data-testid="comment-header"] relative-time',
-      ],
-    },
-  },
-  {
-    name: 'body',
-    select: {
-      kind: 'match',
-      selectors: [
-        ':scope > div > .markdown-body',
-      ],
-    },
-    normalize: (root) => {
-      const bq = h('blockquote', {}, root);
-      setPreserve(bq, true);
-      return bq;
-    },
-  },
-];
-
 function scrubBidiText(node: Node): void {
   for (const child of node.childNodes) {
     if (child.nodeType === Node.TEXT_NODE && child.textContent) {
@@ -321,21 +318,6 @@ function scrubBidiText(node: Node): void {
     }
   }
 }
-
-const diffManySpec: ManySpec = {
-  select: {
-    kind: 'matchAll',
-    selectors: ['#diff-content-parent [role="region"]'],
-  },
-  normalize: (root, ctxs) => {
-    const [path, info, body] = extractBlocks(root, diffFieldSpecs, ctxs);
-    return h('section', {},
-      ...(path ? [path] : []),
-      ...(info ? [info] : []),
-      ...(body ? [body] : []),
-    );
-  },
-};
 
 export const createCommitPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const commitBlocks = extractBlocks(sourceDoc, blocks, ctxs);

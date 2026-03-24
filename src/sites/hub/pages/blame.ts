@@ -1,6 +1,6 @@
 import type { CreatePage } from '../../../snapshot-loader';
 import { h, isDiv } from '../../../utils/dom';
-import { extractBlocks, extractMany, type ManySpec, type BlockSpec } from '../../../utils/extract';
+import { extractBlocks, type BlockSpec } from '../../../utils/extract';
 import { joinWrap, scrapePermaUrl } from '../dom';
 import { toHtml, toMd } from '../convert';
 import { parseGhPath } from '../route';
@@ -96,96 +96,84 @@ const blocks: BlockSpec[] = [
   },
   {
     name: 'blame-content',
-    select: {
-      kind: 'root',
-    },
-    normalize: (root, ctxs) => {
-      const blames = extractMany(root, blameManySpec, ctxs);
-      return h('section', {}, h('h2', {}, 'Blame'), ...blames);
-    },
-  },
-];
-
-const blameManySpec: ManySpec = {
-  select: {
-    kind: 'childrenOfMatch',
-    selectors: ['.virtual-blame-wrapper'],
-  },
-  normalize: (root, ctxs) => {
-    const [time, author, message, code, lines] = extractBlocks(root, fieldSpecs, ctxs);
-    return h('div', {},
-      lines,
-      message, h('br'),
-      joinWrap('span', [author, time]), h('br'),
-      code
-    );
-  },
-};
-
-const fieldSpecs: BlockSpec[] = [
-  {
-    name: 'time',
-    select: {
-      kind: 'match',
-      selectors: ['relative-time'],
-    },
-  },
-  {
-    name: 'author',
-    select: {
-      kind: 'match',
-      selectors: ['.author-avatar-wrapper'],
-    },
-    normalize: (root) => {
-      const img = root.querySelector('img');
-      const match = img?.src.match(/\/u\/(\d+)/);
-      return match ? h('span', {}, `u/${match[1]}`) : null;
-    },
-  },
-  {
-    name: 'message',
-    select: {
-      kind: 'match',
-      selectors: ['[class*="commitMessageWrapper"]'],
-    },
-    transforms: [
+    select: { kind: 'childrenOfMatch', selectors: ['.virtual-blame-wrapper'] },
+    fields: [
       {
-        kind: 'replace', with: 'span', selectors: ['div', 'p'],
+        name: 'time',
+        select: {
+          kind: 'match',
+          selectors: ['relative-time'],
+        },
+      },
+      {
+        name: 'author',
+        select: {
+          kind: 'match',
+          selectors: ['.author-avatar-wrapper'],
+        },
+        normalize: (root) => {
+          const img = root.querySelector('img');
+          const match = img?.src.match(/\/u\/(\d+)/);
+          return match ? h('span', {}, `u/${match[1]}`) : null;
+        },
+      },
+      {
+        name: 'message',
+        select: {
+          kind: 'match',
+          selectors: ['[class*="commitMessageWrapper"]'],
+        },
+        transforms: [
+          {
+            kind: 'replace', with: 'span', selectors: ['div', 'p'],
+          },
+        ],
+      },
+      {
+        name: 'code',
+        select: {
+          kind: 'match',
+          selectors: ['.react-line-code-pairs'],
+        },
+        normalize: (root) => {
+          const lines: string[] = [];
+
+          for (const row of root.children) {
+            if (!isDiv(row)) continue;
+            const cell = row.querySelector('[data-testid="code-cell"]');
+            lines.push(cell?.textContent?.replace(/[\r\n]/g, '') ?? '');
+          }
+
+          return h('pre', {}, lines.join('\n'));
+        },
+      },
+      {
+        name: 'lines',
+        select: {
+          kind: 'match',
+          selectors: ['.react-line-code-pairs'],
+        },
+        normalize: (root) => {
+          const fc = root.firstElementChild;
+          const lc = root.lastElementChild;
+          const fcn = fc?.querySelector('.react-line-numbers')?.textContent?.trim();
+          const lcn = lc?.querySelector('.react-line-numbers')?.textContent?.trim();
+          if (!fcn || !lcn) return null;
+          const label = fcn === lcn ? `Line ${fcn}` : `Lines ${fcn}-${lcn}`;
+          return h('h3', {}, label);
+        },
       },
     ],
-  },
-  {
-    name: 'code',
-    select: {
-      kind: 'match',
-      selectors: ['.react-line-code-pairs'],
+    itemFn: ([time, author, message, code, lines]) => {
+      return h('div', {},
+        lines,
+        message, h('br'),
+        joinWrap('span', [author, time]), h('br'),
+        code
+      );
     },
-    normalize: (root) => {
-      const lines: string[] = [];
-
-      for (const row of root.children) {
-        if (!isDiv(row)) continue;
-        const cell = row.querySelector('[data-testid="code-cell"]');
-        lines.push(cell?.textContent?.replace(/[\r\n]/g, '') ?? '');
-      }
-
-      return h('pre', {}, lines.join('\n'));
-    },
-  },
-  {
-    name: 'lines',
-    select: {
-      kind: 'match',
-      selectors: ['.react-line-code-pairs'],
-    },
-    normalize: (root) => {
-      const fc = root.firstElementChild;
-      const lc = root.lastElementChild;
-      const fcn = fc?.querySelector('.react-line-numbers')?.textContent?.trim();
-      const lcn = lc?.querySelector('.react-line-numbers')?.textContent?.trim();
-      if (!fcn || !lcn) return null;
-      const label = fcn === lcn ? `Line ${fcn}` : `Lines ${fcn}-${lcn}`;
-      return h('h3', {}, label);
+    itemsFn: (items) => {
+      return h('section', {}, h('h2', {}, 'Blame'), ...items);
     },
   },
 ];

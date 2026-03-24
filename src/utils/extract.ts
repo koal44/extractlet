@@ -2,11 +2,16 @@ import { type XletContexts } from '../settings';
 import {
   findCommonAncestor, h, isDiv, isDoc, isElement, isInlineElement, isSpan,
 } from './dom';
+import { assertNever } from './typing';
 
-export type SelectSpec =
+export type SelectOneSpec =
   | { kind: 'match'; selectors: string[]; } // fallbacks
   | { kind: 'ancestor'; selectors: string[]; }
   | { kind: 'root'; };
+
+export type SelectManySpec =
+  | { kind: 'matchAll'; selectors: string[]; }
+  | { kind: 'childrenOfMatch'; selectors: string[]; };
 
 export type TransformSpec =
   | { kind: 'remove'; selectors: string[]; }
@@ -15,22 +20,31 @@ export type TransformSpec =
   | { kind: 'replace'; selectors: string[]; with: keyof HTMLElementTagNameMap; }
   | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element, ctxs: XletContexts) => Element | null; }
 
-export type BlockSpec = {
+type OneBlockSpec = {
   name: string;
-  select?: SelectSpec;
-  transforms?: TransformSpec[];
+  select: SelectOneSpec;
+  fallbackSelects?: SelectOneSpec[];
   normalize?: (root: Element, ctxs: XletContexts) => Element | null;
+  transforms?: TransformSpec[];
+
+  fields?: never;
+  itemFn?: never;
+  itemsFn?: never;
 };
 
-export type ManySelectSpec =
-  | { kind: 'matchAll'; selectors: string[]; }  // fallbacks
-  | { kind: 'childrenOfMatch'; selectors: string[]; };
-
-export type ManySpec = {
-  select: ManySelectSpec;
+type ManyBlockSpec = {
+  name: string;
+  select: SelectManySpec;
+  fallbackSelects?: SelectManySpec[];
+  fields?: BlockSpec[];
+  itemFn?: (fields: (Element | null)[], root: Element, ctxs: XletContexts) => Element | null;
+  itemsFn?: (items: Element[], ctxs: XletContexts) => Element | null;
   transforms?: TransformSpec[];
-  normalize?: (root: Element, ctxs: XletContexts) => Element | null;
+
+  normalize?: never;
 };
+
+export type BlockSpec = OneBlockSpec | ManyBlockSpec;
 
 export function extractBlocks(root: ParentNode, specs: BlockSpec[], ctxs: XletContexts): (Element | null)[] {
   const blocks: (Element | null)[] = [];
@@ -40,78 +54,106 @@ export function extractBlocks(root: ParentNode, specs: BlockSpec[], ctxs: XletCo
   return blocks;
 }
 
-export function extractMany(root: ParentNode, spec: ManySpec, ctxs: XletContexts): Element[] {
-  let matches: Element[] = [];
-  switch (spec.select.kind) {
-    case 'matchAll': {
-      for (const selector of spec.select.selectors) {
-        matches = [...root.querySelectorAll(selector)];
-        if (matches.length > 0) break;
-      }
-      break;
-    }
-    case 'childrenOfMatch': {
-      for (const selector of spec.select.selectors) {
-        const el = root.querySelector(selector);
-        if (el) {
-          matches = [...el.children];
-          break;
-        }
-      }
-      break;
-    }
-  }
-
-  const out: Element[] = [];
-  for (const match of matches) {
-    const item = extractBlock(
-      match,
-      {
-        name: `${spec.select.kind}-item`,
-        select: { kind: 'root' },
-        transforms: spec.transforms,
-        normalize: spec.normalize,
-      },
-      ctxs,
-    );
-
-    if (item) out.push(item);
-  }
-  return out;
+function isOneBlockSpec(spec: BlockSpec): spec is OneBlockSpec {
+  return spec.select.kind === 'match' || spec.select.kind === 'ancestor' || spec.select.kind === 'root';
 }
 
 function extractBlock(root: ParentNode, spec: BlockSpec, ctxs: XletContexts): Element | null {
+  const block = isOneBlockSpec(spec)
+    ? extractOne(root, spec, ctxs)
+    : extractMany(root, spec, ctxs);
+
+  if (!block) return null;
+
+  const transformed = applyTransforms(block, spec.transforms ?? [], ctxs);
+  if (!transformed) return null;
+
+  return clean(transformed);
+}
+
+function extractOne(root: ParentNode, spec: OneBlockSpec, ctxs: XletContexts): Element | null {
+  const selects = [spec.select, ...(spec.fallbackSelects ?? [])];
+
   let found: Element | null = null;
-
-  if (spec.select?.kind === 'match') {
-    for (const selector of spec.select.selectors) {
-      const el = root.querySelector(selector);
-      if (el) {
-        found = el;
-        break;
-      }
-    }
-  } else if (spec.select?.kind === 'ancestor') {
-    found = findCommonAncestor(root, spec.select.selectors);
-  } else if (spec.select?.kind === 'root') {
-    found = resolveRootElement(root);
-  } else {
-    found = resolveRootElement(root);
+  for (const select of selects) {
+    found = selectOne(root, select);
+    if (found) break;
   }
-
   if (!found) return null;
 
   const clone = found.cloneNode(true);
   if (!isElement(clone)) return null;
 
-  const normalized = spec.normalize ? spec.normalize(clone, ctxs) : clone;
-  if (!normalized) return null;
+  return spec.normalize ? spec.normalize(clone, ctxs) : clone;
+}
 
-  const transformed = applyTransforms(normalized, spec.transforms ?? [], ctxs);
-  if (!transformed) return null;
+function selectOne(root: ParentNode, select: SelectOneSpec): Element | null {
+  switch (select.kind) {
+    case 'match': {
+      for (const selector of select.selectors) {
+        const el = root.querySelector(selector);
+        if (el) return el;
+      }
+      return null;
+    }
+    case 'ancestor':
+      return findCommonAncestor(root, select.selectors);
+    case 'root':
+      return resolveRootElement(root);
+    default:
+      assertNever(select);
+  }
+}
 
-  const cleaned = clean(transformed);
-  return cleaned;
+function extractMany(root: ParentNode, spec: ManyBlockSpec, ctxs: XletContexts): Element | null {
+  const selects = [spec.select, ...(spec.fallbackSelects ?? [])];
+
+  let matches: Element[] = [];
+  for (const select of selects) {
+    matches = selectMany(root, select);
+    if (matches.length) break;
+  }
+
+  if (!matches.length) return null;
+
+  const fieldSpecs = spec.fields ?? [{ name: 'item', select: { kind: 'root' } }];
+  const chooseWrapper = (nodes: (Element | null)[]): 'span' | 'div' =>
+    nodes.some((n) => n && !isInlineElement(n)) ? 'div' : 'span';
+  const itemFn = spec.itemFn ?? ((fields) => fields.some(Boolean) ? h(chooseWrapper(fields), {}, ...fields) : null);
+  const itemsFn = spec.itemsFn ?? ((els) => h(chooseWrapper(els), {}, ...els));
+
+  const items: Element[] = [];
+
+  for (const match of matches) {
+    const fields = extractBlocks(match, fieldSpecs, ctxs);
+    const item = itemFn(fields, match, ctxs);
+    if (item) items.push(item);
+  }
+
+  if (!items.length) return null;
+
+  return itemsFn(items, ctxs);
+}
+
+function selectMany(root: ParentNode, select: SelectManySpec): Element[] {
+  switch (select.kind) {
+    case 'matchAll': {
+      for (const selector of select.selectors) {
+        const matches = [...root.querySelectorAll(selector)];
+        if (matches.length) return matches;
+      }
+      return [];
+    }
+    case 'childrenOfMatch': {
+      for (const selector of select.selectors) {
+        const el = root.querySelector(selector);
+        if (el) return [...el.children];
+      }
+      return [];
+    }
+    default:
+      assertNever(select);
+  }
 }
 
 function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletContexts): Element | null {
@@ -140,7 +182,6 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
   const shouldRemove = (el: Element) => removeSelectors.some((sel) => el.matches(sel));
   const shouldRemoveNextSiblings = (el: Element) => removeNextSiblingSelectors.some((sel) => el.matches(sel));
   const shouldUnwrap = (el: Element) => unwrapSelectors.some((sel) => el.matches(sel));
-  // const shouldReplace = (el: Element) => replacements.some((r) => el.matches(r.selector));
 
   function getReplacementTag(n: Node): keyof HTMLElementTagNameMap | null {
     if (!isElement(n)) return null;
@@ -259,3 +300,5 @@ function clean(root: Element): Element | null {
   walk(root);
   return isDisposable(root) ? null : root;
 }
+
+

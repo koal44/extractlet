@@ -1,6 +1,6 @@
 import type { CreatePage } from '../../../snapshot-loader';
 import { h } from '../../../utils/dom';
-import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../../utils/extract';
+import { extractBlocks, type BlockSpec } from '../../../utils/extract';
 import { formatElapsedTime } from '../../../utils/strings';
 import { toHtml, toMd } from '../convert';
 import { brWrap, joinWrap } from '../dom';
@@ -72,11 +72,62 @@ export const blocks: BlockSpec[] = [
   },
   {
     name: 'checks',
-    select: { kind: 'match', selectors: ['.actions-grid-container .js-check-suites-sidebar'] },
-    normalize: (root, ctxs) => {
-      const suites = extractMany(root, suitesManySpec, ctxs);
-      return h('section', {}, ...suites);
-    },
+    // select: { kind: 'matchAll', selectors: ['.actions-grid-container .js-check-suites-sidebar [id^="check_suite_"]'] },
+    select: { kind: 'matchAll', selectors: ['[id^="check_suite_"]'] },
+    fields: [
+      {
+        name: 'summary',
+        select: { kind: 'match', selectors: [':scope > details > summary'] },
+        normalize: (root) => {
+          const reportBadge = root.querySelector('svg.octicon-report')?.parentElement;
+          const reportCount = reportBadge?.textContent?.trim() ?? '';
+          if (reportBadge && /^\d+$/.test(reportCount)) {
+            const n = Number(reportCount);
+            reportBadge.textContent = `(${n} annotation${n === 1 ? '' : 's'})`;
+          }
+          return root;
+        },
+        transforms: [
+          { kind: 'replace', with: 'span', selectors: ['div'] },
+          { kind: 'replace', with: 'h3', selectors: ['summary'] },
+        ],
+      },
+      {
+        name: 'runs',
+        // select: { kind: 'match', selectors: [':scope > details > div'] },
+        select: { kind: 'matchAll', selectors: [':scope > details > div > div.checks-list-item'] },
+        itemFn: ([status, name], root) => {
+          const isSelected = root.matches('.selected');
+          return h('li', {},
+            isSelected ? h('strong', {}, name) : name,
+            status
+          );
+        },
+        itemsFn: (items) => h('ul', {}, ...items),
+        fields: [
+          {
+            name: 'status',
+            select: { kind: 'match', selectors: ['.checks-list-item-icon'] },
+            normalize: (root) => {
+              const svg = root.querySelector('svg[aria-label]');
+              const status = svg?.getAttribute('aria-label') ?? null;
+              const normStatus = normalizeCheckStatus(status);
+              return normStatus ? h('div', {}, normStatus) : null;
+            },
+          },
+          {
+            name: 'name',
+            select: {
+              kind: 'match', selectors: [
+                'a[href*="/actions/runs/"]',
+                'a[href*="checks?check_run_id="]',
+                '.text-normal',
+              ],
+            },
+          },
+        ],
+      },
+    ],
   },
   {
     name: 'log-header',
@@ -105,15 +156,22 @@ export const blocks: BlockSpec[] = [
   },
   {
     name: 'log-entries',
-    select: {
-      kind: 'match',
-      selectors: [
-        '#logs .js-full-logs-container',
-      ],
+    // select: { kind: 'match', selectors: ['#logs .js-full-logs-container'] },
+    select: { kind: 'matchAll', selectors: ['#logs .js-full-logs-container check-steps check-step'] },
+    itemFn: (_fields, root) => {
+      const name = root.getAttribute('data-name');
+      const conclusion = root.getAttribute('data-conclusion');
+      const start = root.getAttribute('data-started-at');
+      const end = root.getAttribute('data-completed-at') ?? new Date();
+      const time = start ? formatElapsedTime(start, end) : null;
+      return joinWrap('li', [
+        // name ? h('code', {}, name) : null,
+        name,
+        conclusion,
+        time,
+      ], ' · ');
     },
-    normalize: (root, ctxs) => {
-      return h('ol', {}, ...extractMany(root, logEntryManySpec, ctxs));
-    },
+    itemsFn: (items) => h('ol', {}, ...items),
   },
 ];
 
@@ -206,98 +264,6 @@ const mainFieldSpecs: BlockSpec[] = [
     ],
   },
 ];
-
-const suitesManySpec: ManySpec =
-{
-  select: { kind: 'matchAll', selectors: ['[id^="check_suite_"]'] },
-  normalize: (root, ctxs) => {
-    return h('section', {}, ...extractBlocks(root, suiteFieldSpecs, ctxs));
-  },
-};
-
-const suiteFieldSpecs: BlockSpec[] = [
-  {
-    name: 'summary',
-    select: { kind: 'match', selectors: [':scope > details > summary'] },
-    normalize: (root) => {
-      const reportBadge = root.querySelector('svg.octicon-report')?.parentElement;
-      const reportCount = reportBadge?.textContent?.trim() ?? '';
-      if (reportBadge && /^\d+$/.test(reportCount)) {
-        const n = Number(reportCount);
-        reportBadge.textContent = `(${n} annotation${n === 1 ? '' : 's'})`;
-      }
-      return root;
-    },
-    transforms: [
-      { kind: 'replace', with: 'span', selectors: ['div'] },
-      { kind: 'replace', with: 'h3', selectors: ['summary'] },
-    ],
-  },
-  {
-    name: 'runs',
-    select: { kind: 'match', selectors: [':scope > details > div'] },
-    // transforms: [
-    //   { kind: 'replace', with: 'span', selectors: ['div'] },
-    // ],
-    normalize: (root, ctxs) => {
-      return h('ul', {}, ...extractMany(root, runManySpec, ctxs));
-    },
-  },
-];
-
-const runManySpec: ManySpec =
-{
-  select: { kind: 'matchAll', selectors: [':scope > div.checks-list-item'] },
-  normalize: (root, ctxs) => {
-    const [status, name] = extractBlocks(root, runFieldSpecs, ctxs);
-    const isSelected = root.matches('.selected');
-    return h('li', {},
-      isSelected ? h('strong', {}, name) : name,
-      status
-    );
-  },
-};
-
-const runFieldSpecs: BlockSpec[] = [
-  {
-    name: 'status',
-    select: { kind: 'match', selectors: ['.checks-list-item-icon'] },
-    normalize: (root) => {
-      const svg = root.querySelector('svg[aria-label]');
-      const status = svg?.getAttribute('aria-label') ?? null;
-      const normStatus = normalizeCheckStatus(status);
-      return normStatus ? h('div', {}, normStatus) : null;
-    },
-  },
-  {
-    name: 'name',
-    select: {
-      kind: 'match', selectors: [
-        'a[href*="/actions/runs/"]',
-        'a[href*="checks?check_run_id="]',
-        '.text-normal',
-      ],
-    },
-  },
-];
-
-const logEntryManySpec: ManySpec =
-{
-  select: { kind: 'matchAll', selectors: ['check-steps check-step'] },
-  normalize: (root) => {
-    const name = root.getAttribute('data-name');
-    const conclusion = root.getAttribute('data-conclusion');
-    const start = root.getAttribute('data-started-at');
-    const end = root.getAttribute('data-completed-at') ?? new Date();
-    const time = start ? formatElapsedTime(start, end) : null;
-    return joinWrap('li', [
-      // name ? h('code', {}, name) : null,
-      name,
-      conclusion,
-      time,
-    ], ' · ');
-  },
-};
 
 function normalizeCheckStatus(raw: string | null): string | null {
   if (!raw) return null;

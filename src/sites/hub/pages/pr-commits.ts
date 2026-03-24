@@ -1,6 +1,6 @@
 import type { CreatePage } from '../../../snapshot-loader';
 import { h } from '../../../utils/dom';
-import { extractBlocks, extractMany, type BlockSpec, type ManySpec } from '../../../utils/extract';
+import { extractBlocks, type BlockSpec } from '../../../utils/extract';
 import { toHtml, toMd } from '../convert';
 import { brWrap, joinWrap } from '../dom';
 import { formatDateWithRelative } from '../../../utils/strings';
@@ -57,12 +57,145 @@ export const blocks: BlockSpec[] = [
   },
   {
     name: 'history',
-    select: { kind: 'root' },
-    normalize: (root, ctxs) => {
-      const history = extractMany(root, historyManySpec, ctxs);
-      if (!history.length) return null;
-      return h('section', {}, ...history);
+    select: {
+      kind: 'matchAll',
+      selectors: [
+        '.Timeline-Item',
+        // '[data-testid="commit-group"]',
+      ],
     },
+    fields:
+    [
+      {
+        name: 'date',
+        select: {
+          kind: 'match',
+          selectors: ['[data-testid="commit-group-title"]'],
+        },
+      },
+      {
+        name: 'commits',
+        select: {
+          kind: 'matchAll',
+          // selectors: ['li[class*="CommitRow"]'],
+          selectors: ['li[data-testid="commit-row-item"]'],
+        },
+        fields:
+        [
+          {
+            name: 'title',
+            select: {
+              kind: 'match',
+              selectors: ['h4[class*="ListItemTitle"]'],
+            },
+            transforms: [
+              { kind: 'unwrap', selectors: ['a'] },
+            ],
+          },
+          {
+            name: 'short-link',
+            select: {
+              kind: 'ancestor',
+              selectors: [
+                '[data-testid="commit-row-view-code"]',
+                '[data-testid="commit-row-browse-repo"]',
+                'svg.octicon-copy',
+                'svg.octicon-code',
+              ],
+            },
+            normalize: (root) => {
+              const link = root.querySelector('a[href*="/commit/"], a[href*="/commits/"]');
+              return link ? h('span', {}, link) : null;
+            },
+          },
+          {
+            name: 'message',
+            select: {
+              kind: 'match',
+              selectors: ['h4[class*="ListItemTitle"]'],
+            },
+            normalize: (root) => {
+              const a = root.querySelector('a');
+              return a?.title ? h('pre', {}, a.title) : null;
+            },
+          },
+          {
+            name: 'attribution',
+            select: {
+              kind: 'match',
+              selectors: ['[class^="CommitAttribution"]', '[class*="CommitAttribution"]'],
+            },
+            normalize: (root) => {
+              root.querySelectorAll('[data-testid="author-link"], [data-testid="author-avatar"], relative-time').forEach((el) => {
+                el.insertAdjacentElement('afterend', h('span', {}, ' '));
+                el.insertAdjacentElement('beforebegin', h('span', {}, ' '));
+              });
+              return root;
+            },
+            transforms: [
+              { kind: 'remove', selectors: ['img'] },
+              { kind: 'removeNextSiblings', selectors: ['relative-time'] },
+              { kind: 'unwrap', selectors: ['a'] },
+              { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+              {
+                kind: 'replaceFn',
+                selectors: ['relative-time'],
+                fn: (el, ctxs) => {
+                  const iso = el.getAttribute('datetime');
+                  const text = formatDateWithRelative(iso, { utc: true, now: ctxs.md?.now });
+                  return h('span', {}, text);
+                },
+              },
+            ],
+          },
+          {
+            name: 'checks',
+            select: {
+              kind: 'match',
+              selectors: ['[data-testid="checks-status-badge-button"]'],
+            },
+            normalize: (root) => {
+              const text = root.textContent?.replace(/\s+/g, '').trim();
+              return text ? h('span', {}, `${text} checks`) : null;
+            },
+            transforms: [
+              { kind: 'unwrap', selectors: ['button'] },
+            ],
+          },
+          {
+            name: 'comment-count',
+            select: {
+              kind: 'match',
+              selectors: ['a[data-testid="commit-row-comments"]'],
+            },
+            normalize: (root) => {
+              const raw = root.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+              const n = Number(raw);
+              if (!Number.isFinite(n)) return null;
+              return h('span', {}, `${n} ${n === 1 ? 'comment' : 'comments'}`);
+            },
+            transforms: [
+              { kind: 'unwrap', selectors: ['a'] },
+            ],
+          },
+        ],
+        itemFn: ([title, shortLink, message, attribution, checks, commentCount]) => {
+          return h('div', {},
+            ...brWrap('span', [title]),
+            ...brWrap('span', [shortLink]),
+            ...brWrap('span', [message]),
+            ...brWrap('span', [attribution]),
+            ...brWrap('span', [checks, commentCount], ' · '),
+          );
+        },
+        itemsFn: (items) => h('div', {}, ...items),
+      },
+    ],
+    itemFn: ([date, commits]) => {
+      if (!date && !commits) return null;
+      return h('div', {}, ...(date ? [date] : []), ...(commits ? [commits] : []));
+    },
+    itemsFn: (items) => h('section', {}, ...items),
   },
 ];
 
@@ -147,158 +280,6 @@ const mainFieldSpecs: BlockSpec[] = [
     transforms: [
       { kind: 'remove', selectors: ['.sr-only'] },
       { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
-    ],
-  },
-];
-
-const historyFieldSpecs: BlockSpec[] = [
-  {
-    name: 'date',
-    select: {
-      kind: 'match',
-      selectors: ['[data-testid="commit-group-title"]'],
-    },
-  },
-  {
-    name: 'commits',
-    select: { kind: 'root' },
-    normalize: (root, ctxs) => {
-      const commits = extractMany(root, commitManySpec, ctxs);
-      return commits.length ? h('div', {}, ...commits) : null;
-    },
-  },
-];
-
-const historyManySpec: ManySpec = {
-  select: {
-    kind: 'matchAll',
-    selectors: [
-      '.Timeline-Item',
-      // '[data-testid="commit-group"]',
-    ],
-  },
-  normalize: (root, ctxs) => {
-    const [date, commits] = extractBlocks(root, historyFieldSpecs, ctxs);
-    if (!date && !commits) return null;
-    return h('div', {}, ...(date ? [date] : []), ...(commits ? [commits] : []));
-  },
-};
-
-const commitManySpec: ManySpec = {
-  select: {
-    kind: 'matchAll',
-    // selectors: ['li[class*="CommitRow"]'],
-    selectors: ['li[data-testid="commit-row-item"]'],
-  },
-  normalize: (root, ctxs) => {
-    const [title, shortLink, message, attribution, checks, commentCount] =
-      extractBlocks(root, commitFieldSpecs, ctxs);
-
-    return h('div', {},
-      ...brWrap('span', [title]),
-      ...brWrap('span', [shortLink]),
-      ...brWrap('span', [message]),
-      ...brWrap('span', [attribution]),
-      ...brWrap('span', [checks, commentCount], ' · '),
-    );
-  },
-};
-
-const commitFieldSpecs: BlockSpec[] = [
-  {
-    name: 'title',
-    select: {
-      kind: 'match',
-      selectors: ['h4[class*="ListItemTitle"]'],
-    },
-    transforms: [
-      { kind: 'unwrap', selectors: ['a'] },
-    ],
-  },
-  {
-    name: 'short-link',
-    select: {
-      kind: 'ancestor',
-      selectors: [
-        '[data-testid="commit-row-view-code"]',
-        '[data-testid="commit-row-browse-repo"]',
-        'svg.octicon-copy',
-        'svg.octicon-code',
-      ],
-    },
-    normalize: (root) => {
-      const link = root.querySelector('a[href*="/commit/"], a[href*="/commits/"]');
-      return link ? h('span', {}, link) : null;
-    },
-  },
-  {
-    name: 'message',
-    select: {
-      kind: 'match',
-      selectors: ['h4[class*="ListItemTitle"]'],
-    },
-    normalize: (root) => {
-      const a = root.querySelector('a');
-      return a?.title ? h('pre', {}, a.title) : null;
-    },
-  },
-  {
-    name: 'attribution',
-    select: {
-      kind: 'match',
-      selectors: ['[class^="CommitAttribution"]', '[class*="CommitAttribution"]'],
-    },
-    normalize: (root) => {
-      root.querySelectorAll('[data-testid="author-link"], [data-testid="author-avatar"], relative-time').forEach((el) => {
-        el.insertAdjacentElement('afterend', h('span', {}, ' '));
-        el.insertAdjacentElement('beforebegin', h('span', {}, ' '));
-      });
-      return root;
-    },
-    transforms: [
-      { kind: 'remove', selectors: ['img'] },
-      { kind: 'removeNextSiblings', selectors: ['relative-time'] },
-      { kind: 'unwrap', selectors: ['a'] },
-      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
-      {
-        kind: 'replaceFn',
-        selectors: ['relative-time'],
-        fn: (el, ctxs) => {
-          const iso = el.getAttribute('datetime');
-          const text = formatDateWithRelative(iso, { utc: true, now: ctxs.md?.now });
-          return h('span', {}, text);
-        },
-      },
-    ],
-  },
-  {
-    name: 'checks',
-    select: {
-      kind: 'match',
-      selectors: ['[data-testid="checks-status-badge-button"]'],
-    },
-    normalize: (root) => {
-      const text = root.textContent?.replace(/\s+/g, '').trim();
-      return text ? h('span', {}, `${text} checks`) : null;
-    },
-    transforms: [
-      { kind: 'unwrap', selectors: ['button'] },
-    ],
-  },
-  {
-    name: 'comment-count',
-    select: {
-      kind: 'match',
-      selectors: ['a[data-testid="commit-row-comments"]'],
-    },
-    normalize: (root) => {
-      const raw = root.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-      const n = Number(raw);
-      if (!Number.isFinite(n)) return null;
-      return h('span', {}, `${n} ${n === 1 ? 'comment' : 'comments'}`);
-    },
-    transforms: [
-      { kind: 'unwrap', selectors: ['a'] },
     ],
   },
 ];
