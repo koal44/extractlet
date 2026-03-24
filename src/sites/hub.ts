@@ -43,7 +43,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
   }
 
   const route = getGhRoute(permalink);
-  if (!route) {
+  if (!route || route.page === 'unknown') {
     return createNoticePage({
       kind: 'info', siteLabel: 'GitHub', permalink, title,
       message: h('div', {},
@@ -71,11 +71,13 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'search': page = await createSearchPage({ sourceDoc, ctxs, state }); break;
     case 'pr-commits': page = await createPrCommitsPage({ sourceDoc, ctxs, state }); break;
     case 'pr-checks': page = await createPrChecksPage({ sourceDoc, ctxs, state }); break;
-    case 'pr-files': throw new Error('Not implemented');
-    case 'owner': throw new Error('Not implemented: owner page');
-    case 'actions': throw new Error('Not implemented: actions page');
-    case 'actions-run': throw new Error('Not implemented: actions run page');
+    case 'pr-files': break; // Not implemented yet
+    case 'owner': break; // Not implemented yet
+    case 'actions': break; // Not implemented yet
+    case 'actions-run': break; // Not implemented yet
     case 'actions-job': page = await createActionsJobPage({ sourceDoc, ctxs, state }); break;
+    case 'actions-workflow': break; // Not implemented yet
+    case 'actions-usage': break; // Not implemented yet
     default: assertNever(route);
   }
 

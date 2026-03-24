@@ -5,12 +5,14 @@ export type GhPage =
   | 'discussions' | 'disc'
   | 'tree' | 'blob' | 'blame'
   | 'commit' | 'commits'
-  | 'actions' | 'actions-run' | 'actions-job';
+  | 'actions' | 'actions-run' | 'actions-job' | 'actions-workflow' | 'actions-usage'
+  ;
 
 type GhRouteBase = { url: string; hash: string; search: string; };
 type GhRepoBase = GhRouteBase & { owner: string; repo: string; };
 
 export type GhRoute =
+  | { page: 'unknown'; url: string; }
   | (GhRouteBase & { page: 'search'; })
   | (GhRouteBase & { page: 'owner'; owner: string; })
   | (GhRepoBase & { page: 'repo'; })
@@ -30,7 +32,10 @@ export type GhRoute =
   | (GhRepoBase & { page: 'blame'; ref: string; pathParts: string[]; })
   | (GhRepoBase & { page: 'actions'; })
   | (GhRepoBase & { page: 'actions-run'; runId: string; })
-  | (GhRepoBase & { page: 'actions-job'; runId: string; jobId: string; });
+  | (GhRepoBase & { page: 'actions-job'; runId: string; jobId: string; })
+  | (GhRepoBase & { page: 'actions-workflow'; runId: string; })
+  | (GhRepoBase & { page: 'actions-usage'; runId: string; })
+  ;
 
 export function getGhRoute(str: string): GhRoute | undefined {
   let u: URL;
@@ -45,66 +50,91 @@ export function getGhRoute(str: string): GhRoute | undefined {
   const url = `https://github.com${u.pathname}`;
   const urlWithSearch = `${url}${search}`;
 
-  if (!parts.length) return;
-  if (parts[0] === 'search') return { page: 'search', url: urlWithSearch, hash, search };
-  if (!parts[1]) return { page: 'owner', owner: parts[0], url, hash, search };
+  const [root, repo, kind, ...tail] = parts;
+  if (!root) return;
+  if (root === 'search') return { page: 'search', url: urlWithSearch, hash, search };
 
-  const [owner, repo, kind, ...tail] = parts; // as (string | undefined)[];
+  const owner = root;
+  if (!repo) return { page: 'owner', owner, url, hash, search };
+
   const base = { owner, repo, url, hash, search };
-  const files = { ref: tail[0], pathParts: tail.slice(1) };
-
   if (!kind) return { ...base, page: 'repo' };
 
   switch (kind) {
-    case 'issues':
-      if (tail.length === 0) return { ...base, page: 'issues' };
-      if (tail.length === 1) return { ...base, page: 'issue', issueId: tail[0] };
+    case 'issues': {
+      const [issueId, ...rest] = tail;
+      if (!issueId) return { ...base, page: 'issues' };
+      if (!rest.length) return { ...base, page: 'issue', issueId };
       return;
+    }
 
-    case 'pulls':
-      if (tail.length === 0) return { ...base, page: 'pulls' };
+    case 'pulls': {
+      if (!tail.length) return { ...base, page: 'pulls' };
       return;
+    }
 
-    case 'pull':
-      if (tail.length === 1) return { ...base, page: 'pr', prId: tail[0] };
-      if (tail.length === 2 && tail[1] === 'commits') return { ...base, page: 'pr-commits', prId: tail[0] };
-      if (tail.length === 2 && tail[1] === 'checks') return { ...base, page: 'pr-checks', prId: tail[0] };
-      if (tail.length === 2 && tail[1] === 'files') return { ...base, page: 'pr-files', prId: tail[0] };
+    case 'pull': {
+      const [prId, subpage, ...rest] = tail;
+      if (!prId) return;
+      if (!subpage) return { ...base, page: 'pr', prId };
+      if (subpage === 'commits' && !rest.length) return { ...base, page: 'pr-commits', prId };
+      if (subpage === 'checks' && !rest.length) return { ...base, page: 'pr-checks', prId };
+      if (subpage === 'files' && !rest.length) return { ...base, page: 'pr-files', prId };
       return;
+    }
 
-    case 'discussions':
-      if (tail.length === 0) return { ...base, page: 'discussions' };
-      if (tail.length === 1) return { ...base, page: 'disc', discussionId: tail[0] };
+    case 'discussions': {
+      const [discussionId, ...rest] = tail;
+      if (!discussionId) return { ...base, page: 'discussions' };
+      if (!rest.length) return { ...base, page: 'disc', discussionId };
       return;
+    }
 
-    case 'tree':
-      if (tail.length >= 1) return { ...base, ...files, page: 'tree' };
+    case 'tree': {
+      const [ref, ...pathParts] = tail;
+      if (!ref) return;
+      return { ...base, page: 'tree', ref, pathParts };
+    }
+
+    case 'blob': {
+      const [ref, ...pathParts] = tail;
+      if (!ref || !pathParts.length) return;
+      return { ...base, page: 'blob', ref, pathParts };
+    }
+
+    case 'blame': {
+      const [ref, ...pathParts] = tail;
+      if (!ref || !pathParts.length) return;
+      return { ...base, page: 'blame', ref, pathParts };
+    }
+
+    case 'commits': {
+      const [ref, ...pathParts] = tail;
+      return { ...base, page: 'commits', ref, pathParts };
+    }
+
+    case 'commit': {
+      const [commitSha, ...rest] = tail;
+      if (commitSha && !rest.length) return { ...base, page: 'commit', commitSha };
       return;
+    }
 
-    case 'blob':
-      if (tail.length >= 2) return { ...base, ...files, page: 'blob' };
-      return;
+    case 'actions': {
+      const [subkind, runId, subpage, jobId, ...rest] = tail;
 
-    case 'blame':
-      if (tail.length >= 2) return { ...base, ...files, page: 'blame' };
-      return;
+      if (!subkind) return { ...base, page: 'actions' };
 
-    case 'commit':
-      if (tail.length === 1) return { ...base, page: 'commit', commitSha: tail[0] };
-      return;
-
-    case 'commits':
-      return { ...base, ...files, page: 'commits' };
-
-    case 'actions':
-      if (tail.length === 0) return { ...base, page: 'actions' };
-      if (tail.length === 2 && tail[0] === 'runs') return { ...base, page: 'actions-run', runId: tail[1] };
-      if (tail.length === 4 && tail[0] === 'runs' && tail[2] === 'job') {
-        return { ...base, page: 'actions-job', runId: tail[1], jobId: tail[3] };
+      if (subkind === 'runs') {
+        if (!runId) return;
+        if (!subpage) return { ...base, page: 'actions-run', runId };
+        if (subpage === 'workflow' && !jobId) return { ...base, page: 'actions-workflow', runId };
+        if (subpage === 'usage' && !jobId) return { ...base, page: 'actions-usage', runId };
+        if (subpage === 'job' && jobId && !rest.length) return { ...base, page: 'actions-job', runId, jobId };
       }
       return;
+    }
 
     default:
-      return;
+      return { page: 'unknown', url };
   }
 }
