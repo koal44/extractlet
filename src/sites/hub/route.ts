@@ -1,79 +1,110 @@
-export type GhDomain =
-  | 'search'
-  | 'issue' | 'pr' | 'disc' | 'repo'
-  | 'issues' | 'pulls' | 'discussions'
-  | 'owner' | 'tree' | 'commit'
-  | 'blob' | 'blame'
-  | 'commits'
-  | 'pr-commits' | 'pr-checks' | 'pr-files';
+export type GhPage =
+  | 'search' | 'owner' | 'repo'
+  | 'issues' | 'issue'
+  | 'pulls' | 'pr' | 'pr-commits' | 'pr-checks' | 'pr-files'
+  | 'discussions' | 'disc'
+  | 'tree' | 'blob' | 'blame'
+  | 'commit' | 'commits'
+  | 'actions' | 'actions-run' | 'actions-job';
 
-type GhPath = {
-  owner?: string;
-  repo?: string;
-  kind?: string;
-  id?: string;
-  hash: string;
-  tail: string[];
-  search: string;
-};
+type GhRouteBase = { url: string; hash: string; search: string; };
+type GhRepoBase = GhRouteBase & { owner: string; repo: string; };
 
-export function parseGhPath(str: string): GhPath | undefined {
-  try {
-    const u = new URL(str, 'https://github.com');
-    if (u.hostname !== 'github.com') return;
+export type GhRoute =
+  | (GhRouteBase & { page: 'search'; })
+  | (GhRouteBase & { page: 'owner'; owner: string; })
+  | (GhRepoBase & { page: 'repo'; })
+  | (GhRepoBase & { page: 'issues'; })
+  | (GhRepoBase & { page: 'issue'; issueId: string; })
+  | (GhRepoBase & { page: 'pulls'; })
+  | (GhRepoBase & { page: 'pr'; prId: string; })
+  | (GhRepoBase & { page: 'pr-commits'; prId: string; })
+  | (GhRepoBase & { page: 'pr-checks'; prId: string; })
+  | (GhRepoBase & { page: 'pr-files'; prId: string; })
+  | (GhRepoBase & { page: 'discussions'; })
+  | (GhRepoBase & { page: 'disc'; discussionId: string; })
+  | (GhRepoBase & { page: 'tree'; ref: string; pathParts: string[]; })
+  | (GhRepoBase & { page: 'commit'; commitSha: string; })
+  | (GhRepoBase & { page: 'commits'; ref?: string; pathParts?: string[]; })
+  | (GhRepoBase & { page: 'blob'; ref: string; pathParts: string[]; })
+  | (GhRepoBase & { page: 'blame'; ref: string; pathParts: string[]; })
+  | (GhRepoBase & { page: 'actions'; })
+  | (GhRepoBase & { page: 'actions-run'; runId: string; })
+  | (GhRepoBase & { page: 'actions-job'; runId: string; jobId: string; });
 
-    const parts = u.pathname.split('/').filter(Boolean);
-    if (parts.length < 1) return;
+export function getGhRoute(str: string): GhRoute | undefined {
+  let u: URL;
+  try { u = new URL(str, 'https://github.com'); }
+  catch { return; }
 
-    const [owner, repo, kind, id, ...tail] = parts;
-    return { owner, repo, kind, id, tail, hash: u.hash, search: u.search };
-  } catch {
-    return;
-  }
-}
+  if (u.hostname !== 'github.com') return;
 
-export function matchGhUrl(str: string, withHash = false): string | null {
-  const p = parseGhPath(str);
-  if (!p?.owner) return null;
+  const parts = u.pathname.split('/').filter(Boolean);
+  const hash = u.hash;
+  const search = u.search;
+  const url = `https://github.com${u.pathname}`;
+  const urlWithSearch = `${url}${search}`;
 
-  let base = `https://github.com/${p.owner}`;
+  if (!parts.length) return;
+  if (parts[0] === 'search') return { page: 'search', url: urlWithSearch, hash, search };
+  if (!parts[1]) return { page: 'owner', owner: parts[0], url, hash, search };
 
-  if (p.owner === 'search') {
-    return withHash && p.hash ? `${base}${p.search}${p.hash}` : `${base}${p.search}`;
-  }
+  const [owner, repo, kind, ...tail] = parts; // as (string | undefined)[];
+  const base = { owner, repo, url, hash, search };
+  const files = { ref: tail[0], pathParts: tail.slice(1) };
 
-  if (p.repo) base += `/${p.repo}`;
-  if (p.kind) base += `/${p.kind}`;
-  if (p.id) base += `/${p.id}`;
-  if (p.tail.length) base += `/${p.tail.join('/')}`;
+  if (!kind) return { ...base, page: 'repo' };
 
-  return withHash && p.hash ? `${base}${p.hash}` : base;
-}
-
-export function detectGhDomain(str: string): GhDomain | undefined {
-  const p = parseGhPath(str);
-  if (!p?.owner) return;
-  if (p.owner === 'search') return 'search';
-  if (!p.repo) return 'owner';
-  if (!p.kind) return 'repo';
-
-  switch (p.kind) {
-    case 'discussions': return p.id ? 'disc' : 'discussions';
-    case 'issues': return p.id ? 'issue' : 'issues';
-    case 'pulls': return 'pulls';
-    case 'pull': {
-      if (!p.id) return;
-      if (p.tail.length === 0) return 'pr';
-      if (p.tail.length !== 1) return;
-      if (p.tail[0] === 'commits') return 'pr-commits';
-      if (p.tail[0] === 'checks') return 'pr-checks';
-      if (p.tail[0] === 'files') return 'pr-files';
+  switch (kind) {
+    case 'issues':
+      if (tail.length === 0) return { ...base, page: 'issues' };
+      if (tail.length === 1) return { ...base, page: 'issue', issueId: tail[0] };
       return;
-    }
-    case 'tree': return 'tree';
-    case 'commit': return p.id ? 'commit' : undefined;
-    case 'commits': return 'commits';
-    case 'blob': return p.id && p.tail.length ? 'blob' : undefined;
-    case 'blame': return p.id && p.tail.length ? 'blame' : undefined;
+
+    case 'pulls':
+      if (tail.length === 0) return { ...base, page: 'pulls' };
+      return;
+
+    case 'pull':
+      if (tail.length === 1) return { ...base, page: 'pr', prId: tail[0] };
+      if (tail.length === 2 && tail[1] === 'commits') return { ...base, page: 'pr-commits', prId: tail[0] };
+      if (tail.length === 2 && tail[1] === 'checks') return { ...base, page: 'pr-checks', prId: tail[0] };
+      if (tail.length === 2 && tail[1] === 'files') return { ...base, page: 'pr-files', prId: tail[0] };
+      return;
+
+    case 'discussions':
+      if (tail.length === 0) return { ...base, page: 'discussions' };
+      if (tail.length === 1) return { ...base, page: 'disc', discussionId: tail[0] };
+      return;
+
+    case 'tree':
+      if (tail.length >= 1) return { ...base, ...files, page: 'tree' };
+      return;
+
+    case 'blob':
+      if (tail.length >= 2) return { ...base, ...files, page: 'blob' };
+      return;
+
+    case 'blame':
+      if (tail.length >= 2) return { ...base, ...files, page: 'blame' };
+      return;
+
+    case 'commit':
+      if (tail.length === 1) return { ...base, page: 'commit', commitSha: tail[0] };
+      return;
+
+    case 'commits':
+      return { ...base, ...files, page: 'commits' };
+
+    case 'actions':
+      if (tail.length === 0) return { ...base, page: 'actions' };
+      if (tail.length === 2 && tail[0] === 'runs') return { ...base, page: 'actions-run', runId: tail[1] };
+      if (tail.length === 4 && tail[0] === 'runs' && tail[2] === 'job') {
+        return { ...base, page: 'actions-job', runId: tail[1], jobId: tail[3] };
+      }
+      return;
+
+    default:
+      return;
   }
 }

@@ -3,7 +3,7 @@ import { h } from '../../../utils/dom';
 import { extractBlocks, type BlockSpec } from '../../../utils/extract';
 import { brWrap, scrapePermaUrl } from '../dom';
 import { toHtml, toMd } from '../convert';
-import { parseGhPath } from '../route';
+import { getGhRoute } from '../route';
 import { formatDateWithRelative } from '../../../utils/strings';
 
 const blocks: BlockSpec[] = [
@@ -48,15 +48,15 @@ const blocks: BlockSpec[] = [
       const permalink = scrapePermaUrl(el.ownerDocument);
       if (!permalink) return null;
 
-      const parsed = parseGhPath(permalink);
-      if (!parsed?.owner || !parsed.repo || parsed.kind !== 'commits' || !parsed.id || !parsed.tail.length) return null;
+      const route = getGhRoute(permalink);
+      if (route?.page !== 'commits') return null;
 
       const pathInfo = h('div', { class: 'breadcrumb' },
         h('h2', {}, 'Breadcrumb'),
         h('ul', {},
-          h('li', {}, 'Repo: ', h('code', {}, `${parsed.owner}/${parsed.repo}`)),
-          h('li', {}, 'Ref: ', h('code', {}, parsed.id)),
-          h('li', {}, 'Path: ', h('code', {}, parsed.tail.join('/') || '/')),
+          h('li', {}, 'Repo: ', h('code', {}, `${route.owner}/${route.repo}`)),
+          h('li', {}, 'Ref: ', h('code', {}, route.ref)),
+          h('li', {}, 'Path: ', h('code', {}, route.pathParts?.join('/') || '/')),
         ),
       );
       return pathInfo;

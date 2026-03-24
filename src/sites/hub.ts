@@ -3,7 +3,7 @@ import { h } from '../utils/dom';
 import { assertNever } from '../utils/typing';
 import { createNoticePage, ISSUE_LINK_ATTRS, renderXletPage, type XletPage } from '../xlet-page';
 import { scrapePermaUrl, scrapeTitle } from './hub/dom';
-import { detectGhDomain } from './hub/route';
+import { getGhRoute } from './hub/route';
 import { createDiscPage } from './hub/pages/disc';
 import { createIssuePage } from './hub/pages/issue';
 import { createListDiscPage } from './hub/pages/list-disc';
@@ -41,8 +41,8 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     });
   }
 
-  const domain = detectGhDomain(permalink);
-  if (!domain) {
+  const route = getGhRoute(permalink);
+  if (!route) {
     return createNoticePage({
       kind: 'info', siteLabel: 'GitHub', permalink, title,
       message: h('div', {},
@@ -54,7 +54,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
   }
 
   let page: XletPage | undefined;
-  switch (domain) {
+  switch (route.page) {
     case 'pr': page = await createPrPage({ sourceDoc, ctxs, state }); break;
     case 'disc': page = await createDiscPage({ sourceDoc, ctxs, state }); break;
     case 'issue': page = await createIssuePage({ sourceDoc, ctxs, state }); break;
@@ -71,17 +71,18 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'pr-commits': page = await createPrCommitsPage({ sourceDoc, ctxs, state }); break;
     case 'pr-checks': page = await createPrChecksPage({ sourceDoc, ctxs, state }); break;
     case 'pr-files': throw new Error('Not implemented');
-    // case 'pr-checks': page = await createPrChecksPage({ sourceDoc, ctxs, state }); break;
-    // case 'pr-files': page = await createPrFilesPage({ sourceDoc, ctxs, state }); break;
     case 'owner': throw new Error('Not implemented: owner page');
-    default: return assertNever(domain);
+    case 'actions': throw new Error('Not implemented: actions page');
+    case 'actions-run': throw new Error('Not implemented: actions run page');
+    case 'actions-job': throw new Error('Not implemented: actions job page');
+    default: assertNever(route);
   }
 
   if (!page) {
     return createNoticePage({
       kind: 'error', siteLabel: 'GitHub', title, permalink,
       message: h('div', {},
-        h('p', {}, `Extractlet recognized this as a GitHub "${domain}" page, but couldn't extract it.`),
+        h('p', {}, `Extractlet recognized this as a GitHub "${route.page}" page, but couldn't extract it.`),
         h('p', {}, `This is probably a bug. If you feel like helping, you can `,
           h('a', ISSUE_LINK_ATTRS, 'let us know')),
       ),

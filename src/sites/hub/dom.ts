@@ -2,7 +2,7 @@ import { pickVal, asAbsUrl, type Locator } from '../../utils/locator';
 import { h, type HChild, isTable, isText } from '../../utils/dom';
 import { warn } from '../../utils/logging';
 import { chooseCanonicalUrl } from '../../utils/strings';
-import { matchGhUrl } from './route';
+import { getGhRoute } from './route';
 import { setLang } from '../../normalize';
 
 const locators: Record<string, Locator[]> = {
@@ -22,8 +22,8 @@ export function scrapePermaUrl(srcDoc: Document): string | undefined {
   let link = pickVal(locators.permalink, srcDoc);
   link = chooseCanonicalUrl(link, srcDoc.baseURI);
   if (!link) return warn(undefined, 'scrapePermaUrl: no link found');
-  const detected = matchGhUrl(link, false);
-  if (detected) return detected;
+  const route = getGhRoute(link);
+  if (route) return route.url;
 }
 
 export function scrapeTitle(srcDoc: Document): string | undefined {
