@@ -19,6 +19,7 @@ import { createHistoryPage } from './hub/pages/history';
 import { createSearchPage } from './hub/pages/search';
 import { createPrCommitsPage } from './hub/pages/pr-commits';
 import { createPrChecksPage } from './hub/pages/pr-checks';
+import { createActionsJobPage } from './hub/pages/actions-job';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -74,7 +75,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'owner': throw new Error('Not implemented: owner page');
     case 'actions': throw new Error('Not implemented: actions page');
     case 'actions-run': throw new Error('Not implemented: actions run page');
-    case 'actions-job': throw new Error('Not implemented: actions job page');
+    case 'actions-job': page = await createActionsJobPage({ sourceDoc, ctxs, state }); break;
     default: assertNever(route);
   }
 
