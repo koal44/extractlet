@@ -217,6 +217,30 @@ export function parseHeadingLevel(el: HTMLHeadingElement): HLevel {
   return n as HLevel;
 }
 
+export function relevelHeadings(root: Element, startLevel: HLevel): void {
+  const headings = [...root.querySelectorAll('h1, h2, h3, h4, h5, h6')]
+    .filter(isHeading);
+
+  if (headings.length === 0) return;
+
+  const uniqueLevels = [...new Set(headings.map(parseHeadingLevel))]
+    .sort((a, b) => a - b);
+
+  const map = new Map<HLevel, HLevel>();
+  uniqueLevels.forEach((level, i) => {
+    map.set(level, Math.min(startLevel + i, 6) as HLevel);
+  });
+
+  for (const el of headings) {
+    const cur = parseHeadingLevel(el);
+    const next = map.get(cur);
+    if (!next || next === cur) continue;
+
+    const repl = h(`h${next}`, {}, ...el.childNodes);
+    el.replaceWith(repl);
+  }
+}
+
 export function safeDecode(u?: string | null): string {
   if (!u) return '';
   try { return decodeURIComponent(u); }

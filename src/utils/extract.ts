@@ -1,6 +1,8 @@
 import { type XletContexts } from '../settings';
 import {
   findCommonAncestor, h, isDiv, isDoc, isElement, isInlineElement, isSpan,
+  relevelHeadings,
+  type HLevel,
 } from './dom';
 import { assertNever } from './typing';
 
@@ -19,6 +21,7 @@ export type TransformSpec =
   | { kind: 'unwrap'; selectors: string[]; }
   | { kind: 'replace'; selectors: string[]; with: keyof HTMLElementTagNameMap; }
   | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element, ctxs: XletContexts) => Element | null; }
+  | { kind: 'wrapSection'; heading: { level: HLevel; text: string; }; relevelChildren?: boolean; }
 
 type OneBlockSpec = {
   name: string;
@@ -179,6 +182,9 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
     .filter((f): f is Extract<TransformSpec, { kind: 'replaceFn'; }> => f.kind === 'replaceFn')
     .flatMap((f) => f.selectors.map((selector) => ({ selector, fn: f.fn })));
 
+  const wrapSpecs = transforms
+    .filter((f): f is Extract<TransformSpec, { kind: 'wrapSection'; }> => f.kind === 'wrapSection');
+
   const shouldRemove = (el: Element) => removeSelectors.some((sel) => el.matches(sel));
   const shouldRemoveNextSiblings = (el: Element) => removeNextSiblingSelectors.some((sel) => el.matches(sel));
   const shouldUnwrap = (el: Element) => unwrapSelectors.some((sel) => el.matches(sel));
@@ -269,6 +275,18 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
   if (shouldUnwrap(root)) {
     const wrapper = isInlineElement(root) ? 'span' : 'div';
     return h(wrapper, {}, ...root.childNodes);
+  }
+
+  const hasContent = root.children.length > 0 || !!root.textContent?.trim();
+  if (wrapSpecs.length && hasContent) {
+    let section: Element = root;
+    for (const wrapSpec of wrapSpecs) {
+      if (wrapSpec.relevelChildren) {
+        relevelHeadings(section, Math.min(wrapSpec.heading.level + 1, 6) as HLevel);
+      }
+      section = h('section', {}, h(`h${wrapSpec.heading.level}`, {}, wrapSpec.heading.text), section);
+    }
+    return section;
   }
 
   return root;

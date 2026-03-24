@@ -21,7 +21,7 @@ export const blocks: BlockSpec[] = [
           li.insertAdjacentElement('afterend', h('span', {}, ' / '));
         }
       });
-      return h('section', {}, root);
+      return root;
     },
     transforms: [
       {
@@ -65,10 +65,11 @@ export const blocks: BlockSpec[] = [
       const message = root.querySelector('h2.check-page-commit-message');
       const sha = root.querySelector(':scope > details > summary');
       if (!message && !sha) return null;
-      return h('section', {},
-        h('h2', {}, 'Checks'),
-        joinWrap('span', [h('span', {}, 'Selected commit: ', sha), message?.textContent], ' — '));
+      return joinWrap('span', [h('span', {}, 'Selected commit: ', sha), message?.textContent], ' — ');
     },
+    transforms: [
+      { kind: 'wrapSection', heading: { level: 2, text: 'Checks' } },
+    ],
   },
   {
     name: 'checks',
@@ -176,14 +177,9 @@ export const blocks: BlockSpec[] = [
   {
     name: 'checkrun-summary',
     select: { kind: 'match', selectors: ['[id^="check_run_"]'] },
-    normalize: (root) => {
-      if (root.children.length === 0) return null;
-      return h('section', {}, h('h2', {}, 'Check Run Summary'), root);
-    },
     transforms: [
-      { kind: 'replace', with: 'h3', selectors: ['[id^="check_run_"] h1', '[id^="check_run_"] h2'] },
-      { kind: 'replace', with: 'h4', selectors: ['[id^="check_run_"] h3'] },
       { kind: 'unwrap', selectors: ['sub', 'sup'] },
+      { kind: 'wrapSection', heading: { level: 2, text: 'Check Run Summary' }, relevelChildren: true },
     ],
   },
 ];
