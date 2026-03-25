@@ -361,3 +361,24 @@ export function statusFromSvg(svg: SVGElement): string | null {
 
   return null;
 }
+
+export type CheckStatus =
+  | 'queued' | 'in progress' | 'waiting' | 'completed' | 'neutral' | 'success' | 'failure'
+  | 'cancelled' | 'action required' | 'timed out' | 'skipped' | 'stale';
+
+const CHECK_STATUS_FRAGMENTS: readonly [string, CheckStatus][] = [
+  ['action', 'action required'], ['tim', 'timed out'], ['prog', 'in progress'], ['queue', 'queued'],
+  ['wait', 'waiting'], ['cancel', 'cancelled'], ['skip', 'skipped'], ['stale', 'stale'],
+  ['neut', 'neutral'], ['fail', 'failure'], ['succ', 'success'], ['complet', 'completed'],
+  ['pass', 'success'],
+];
+
+export function normalizeCheckStatus(raw: string | null): CheckStatus | null {
+  if (!raw) return null;
+  const s = raw.trim().toLowerCase();
+
+  for (const [frag, status] of CHECK_STATUS_FRAGMENTS) {
+    if (s.includes(frag)) return status;
+  }
+  return null;
+}

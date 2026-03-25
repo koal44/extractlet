@@ -3,7 +3,7 @@ import { h } from '../../../utils/dom';
 import { extractBlocks, type BlockSpec } from '../../../utils/extract';
 import { formatElapsedTime } from '../../../utils/strings';
 import { toHtml, toMd } from '../convert';
-import { brWrap, joinWrap } from '../dom';
+import { brWrap, joinWrap, normalizeCheckStatus } from '../dom';
 
 export const blocks: BlockSpec[] = [
   {
@@ -273,24 +273,6 @@ const mainFieldSpecs: BlockSpec[] = [
     ],
   },
 ];
-
-function normalizeCheckStatus(raw: string | null): string | null {
-  if (!raw) return null;
-  const s = raw.trim().toLowerCase();
-
-  if (s === 'in progress') return 'in progress';
-  if (s === 'queued') return 'queued';
-  if (s === 'pending') return 'pending';
-
-  if (s.includes('succeeded')) return 'succeeded';
-  if (s.includes('passed')) return 'passed';
-  if (s.includes('skipped')) return 'skipped';
-  if (s.includes('failed')) return 'failed';
-  if (s.includes('cancelled')) return 'cancelled';
-  if (s.includes('neutral')) return 'neutral';
-
-  return raw.trim();
-}
 
 export const createPrChecksPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const pageBlocks = extractBlocks(sourceDoc, blocks, ctxs);

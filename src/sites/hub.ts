@@ -23,6 +23,7 @@ import { createActionsJobPage } from './hub/pages/actions-job';
 import { createActionsRunPage } from './hub/pages/actions-run';
 import { createActionsWorkflowPage } from './hub/pages/actions-workflow';
 import { createActionsUsagePage } from './hub/pages/actions-usage';
+import { createActionsPage } from './hub/pages/actions';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -76,7 +77,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'pr-checks': page = await createPrChecksPage({ sourceDoc, ctxs, state }); break;
     case 'pr-files': break; // Not implemented yet
     case 'owner': break; // Not implemented yet
-    case 'actions': break; // Not implemented yet
+    case 'actions': page = await createActionsPage({ sourceDoc, ctxs, state }); break;
     case 'actions-run': page = await createActionsRunPage({ sourceDoc, ctxs, state }); break;
     case 'actions-job': page = await createActionsJobPage({ sourceDoc, ctxs, state }); break;
     case 'actions-workflow': page = await createActionsWorkflowPage({ sourceDoc, ctxs, state }); break;

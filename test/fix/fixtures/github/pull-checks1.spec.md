@@ -18,41 +18,41 @@ Selected commit: `fbbda7c` — Compile bytecode only for newly installed package
 ### [CI on: pull_request](https://github.com/astral-sh/uv/actions/runs/23409518640) (14 annotations)
 
 - **[plan](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094174438?pr=18636)**
-  succeeded
+  success
 - [check-fmt / rust](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094174447?pr=18636)
-  succeeded
+  success
 - [check-fmt / prettier](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094174463?pr=18636)
-  succeeded
+  success
 - [check-fmt / python](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094174445?pr=18636)
-  succeeded
+  success
 - [check-lint / ruff](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200537?pr=18636)
-  succeeded
+  success
 - [check-lint / ty](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200551?pr=18636)
-  succeeded
+  success
 - [check-lint / shellcheck](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200477?pr=18636)
-  succeeded
+  success
 - [check-lint / validate-pyproject](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200531?pr=18636)
-  succeeded
+  success
 - [check-lint / readme](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200524?pr=18636)
-  succeeded
+  success
 - [check-lint / clippy on linux](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200464?pr=18636)
-  succeeded
+  success
 - [check-lint / clippy on windows](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200481?pr=18636)
-  succeeded
+  success
 - [check-lint / cargo shear](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200487?pr=18636)
-  succeeded
+  success
 - [check-lint / typos](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200530?pr=18636)
-  succeeded
+  success
 - [check-docs / mkdocs](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200499?pr=18636)
-  succeeded
+  success
 - [check-zizmor / zizmor](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200456?pr=18636)
-  succeeded
+  success
 - [check-publish / cargo publish dry-run](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200449?pr=18636)
   in progress
 - [check-release / dist plan](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200468?pr=18636)
-  succeeded
+  success
 - [check-generated-files / cargo dev generate-all](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200441?pr=18636)
-  succeeded
+  success
 - [test / cargo test on linux](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200472?pr=18636)
   in progress
 - [test / cargo test on macos](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200644?pr=18636)
@@ -66,27 +66,27 @@ Selected commit: `fbbda7c` — Compile bytecode only for newly installed package
 - [test-windows-trampolines](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200557?pr=18636)
   skipped
 - [build-dev-binaries / linux libc](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200534?pr=18636)
-  succeeded
+  success
 - [build-dev-binaries / linux aarch64](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200512?pr=18636)
-  succeeded
+  success
 - [build-dev-binaries / linux armv7 gnueabihf](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200542?pr=18636)
-  succeeded
+  success
 - [build-dev-binaries / linux musl](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200538?pr=18636)
   in progress
 - [build-dev-binaries / macos aarch64](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200516?pr=18636)
-  succeeded
+  success
 - [build-dev-binaries / macos x86_64](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200513?pr=18636)
-  succeeded
+  success
 - [build-dev-binaries / windows x86_64](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200518?pr=18636)
-  succeeded
+  success
 - [build-dev-binaries / windows aarch64](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200521?pr=18636)
   in progress
 - [build-dev-binaries / msrv](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200527?pr=18636)
-  succeeded
+  success
 - [build-dev-binaries / android aarch64](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200515?pr=18636)
-  succeeded
+  success
 - [build-dev-binaries / freebsd](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200525?pr=18636)
-  succeeded
+  success
 - [build-release-binaries](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200514?pr=18636)
   skipped
 - [build-docker](https://github.com/astral-sh/uv/actions/runs/23409518640/job/68094200576?pr=18636)
@@ -99,7 +99,7 @@ Selected commit: `fbbda7c` — Compile bytecode only for newly installed package
 ### Code scanning results
 
 - [zizmor](https://github.com/astral-sh/uv/pull/18636/checks?check_run_id=68094215543)
-  passed
+  success
 
 ## Run Log: plan
 
