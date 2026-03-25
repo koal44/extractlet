@@ -198,17 +198,17 @@ Copilot reviewed 34 out of 35 changed files in this pull request and generated 1
 Comment on lines 371 to 381
 
 ```
-  371 + 	private _attachSessionEvents(session: CopilotSession): void {
-  372 + 		const sessionId = session.sessionId;
-  373 +
-  374 + 		session.on((event: SessionEvent) => {
-  375 + 			this._onSessionEvent.fire({
-  376 + 				sessionId,
-  377 + 				type: event.type as ICopilotSessionEvent['type'],
-  378 + 				data: (event as { data?: Record<string, unknown> }).data ?? {},
-  379 + 			});
-  380 + 		});
-  381 + 	}
+ 371 + 	private _attachSessionEvents(session: CopilotSession): void {
+ 372 + 		const sessionId = session.sessionId;
+ 373 +
+ 374 + 		session.on((event: SessionEvent) => {
+ 375 + 			this._onSessionEvent.fire({
+ 376 + 				sessionId,
+ 377 + 				type: event.type as ICopilotSessionEvent['type'],
+ 378 + 				data: (event as { data?: Record<string, unknown> }).data ?? {},
+ 379 + 			});
+ 380 + 		});
+ 381 + 	}
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI**
@@ -222,14 +222,14 @@ Session events are attached in `_attachSessionEvents` but there's no mechanism t
 Comment on lines 285 to 292
 
 ```
-  285 + 	private async _deleteSdkSession(sessionId: string): Promise<void> {
-  286 + 		try { await this.copilotSdkService.deleteSession(sessionId); } catch { /* best-effort */ }
-  287 + 		if (this._sdkSelectedSessionId === sessionId) {
-  288 + 			this._sdkSelectedSessionId = undefined;
-  289 + 			const chatPane = this.viewsService.getViewWithId<SdkChatViewPane>(SdkChatViewId);
-  290 + 			chatPane?.widget?.newSession();
-  291 + 		}
-  292 + 		this._refreshSdkSessionList();
+ 285 + 	private async _deleteSdkSession(sessionId: string): Promise<void> {
+ 286 + 		try { await this.copilotSdkService.deleteSession(sessionId); } catch { /* best-effort */ }
+ 287 + 		if (this._sdkSelectedSessionId === sessionId) {
+ 288 + 			this._sdkSelectedSessionId = undefined;
+ 289 + 			const chatPane = this.viewsService.getViewWithId<SdkChatViewPane>(SdkChatViewId);
+ 290 + 			chatPane?.widget?.newSession();
+ 291 + 		}
+ 292 + 		this._refreshSdkSessionList();
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785440)
@@ -241,10 +241,10 @@ The delete operation at line 286 doesn't prompt the user for confirmation. Delet
 [src/vs/sessions/services/copilotSdk/node/copilotSdkHost.ts](https://github.com/microsoft/vscode/pull/295817/files/96440905fdc4e710f9e45a69f6fa41336336f111#diff-6c7ad505eb29f64a8351f7d8a54fccecb756ece60bc0ed8cebe625c2f420ded9)
 
 ```
-  348 + 	// --- Authentication ---
-  349 +
-  350 + 	async setGitHubToken(token: string): Promise<void> {
-  351 + 		this._githubToken = token;
+ 348 + 	// --- Authentication ---
+ 349 +
+ 350 + 	async setGitHubToken(token: string): Promise<void> {
+ 351 + 		this._githubToken = token;
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785455)
@@ -254,9 +254,9 @@ The GitHub token is stored in plain text in the `_githubToken` field and passed 
 Suggested change
 
 ```
-  352 - 		this._githubToken = token;
-  352 + 		const client = await this._ensureClient();
-  353 + 		await client.setGitHubToken(token);
+352 - 		this._githubToken = token;
+352 + 		const client = await this._ensureClient();
+353 + 		await client.setGitHubToken(token);
 ```
 
 ▸ 
@@ -266,27 +266,27 @@ Suggested change
 Comment on lines 32 to 52
 
 ```
-  32 + 	for (const plat of copilotPlatforms) {
-  33 + 		const relPath = path.join('Contents', 'Resources', 'app', 'node_modules', '@github', `copilot-${plat}`);
-  34 + 		const inX64 = path.join(x64AppPath, relPath);
-  35 + 		const inArm64 = path.join(arm64AppPath, relPath);
-  36 + 		if (fs.existsSync(inX64) && !fs.existsSync(inArm64)) {
-  37 + 			console.log(`Copying missing copilot-${plat} to arm64 build`);
-  38 + 			execSync(`cp -R ${JSON.stringify(inX64)} ${JSON.stringify(inArm64)}`);
-  39 + 		} else if (fs.existsSync(inArm64) && !fs.existsSync(inX64)) {
-  40 + 			console.log(`Copying missing copilot-${plat} to x64 build`);
-  41 + 			execSync(`cp -R ${JSON.stringify(inArm64)} ${JSON.stringify(inX64)}`);
-  42 + 		}
-  43 + 		const relPathU = path.join('Contents', 'Resources', 'app', 'node_modules.asar.unpacked', '@github', `copilot-${plat}`);
-  44 + 		const inX64U = path.join(x64AppPath, relPathU);
-  45 + 		const inArm64U = path.join(arm64AppPath, relPathU);
-  46 + 		if (fs.existsSync(inX64U) && !fs.existsSync(inArm64U)) {
-  47 + 			fs.mkdirSync(path.dirname(inArm64U), { recursive: true });
-  48 + 			execSync(`cp -R ${JSON.stringify(inX64U)} ${JSON.stringify(inArm64U)}`);
-  49 + 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
-  50 + 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
-  51 + 			execSync(`cp -R ${JSON.stringify(inArm64U)} ${JSON.stringify(inX64U)}`);
-  52 + 		}
+ 32 + 	for (const plat of copilotPlatforms) {
+ 33 + 		const relPath = path.join('Contents', 'Resources', 'app', 'node_modules', '@github', `copilot-${plat}`);
+ 34 + 		const inX64 = path.join(x64AppPath, relPath);
+ 35 + 		const inArm64 = path.join(arm64AppPath, relPath);
+ 36 + 		if (fs.existsSync(inX64) && !fs.existsSync(inArm64)) {
+ 37 + 			console.log(`Copying missing copilot-${plat} to arm64 build`);
+ 38 + 			execSync(`cp -R ${JSON.stringify(inX64)} ${JSON.stringify(inArm64)}`);
+ 39 + 		} else if (fs.existsSync(inArm64) && !fs.existsSync(inX64)) {
+ 40 + 			console.log(`Copying missing copilot-${plat} to x64 build`);
+ 41 + 			execSync(`cp -R ${JSON.stringify(inArm64)} ${JSON.stringify(inX64)}`);
+ 42 + 		}
+ 43 + 		const relPathU = path.join('Contents', 'Resources', 'app', 'node_modules.asar.unpacked', '@github', `copilot-${plat}`);
+ 44 + 		const inX64U = path.join(x64AppPath, relPathU);
+ 45 + 		const inArm64U = path.join(arm64AppPath, relPathU);
+ 46 + 		if (fs.existsSync(inX64U) && !fs.existsSync(inArm64U)) {
+ 47 + 			fs.mkdirSync(path.dirname(inArm64U), { recursive: true });
+ 48 + 			execSync(`cp -R ${JSON.stringify(inX64U)} ${JSON.stringify(inArm64U)}`);
+ 49 + 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
+ 50 + 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
+ 51 + 			execSync(`cp -R ${JSON.stringify(inArm64U)} ${JSON.stringify(inX64U)}`);
+ 52 + 		}
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785467)
@@ -298,10 +298,10 @@ The `execSync` calls in lines 38 and 48 use JSON.stringify for shell escaping, w
 [package.json](https://github.com/microsoft/vscode/pull/295817/files/96440905fdc4e710f9e45a69f6fa41336336f111#diff-7ae45ad102eab3b6d7e7896acd08c427a9b25b346470d7bc6507b6481575d519)
 
 ```
-  85 85       "@vscode/iconv-lite-umd": "0.7.1",
-  86 86       "@vscode/native-watchdog": "^1.4.6",
-  87 87       "@vscode/policy-watcher": "^1.3.2",
-     88 +     "@github/copilot-sdk": "0.1.23",
+85 85       "@vscode/iconv-lite-umd": "0.7.1",
+86 86       "@vscode/native-watchdog": "^1.4.6",
+87 87       "@vscode/policy-watcher": "^1.3.2",
+   88 +     "@github/copilot-sdk": "0.1.23",
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785489)
@@ -311,8 +311,8 @@ The `@github/copilot-sdk` package requires Node.js >= 24.0.0 (line 1139 in packa
 Suggested change
 
 ```
-  92 -     "@github/copilot-sdk": "0.1.23",
-  92 +     "@github/copilot-sdk": "0.1.22",
+92 -     "@github/copilot-sdk": "0.1.23",
+92 +     "@github/copilot-sdk": "0.1.22",
 ```
 
 ▸ [xlet: 4 hidden conversations; load on GitHub]
@@ -324,15 +324,15 @@ Suggested change
 Comment on lines +118 to +126
 
 ```
-  118 + 			this._client = new sdk.CopilotClient({
-  119 + 				autoStart: true,
-  120 + 				autoRestart: true,
-  121 + 				useStdio: true,
-  122 + 				...(cliPath ? { cliPath } : {}),
-  123 + 				env: cliEnv,
-  124 + 				...(this._githubToken ? { githubToken: this._githubToken } : {}),
-  125 + 			});
-  126 + 			this._onProcessOutput.fire({ stream: 'stderr', data: '[SDK] CopilotClient created, calling start()...' });
+ 118 + 			this._client = new sdk.CopilotClient({
+ 119 + 				autoStart: true,
+ 120 + 				autoRestart: true,
+ 121 + 				useStdio: true,
+ 122 + 				...(cliPath ? { cliPath } : {}),
+ 123 + 				env: cliEnv,
+ 124 + 				...(this._githubToken ? { githubToken: this._githubToken } : {}),
+ 125 + 			});
+ 126 + 			this._onProcessOutput.fire({ stream: 'stderr', data: '[SDK] CopilotClient created, calling start()...' });
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785557)
@@ -346,11 +346,11 @@ The utility process is started with `autoStart: true` and `autoRestart: true` bu
 Comment on lines +270 to +274
 
 ```
-  270 + 		const preferred = models.find(m => m.id === 'claude-sonnet-4') ?? models.find(m => m.id === 'gpt-4.1') ?? models[0];
-  271 + 		if (preferred) {
-  272 + 			this._modelSelect.value = preferred.id;
-  273 + 			this._modelLabel.textContent = preferred.name ?? preferred.id;
-  274 + 		}
+ 270 + 		const preferred = models.find(m => m.id === 'claude-sonnet-4') ?? models.find(m => m.id === 'gpt-4.1') ?? models[0];
+ 271 + 		if (preferred) {
+ 272 + 			this._modelSelect.value = preferred.id;
+ 273 + 			this._modelLabel.textContent = preferred.name ?? preferred.id;
+ 274 + 		}
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785576)
@@ -364,12 +364,12 @@ The model preference logic at line 270 looks for 'claude-sonnet-4' first, then '
 Comment on lines +307 to +312
 
 ```
-  307 + 	private _addFolderToHistory(path: string): void {
-  308 + 		const history = this._getFolderHistory().filter(p => p !== path);
-  309 + 		history.unshift(path);
-  310 + 		if (history.length > SdkChatWidget.MAX_FOLDER_HISTORY) { history.length = SdkChatWidget.MAX_FOLDER_HISTORY; }
-  311 + 		this._storageService.store(SdkChatWidget.FOLDER_HISTORY_KEY, JSON.stringify(history), StorageScope.PROFILE, StorageTarget.USER);
-  312 + 	}
+ 307 + 	private _addFolderToHistory(path: string): void {
+ 308 + 		const history = this._getFolderHistory().filter(p => p !== path);
+ 309 + 		history.unshift(path);
+ 310 + 		if (history.length > SdkChatWidget.MAX_FOLDER_HISTORY) { history.length = SdkChatWidget.MAX_FOLDER_HISTORY; }
+ 311 + 		this._storageService.store(SdkChatWidget.FOLDER_HISTORY_KEY, JSON.stringify(history), StorageScope.PROFILE, StorageTarget.USER);
+ 312 + 	}
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785589)
@@ -383,11 +383,11 @@ The folderHistory management functions don't validate that the path is actually 
 Comment on lines 150 to 154
 
 ```
-  150 + 		// SDK session lifecycle updates
-  151 + 		if (this._useSdk) {
-  152 + 			this._register(this.copilotSdkService.onSessionLifecycle(() => this._refreshSdkSessionList()));
-  153 + 			this._register(this._sdkListDisposables);
-  154 + 		}
+ 150 + 		// SDK session lifecycle updates
+ 151 + 		if (this._useSdk) {
+ 152 + 			this._register(this.copilotSdkService.onSessionLifecycle(() => this._refreshSdkSessionList()));
+ 153 + 			this._register(this._sdkListDisposables);
+ 154 + 		}
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785601)
@@ -401,17 +401,17 @@ The `_sdkListDisposables` store is registered in the constructor but is cleared 
 Comment on lines 295 to 305
 
 ```
-  295 + 	private _relativeTime(date: Date): string {
-  296 + 		const diffMs = Date.now() - date.getTime();
-  297 + 		const diffMins = Math.floor(diffMs / 60000);
-  298 + 		if (diffMins < 1) { return localize('justNow', "just now"); }
-  299 + 		if (diffMins < 60) { return localize('minutesAgo', "{0}m ago", diffMins); }
-  300 + 		const diffHours = Math.floor(diffMins / 60);
-  301 + 		if (diffHours < 24) { return localize('hoursAgo', "{0}h ago", diffHours); }
-  302 + 		const diffDays = Math.floor(diffHours / 24);
-  303 + 		if (diffDays < 7) { return localize('daysAgo', "{0}d ago", diffDays); }
-  304 + 		return date.toLocaleDateString();
-  305 + 	}
+ 295 + 	private _relativeTime(date: Date): string {
+ 296 + 		const diffMs = Date.now() - date.getTime();
+ 297 + 		const diffMins = Math.floor(diffMs / 60000);
+ 298 + 		if (diffMins < 1) { return localize('justNow', "just now"); }
+ 299 + 		if (diffMins < 60) { return localize('minutesAgo', "{0}m ago", diffMins); }
+ 300 + 		const diffHours = Math.floor(diffMins / 60);
+ 301 + 		if (diffHours < 24) { return localize('hoursAgo', "{0}h ago", diffHours); }
+ 302 + 		const diffDays = Math.floor(diffHours / 24);
+ 303 + 		if (diffDays < 7) { return localize('daysAgo', "{0}d ago", diffDays); }
+ 304 + 		return date.toLocaleDateString();
+ 305 + 	}
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2818785615)
@@ -475,12 +475,12 @@ Copilot reviewed 34 out of 35 changed files in this pull request and generated 6
 Comment on lines +261 to +266
 
 ```
-  261 + 			deleteBtn.title = localize('deleteSession', "Delete Session");
-  262 + 			DOM.append(deleteBtn, $('span')).classList.add(...ThemeIcon.asClassNameArray(Codicon.trash));
-  263 + 			this._sdkListDisposables.add(DOM.addDisposableListener(deleteBtn, 'click', (e) => {
-  264 + 				DOM.EventHelper.stop(e);
-  265 + 				this._deleteSdkSession(session.sessionId);
-  266 + 			}));
+ 261 + 			deleteBtn.title = localize('deleteSession', "Delete Session");
+ 262 + 			DOM.append(deleteBtn, $('span')).classList.add(...ThemeIcon.asClassNameArray(Codicon.trash));
+ 263 + 			this._sdkListDisposables.add(DOM.addDisposableListener(deleteBtn, 'click', (e) => {
+ 264 + 				DOM.EventHelper.stop(e);
+ 265 + 				this._deleteSdkSession(session.sessionId);
+ 266 + 			}));
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI**
@@ -490,27 +490,27 @@ The delete icon button relies on `title` only; please add an accessible name (e.
 Suggested change
 
 ```
-  203 - 			deleteBtn.title = localize('deleteSession', "Delete Session");
-  204 - 			DOM.append(deleteBtn, $('span')).classList.add(...ThemeIcon.asClassNameArray(Codicon.trash));
-  205 - 			this._sdkListDisposables.add(DOM.addDisposableListener(deleteBtn, 'click', (e) => {
-  206 - 				DOM.EventHelper.stop(e);
-  207 - 				this._deleteSdkSession(session.sessionId);
-  208 - 			}));
-  203 + 			deleteBtn.title = localize('deleteSession', "Delete Session");
-  204 + 			deleteBtn.setAttribute('aria-label', localize('deleteSession', "Delete Session"));
-  205 + 			deleteBtn.type = 'button';
-  206 + 			DOM.append(deleteBtn, $('span')).classList.add(...ThemeIcon.asClassNameArray(Codicon.trash));
-  207 + 			this._sdkListDisposables.add(DOM.addDisposableListener(deleteBtn, 'click', (e) => {
-  208 + 				DOM.EventHelper.stop(e);
-  209 + 				this._deleteSdkSession(session.sessionId);
-  210 + 			}));
-  211 + 			this._sdkListDisposables.add(DOM.addDisposableListener(deleteBtn, 'keydown', (e: KeyboardEvent) => {
-  212 + 				if (e.key === 'Enter' || e.key === ' ') {
-  213 + 					e.preventDefault();
-  214 + 					DOM.EventHelper.stop(e);
-  215 + 					this._deleteSdkSession(session.sessionId);
-  216 + 				}
-  217 + 			}));
+203 - 			deleteBtn.title = localize('deleteSession', "Delete Session");
+204 - 			DOM.append(deleteBtn, $('span')).classList.add(...ThemeIcon.asClassNameArray(Codicon.trash));
+205 - 			this._sdkListDisposables.add(DOM.addDisposableListener(deleteBtn, 'click', (e) => {
+206 - 				DOM.EventHelper.stop(e);
+207 - 				this._deleteSdkSession(session.sessionId);
+208 - 			}));
+203 + 			deleteBtn.title = localize('deleteSession', "Delete Session");
+204 + 			deleteBtn.setAttribute('aria-label', localize('deleteSession', "Delete Session"));
+205 + 			deleteBtn.type = 'button';
+206 + 			DOM.append(deleteBtn, $('span')).classList.add(...ThemeIcon.asClassNameArray(Codicon.trash));
+207 + 			this._sdkListDisposables.add(DOM.addDisposableListener(deleteBtn, 'click', (e) => {
+208 + 				DOM.EventHelper.stop(e);
+209 + 				this._deleteSdkSession(session.sessionId);
+210 + 			}));
+211 + 			this._sdkListDisposables.add(DOM.addDisposableListener(deleteBtn, 'keydown', (e: KeyboardEvent) => {
+212 + 				if (e.key === 'Enter' || e.key === ' ') {
+213 + 					e.preventDefault();
+214 + 					DOM.EventHelper.stop(e);
+215 + 					this._deleteSdkSession(session.sessionId);
+216 + 				}
+217 + 			}));
 ```
 
 ▸ 
@@ -520,25 +520,25 @@ Suggested change
 Comment on lines +171 to +189
 
 ```
-  171 + 		'edit': 'Edit file',
-  172 + 		'read': 'Read file',
-  173 + 		'write': 'Write file',
-  174 + 		'read_file': 'Read file',
-  175 + 		'write_file': 'Write file',
-  176 + 		'edit_file': 'Edit file',
-  177 + 		'create_file': 'Create file',
-  178 + 		'create': 'Create file',
-  179 + 		'multi_edit': 'Edit files',
-  180 + 		'list_directory': 'List directory',
-  181 + 		'run_command': 'Run command',
-  182 + 		'run_terminal_command': 'Run command',
-  183 + 		'search': 'Search',
-  184 + 		'grep_search': 'Search files',
-  185 + 		'file_search': 'Find files',
-  186 + 		'semantic_search': 'Semantic search',
-  187 + 		'delete': 'Delete',
-  188 + 		'browser_action': 'Browser action',
-  189 + 		'get_errors': 'Check errors',
+ 171 + 		'edit': 'Edit file',
+ 172 + 		'read': 'Read file',
+ 173 + 		'write': 'Write file',
+ 174 + 		'read_file': 'Read file',
+ 175 + 		'write_file': 'Write file',
+ 176 + 		'edit_file': 'Edit file',
+ 177 + 		'create_file': 'Create file',
+ 178 + 		'create': 'Create file',
+ 179 + 		'multi_edit': 'Edit files',
+ 180 + 		'list_directory': 'List directory',
+ 181 + 		'run_command': 'Run command',
+ 182 + 		'run_terminal_command': 'Run command',
+ 183 + 		'search': 'Search',
+ 184 + 		'grep_search': 'Search files',
+ 185 + 		'file_search': 'Find files',
+ 186 + 		'semantic_search': 'Semantic search',
+ 187 + 		'delete': 'Delete',
+ 188 + 		'browser_action': 'Browser action',
+ 189 + 		'get_errors': 'Check errors',
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414286)
@@ -548,44 +548,44 @@ These tool labels are user-facing but are hard-coded English strings. Please ext
 Suggested change
 
 ```
-  171 - 		'edit': 'Edit file',
-  172 - 		'read': 'Read file',
-  173 - 		'write': 'Write file',
-  174 - 		'read_file': 'Read file',
-  175 - 		'write_file': 'Write file',
-  176 - 		'edit_file': 'Edit file',
-  177 - 		'create_file': 'Create file',
-  178 - 		'create': 'Create file',
-  179 - 		'multi_edit': 'Edit files',
-  180 - 		'list_directory': 'List directory',
-  181 - 		'run_command': 'Run command',
-  182 - 		'run_terminal_command': 'Run command',
-  183 - 		'search': 'Search',
-  184 - 		'grep_search': 'Search files',
-  185 - 		'file_search': 'Find files',
-  186 - 		'semantic_search': 'Semantic search',
-  187 - 		'delete': 'Delete',
-  188 - 		'browser_action': 'Browser action',
-  189 - 		'get_errors': 'Check errors',
-  171 + 		'edit': localize('sdk.toolLabel.edit', "Edit file"),
-  172 + 		'read': localize('sdk.toolLabel.read', "Read file"),
-  173 + 		'write': localize('sdk.toolLabel.write', "Write file"),
-  174 + 		'read_file': localize('sdk.toolLabel.readFile', "Read file"),
-  175 + 		'write_file': localize('sdk.toolLabel.writeFile', "Write file"),
-  176 + 		'edit_file': localize('sdk.toolLabel.editFile', "Edit file"),
-  177 + 		'create_file': localize('sdk.toolLabel.createFile', "Create file"),
-  178 + 		'create': localize('sdk.toolLabel.create', "Create file"),
-  179 + 		'multi_edit': localize('sdk.toolLabel.multiEdit', "Edit files"),
-  180 + 		'list_directory': localize('sdk.toolLabel.listDirectory', "List directory"),
-  181 + 		'run_command': localize('sdk.toolLabel.runCommand', "Run command"),
-  182 + 		'run_terminal_command': localize('sdk.toolLabel.runTerminalCommand', "Run command"),
-  183 + 		'search': localize('sdk.toolLabel.search', "Search"),
-  184 + 		'grep_search': localize('sdk.toolLabel.grepSearch', "Search files"),
-  185 + 		'file_search': localize('sdk.toolLabel.fileSearch', "Find files"),
-  186 + 		'semantic_search': localize('sdk.toolLabel.semanticSearch', "Semantic search"),
-  187 + 		'delete': localize('sdk.toolLabel.delete', "Delete"),
-  188 + 		'browser_action': localize('sdk.toolLabel.browserAction', "Browser action"),
-  189 + 		'get_errors': localize('sdk.toolLabel.getErrors', "Check errors"),
+171 - 		'edit': 'Edit file',
+172 - 		'read': 'Read file',
+173 - 		'write': 'Write file',
+174 - 		'read_file': 'Read file',
+175 - 		'write_file': 'Write file',
+176 - 		'edit_file': 'Edit file',
+177 - 		'create_file': 'Create file',
+178 - 		'create': 'Create file',
+179 - 		'multi_edit': 'Edit files',
+180 - 		'list_directory': 'List directory',
+181 - 		'run_command': 'Run command',
+182 - 		'run_terminal_command': 'Run command',
+183 - 		'search': 'Search',
+184 - 		'grep_search': 'Search files',
+185 - 		'file_search': 'Find files',
+186 - 		'semantic_search': 'Semantic search',
+187 - 		'delete': 'Delete',
+188 - 		'browser_action': 'Browser action',
+189 - 		'get_errors': 'Check errors',
+171 + 		'edit': localize('sdk.toolLabel.edit', "Edit file"),
+172 + 		'read': localize('sdk.toolLabel.read', "Read file"),
+173 + 		'write': localize('sdk.toolLabel.write', "Write file"),
+174 + 		'read_file': localize('sdk.toolLabel.readFile', "Read file"),
+175 + 		'write_file': localize('sdk.toolLabel.writeFile', "Write file"),
+176 + 		'edit_file': localize('sdk.toolLabel.editFile', "Edit file"),
+177 + 		'create_file': localize('sdk.toolLabel.createFile', "Create file"),
+178 + 		'create': localize('sdk.toolLabel.create', "Create file"),
+179 + 		'multi_edit': localize('sdk.toolLabel.multiEdit', "Edit files"),
+180 + 		'list_directory': localize('sdk.toolLabel.listDirectory', "List directory"),
+181 + 		'run_command': localize('sdk.toolLabel.runCommand', "Run command"),
+182 + 		'run_terminal_command': localize('sdk.toolLabel.runTerminalCommand', "Run command"),
+183 + 		'search': localize('sdk.toolLabel.search', "Search"),
+184 + 		'grep_search': localize('sdk.toolLabel.grepSearch', "Search files"),
+185 + 		'file_search': localize('sdk.toolLabel.fileSearch', "Find files"),
+186 + 		'semantic_search': localize('sdk.toolLabel.semanticSearch', "Semantic search"),
+187 + 		'delete': localize('sdk.toolLabel.delete', "Delete"),
+188 + 		'browser_action': localize('sdk.toolLabel.browserAction', "Browser action"),
+189 + 		'get_errors': localize('sdk.toolLabel.getErrors', "Check errors"),
 ```
 
 ▸ 
@@ -595,13 +595,13 @@ Suggested change
 Comment on lines +50 to +56
 
 ```
-  50 + 		// Header
-  51 + 		const header = dom.append(this.element, $('.debug-panel-header'));
-  52 + 		dom.append(header, $('span')).textContent = 'Copilot SDK RPC Debug';
-  53 + 		const clearBtn = dom.append(header, $('button')) as HTMLButtonElement;
-  54 + 		clearBtn.textContent = 'Clear';
-  55 + 		clearBtn.style.cssText = 'margin-left:auto;font-size:11px;padding:2px 8px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border:none;border-radius:3px;cursor:pointer;';
-  56 + 		this._register(dom.addDisposableListener(clearBtn, 'click', () => {
+ 50 + 		// Header
+ 51 + 		const header = dom.append(this.element, $('.debug-panel-header'));
+ 52 + 		dom.append(header, $('span')).textContent = 'Copilot SDK RPC Debug';
+ 53 + 		const clearBtn = dom.append(header, $('button')) as HTMLButtonElement;
+ 54 + 		clearBtn.textContent = 'Clear';
+ 55 + 		clearBtn.style.cssText = 'margin-left:auto;font-size:11px;padding:2px 8px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border:none;border-radius:3px;cursor:pointer;';
+ 56 + 		this._register(dom.addDisposableListener(clearBtn, 'click', () => {
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414299)
@@ -613,10 +613,10 @@ This debug panel UI introduces multiple hard-coded, user-visible strings (e.g. h
 [build/gulpfile.vscode.ts](https://github.com/microsoft/vscode/pull/295817/files/d823b474c95e4a3667d6b33fde4c5ea1b0bacf94#diff-ccdd55130be6f89fd19598561b54ce885e483dfa6f782b93b50e95b28196b77f)
 
 ```
-  442 455   				'**/node-pty/lib/shared/conout.js',
-  443 456   				'**/*.wasm',
-  444 457   				'**/@vscode/vsce-sign/bin/*',
-      458 + 				'**/@github/copilot-*/**',
+442 455   				'**/node-pty/lib/shared/conout.js',
+443 456   				'**/*.wasm',
+444 457   				'**/@vscode/vsce-sign/bin/*',
+    458 + 				'**/@github/copilot-*/**',
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414310)
@@ -626,8 +626,8 @@ The ASAR unpack pattern `**/@github/copilot-*/**` will unpack entire platform pa
 Suggested change
 
 ```
-  459 - 				'**/@github/copilot-*/**',
-  459 + 				'**/@github/copilot-*/copilot*',
+459 - 				'**/@github/copilot-*/**',
+459 + 				'**/@github/copilot-*/copilot*',
 ```
 
 ▸ 
@@ -637,26 +637,26 @@ Suggested change
 Comment on lines 32 to 51
 
 ```
-  32 + 	for (const plat of copilotPlatforms) {
-  33 + 		const relPath = path.join('Contents', 'Resources', 'app', 'node_modules', '@github', `copilot-${plat}`);
-  34 + 		const inX64 = path.join(x64AppPath, relPath);
-  35 + 		const inArm64 = path.join(arm64AppPath, relPath);
-  36 + 		if (fs.existsSync(inX64) && !fs.existsSync(inArm64)) {
-  37 + 			console.log(`Copying missing copilot-${plat} to arm64 build`);
-  38 + 			execSync(`cp -R ${JSON.stringify(inX64)} ${JSON.stringify(inArm64)}`);
-  39 + 		} else if (fs.existsSync(inArm64) && !fs.existsSync(inX64)) {
-  40 + 			console.log(`Copying missing copilot-${plat} to x64 build`);
-  41 + 			execSync(`cp -R ${JSON.stringify(inArm64)} ${JSON.stringify(inX64)}`);
-  42 + 		}
-  43 + 		const relPathU = path.join('Contents', 'Resources', 'app', 'node_modules.asar.unpacked', '@github', `copilot-${plat}`);
-  44 + 		const inX64U = path.join(x64AppPath, relPathU);
-  45 + 		const inArm64U = path.join(arm64AppPath, relPathU);
-  46 + 		if (fs.existsSync(inX64U) && !fs.existsSync(inArm64U)) {
-  47 + 			fs.mkdirSync(path.dirname(inArm64U), { recursive: true });
-  48 + 			execSync(`cp -R ${JSON.stringify(inX64U)} ${JSON.stringify(inArm64U)}`);
-  49 + 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
-  50 + 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
-  51 + 			execSync(`cp -R ${JSON.stringify(inArm64U)} ${JSON.stringify(inX64U)}`);
+ 32 + 	for (const plat of copilotPlatforms) {
+ 33 + 		const relPath = path.join('Contents', 'Resources', 'app', 'node_modules', '@github', `copilot-${plat}`);
+ 34 + 		const inX64 = path.join(x64AppPath, relPath);
+ 35 + 		const inArm64 = path.join(arm64AppPath, relPath);
+ 36 + 		if (fs.existsSync(inX64) && !fs.existsSync(inArm64)) {
+ 37 + 			console.log(`Copying missing copilot-${plat} to arm64 build`);
+ 38 + 			execSync(`cp -R ${JSON.stringify(inX64)} ${JSON.stringify(inArm64)}`);
+ 39 + 		} else if (fs.existsSync(inArm64) && !fs.existsSync(inX64)) {
+ 40 + 			console.log(`Copying missing copilot-${plat} to x64 build`);
+ 41 + 			execSync(`cp -R ${JSON.stringify(inArm64)} ${JSON.stringify(inX64)}`);
+ 42 + 		}
+ 43 + 		const relPathU = path.join('Contents', 'Resources', 'app', 'node_modules.asar.unpacked', '@github', `copilot-${plat}`);
+ 44 + 		const inX64U = path.join(x64AppPath, relPathU);
+ 45 + 		const inArm64U = path.join(arm64AppPath, relPathU);
+ 46 + 		if (fs.existsSync(inX64U) && !fs.existsSync(inArm64U)) {
+ 47 + 			fs.mkdirSync(path.dirname(inArm64U), { recursive: true });
+ 48 + 			execSync(`cp -R ${JSON.stringify(inX64U)} ${JSON.stringify(inArm64U)}`);
+ 49 + 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
+ 50 + 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
+ 51 + 			execSync(`cp -R ${JSON.stringify(inArm64U)} ${JSON.stringify(inX64U)}`);
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414321)
@@ -666,56 +666,56 @@ Using `execSync('cp -R ...')` here makes the build depend on shelling out and is
 Suggested change
 
 ```
-  · - 	for (const plat of copilotPlatforms) {
-  · - 		const relPath = path.join('Contents', 'Resources', 'app', 'node_modules', '@github', `copilot-${plat}`);
-  · - 		const inX64 = path.join(x64AppPath, relPath);
-  · - 		const inArm64 = path.join(arm64AppPath, relPath);
-  · - 		if (fs.existsSync(inX64) && !fs.existsSync(inArm64)) {
-  · - 			console.log(`Copying missing copilot-${plat} to arm64 build`);
-  · - 			execSync(`cp -R ${JSON.stringify(inX64)} ${JSON.stringify(inArm64)}`);
-  · - 		} else if (fs.existsSync(inArm64) && !fs.existsSync(inX64)) {
-  · - 			console.log(`Copying missing copilot-${plat} to x64 build`);
-  · - 			execSync(`cp -R ${JSON.stringify(inArm64)} ${JSON.stringify(inX64)}`);
-  · - 		}
-  · - 		const relPathU = path.join('Contents', 'Resources', 'app', 'node_modules.asar.unpacked', '@github', `copilot-${plat}`);
-  · - 		const inX64U = path.join(x64AppPath, relPathU);
-  · - 		const inArm64U = path.join(arm64AppPath, relPathU);
-  · - 		if (fs.existsSync(inX64U) && !fs.existsSync(inArm64U)) {
-  · - 			fs.mkdirSync(path.dirname(inArm64U), { recursive: true });
-  · - 			execSync(`cp -R ${JSON.stringify(inX64U)} ${JSON.stringify(inArm64U)}`);
-  · - 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
-  · - 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
-  · - 			execSync(`cp -R ${JSON.stringify(inArm64U)} ${JSON.stringify(inX64U)}`);
-  · +
-  · + 	const copyRecursiveSync = (source: string, destination: string): void => {
-  · + 		try {
-  · + 			fs.cpSync(source, destination, { recursive: true });
-  · + 		} catch (error) {
-  · + 			console.error(`Failed to copy ${source} to ${destination}:`, error);
-  · + 			throw error;
-  · + 		}
-  · + 	};
-  · +
-  · + 	for (const plat of copilotPlatforms) {
-  · + 		const relPath = path.join('Contents', 'Resources', 'app', 'node_modules', '@github', `copilot-${plat}`);
-  · + 		const inX64 = path.join(x64AppPath, relPath);
-  · + 		const inArm64 = path.join(arm64AppPath, relPath);
-  · + 		if (fs.existsSync(inX64) && !fs.existsSync(inArm64)) {
-  · + 			console.log(`Copying missing copilot-${plat} to arm64 build`);
-  · + 			copyRecursiveSync(inX64, inArm64);
-  · + 		} else if (fs.existsSync(inArm64) && !fs.existsSync(inX64)) {
-  · + 			console.log(`Copying missing copilot-${plat} to x64 build`);
-  · + 			copyRecursiveSync(inArm64, inX64);
-  · + 		}
-  · + 		const relPathU = path.join('Contents', 'Resources', 'app', 'node_modules.asar.unpacked', '@github', `copilot-${plat}`);
-  · + 		const inX64U = path.join(x64AppPath, relPathU);
-  · + 		const inArm64U = path.join(arm64AppPath, relPathU);
-  · + 		if (fs.existsSync(inX64U) && !fs.existsSync(inArm64U)) {
-  · + 			fs.mkdirSync(path.dirname(inArm64U), { recursive: true });
-  · + 			copyRecursiveSync(inX64U, inArm64U);
-  · + 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
-  · + 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
-  · + 			copyRecursiveSync(inArm64U, inX64U);
+· - 	for (const plat of copilotPlatforms) {
+· - 		const relPath = path.join('Contents', 'Resources', 'app', 'node_modules', '@github', `copilot-${plat}`);
+· - 		const inX64 = path.join(x64AppPath, relPath);
+· - 		const inArm64 = path.join(arm64AppPath, relPath);
+· - 		if (fs.existsSync(inX64) && !fs.existsSync(inArm64)) {
+· - 			console.log(`Copying missing copilot-${plat} to arm64 build`);
+· - 			execSync(`cp -R ${JSON.stringify(inX64)} ${JSON.stringify(inArm64)}`);
+· - 		} else if (fs.existsSync(inArm64) && !fs.existsSync(inX64)) {
+· - 			console.log(`Copying missing copilot-${plat} to x64 build`);
+· - 			execSync(`cp -R ${JSON.stringify(inArm64)} ${JSON.stringify(inX64)}`);
+· - 		}
+· - 		const relPathU = path.join('Contents', 'Resources', 'app', 'node_modules.asar.unpacked', '@github', `copilot-${plat}`);
+· - 		const inX64U = path.join(x64AppPath, relPathU);
+· - 		const inArm64U = path.join(arm64AppPath, relPathU);
+· - 		if (fs.existsSync(inX64U) && !fs.existsSync(inArm64U)) {
+· - 			fs.mkdirSync(path.dirname(inArm64U), { recursive: true });
+· - 			execSync(`cp -R ${JSON.stringify(inX64U)} ${JSON.stringify(inArm64U)}`);
+· - 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
+· - 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
+· - 			execSync(`cp -R ${JSON.stringify(inArm64U)} ${JSON.stringify(inX64U)}`);
+· +
+· + 	const copyRecursiveSync = (source: string, destination: string): void => {
+· + 		try {
+· + 			fs.cpSync(source, destination, { recursive: true });
+· + 		} catch (error) {
+· + 			console.error(`Failed to copy ${source} to ${destination}:`, error);
+· + 			throw error;
+· + 		}
+· + 	};
+· +
+· + 	for (const plat of copilotPlatforms) {
+· + 		const relPath = path.join('Contents', 'Resources', 'app', 'node_modules', '@github', `copilot-${plat}`);
+· + 		const inX64 = path.join(x64AppPath, relPath);
+· + 		const inArm64 = path.join(arm64AppPath, relPath);
+· + 		if (fs.existsSync(inX64) && !fs.existsSync(inArm64)) {
+· + 			console.log(`Copying missing copilot-${plat} to arm64 build`);
+· + 			copyRecursiveSync(inX64, inArm64);
+· + 		} else if (fs.existsSync(inArm64) && !fs.existsSync(inX64)) {
+· + 			console.log(`Copying missing copilot-${plat} to x64 build`);
+· + 			copyRecursiveSync(inArm64, inX64);
+· + 		}
+· + 		const relPathU = path.join('Contents', 'Resources', 'app', 'node_modules.asar.unpacked', '@github', `copilot-${plat}`);
+· + 		const inX64U = path.join(x64AppPath, relPathU);
+· + 		const inArm64U = path.join(arm64AppPath, relPathU);
+· + 		if (fs.existsSync(inX64U) && !fs.existsSync(inArm64U)) {
+· + 			fs.mkdirSync(path.dirname(inArm64U), { recursive: true });
+· + 			copyRecursiveSync(inX64U, inArm64U);
+· + 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
+· + 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
+· + 			copyRecursiveSync(inArm64U, inX64U);
 ```
 
 ▸ 
@@ -725,12 +725,12 @@ Suggested change
 Comment on lines +231 to +236
 
 ```
-  231 + 		for (const session of this._sdkSessions) {
-  232 + 			const item = DOM.append(this._sdkListContainer, $('.sdk-session-item'));
-  233 + 			item.tabIndex = 0;
-  234 + 			item.setAttribute('role', 'listitem');
-  235 + 			item.setAttribute('data-session-id', session.sessionId);
-  236 + 			if (session.sessionId === this._sdkSelectedSessionId) { item.classList.add('selected'); }
+ 231 + 		for (const session of this._sdkSessions) {
+ 232 + 			const item = DOM.append(this._sdkListContainer, $('.sdk-session-item'));
+ 233 + 			item.tabIndex = 0;
+ 234 + 			item.setAttribute('role', 'listitem');
+ 235 + 			item.setAttribute('data-session-id', session.sessionId);
+ 236 + 			if (session.sessionId === this._sdkSelectedSessionId) { item.classList.add('selected'); }
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819414332)
@@ -856,12 +856,12 @@ Copilot reviewed 34 out of 35 changed files in this pull request and generated 3
 Comment on lines 163 to 168
 
 ```
-  163 + 			case 'session.compaction_start':
-  164 + 				return this._addProgressToAssistantTurn('Compacting context...');
-  165 +
-  166 + 			case 'session.compaction_complete':
-  167 + 				return this._addProgressToAssistantTurn('Context compacted');
-  168 +
+ 163 + 			case 'session.compaction_start':
+ 164 + 				return this._addProgressToAssistantTurn('Compacting context...');
+ 165 +
+ 166 + 			case 'session.compaction_complete':
+ 167 + 				return this._addProgressToAssistantTurn('Context compacted');
+ 168 +
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI**
@@ -873,10 +873,10 @@ Progress messages "Compacting context..." and "Context compacted" are user-visib
 [src/vs/sessions/contrib/copilotSdk/browser/widget/sdkChatWidget.ts](https://github.com/microsoft/vscode/pull/295817/files/481e91ab26f92066410de7778b1e10422d185fcb#diff-4f328eaaae7ff3c25005e1802ad5c5505426ce73cfe41db3bd1801a83fbf3568)
 
 ```
-  176 + 				const terminalGroupService = accessor.get(ITerminalGroupService);
-  177 + 				terminalService.createTerminal({ config: { cwd: URI.file(worktreePath) } }).then(instance => {
-  178 + 					if (instance) { terminalService.setActiveInstance(instance); }
-  179 + 					terminalGroupService.showPanel(true);
+ 176 + 				const terminalGroupService = accessor.get(ITerminalGroupService);
+ 177 + 				terminalService.createTerminal({ config: { cwd: URI.file(worktreePath) } }).then(instance => {
+ 178 + 					if (instance) { terminalService.setActiveInstance(instance); }
+ 179 + 					terminalGroupService.showPanel(true);
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-17 (13 days ago)](#discussion_r2819502261)
@@ -886,10 +886,10 @@ The terminal creation promise isn’t handled (`createTerminal(...).then(...)` w
 Suggested change
 
 ```
-  176 - 					terminalGroupService.showPanel(true);
-  176 + 					terminalGroupService.showPanel(true);
-  177 + 				}).catch(error => {
-  178 + 					this._logService.error(error);
+176 - 					terminalGroupService.showPanel(true);
+176 + 					terminalGroupService.showPanel(true);
+177 + 				}).catch(error => {
+178 + 					this._logService.error(error);
 ```
 
 [[ Copilot on 2026-02-17 (13 days ago) ]]
@@ -965,10 +965,10 @@ On a high level I feel the direction of mixing both the architectural change (to
 [src/vs/workbench/services/environment/common/environmentService.ts](https://github.com/microsoft/vscode/pull/295817/files/8baa674e456bf5fc32732b61e5c85cf90f9add91#diff-afef50076e509f44f6362cd22bed30b249b00dd56dbcdc15c1cd33aa01f2c7ca) Outdated
 
 ```
-  36 36   	readonly skipWelcome: boolean;
-  37 37   	readonly disableWorkspaceTrust: boolean;
-  38 38   	readonly isSessionsWindow: boolean;
-     39 + 	readonly isSessionsUtilityProcess: boolean;
+36 36   	readonly skipWelcome: boolean;
+37 37   	readonly disableWorkspaceTrust: boolean;
+38 38   	readonly isSessionsWindow: boolean;
+   39 + 	readonly isSessionsUtilityProcess: boolean;
 ```
 
 Why would a workbench be a sessions utility process???
@@ -978,10 +978,10 @@ Why would a workbench be a sessions utility process???
 [src/vs/workbench/services/environment/electron-browser/environmentService.ts](https://github.com/microsoft/vscode/pull/295817/files/8baa674e456bf5fc32732b61e5c85cf90f9add91#diff-606a69dffd023e82747f7c6e0bbf3226dae1ec9f6dda1eef1f586509d958ec7e) Outdated
 
 ```
-  155 155   	get isSessionsWindow(): boolean { return !!this.configuration.isSessionsWindow; }
-  156 156  
-      157 + 	@memoize
-      158 + 	get isSessionsUtilityProcess(): boolean { return !!this.configuration.isSessionsUtilityProcess; }
+155 155   	get isSessionsWindow(): boolean { return !!this.configuration.isSessionsWindow; }
+156 156  
+    157 + 	@memoize
+    158 + 	get isSessionsUtilityProcess(): boolean { return !!this.configuration.isSessionsUtilityProcess; }
 ```
 
 Why would a workbench be a sessions utility process???
@@ -1011,10 +1011,10 @@ Why would a workbench be a sessions utility process???
 [src/vs/platform/copilotSdk/common/copilotSdkService.ts](https://github.com/microsoft/vscode/pull/295817/files/8baa674e456bf5fc32732b61e5c85cf90f9add91#diff-5cbdc6baacd3772bb044afaa9fd8983880374b4627c832c99a69234026bab82b)
 
 ```
-   9 +
-  10 + // #region Service Identifiers
-  11 +
-  12 + export const ICopilotSdkService = createDecorator<ICopilotSdkService>('copilotSdkService');
+  9 +
+ 10 + // #region Service Identifiers
+ 11 +
+ 12 + export const ICopilotSdkService = createDecorator<ICopilotSdkService>('copilotSdkService');
 ```
 
 As long as this is an exploration I would suggest to move the `platform/copilotSDK` package into the `vs/sessions` folder.
@@ -1024,10 +1024,10 @@ As long as this is an exploration I would suggest to move the `platform/copilotS
 [src/vs/code/electron-main/app.ts](https://github.com/microsoft/vscode/pull/295817/files/8baa674e456bf5fc32732b61e5c85cf90f9add91#diff-ce90ef6ffd304cc541efa8135dc4878c7b61889d2b2d5ef69e196af6cea7647b) Outdated
 
 ```
-  1131 1133   		services.set(IUtilityProcessWorkerMainService, new SyncDescriptor(UtilityProcessWorkerMainService, undefined, true));
-  1132 1134  
-       1135 + 		// Copilot SDK (utility process host) -- only when --sessions-utility-process is active
-       1136 + 		if (this.environmentMainService.args['sessions-utility-process']) {
+1131 1133   		services.set(IUtilityProcessWorkerMainService, new SyncDescriptor(UtilityProcessWorkerMainService, undefined, true));
+1132 1134  
+     1135 + 		// Copilot SDK (utility process host) -- only when --sessions-utility-process is active
+     1136 + 		if (this.environmentMainService.args['sessions-utility-process']) {
 ```
 
 Make this a setting.
@@ -1037,10 +1037,10 @@ Make this a setting.
 [src/vs/code/electron-main/app.ts](https://github.com/microsoft/vscode/pull/295817/files/8baa674e456bf5fc32732b61e5c85cf90f9add91#diff-ce90ef6ffd304cc541efa8135dc4878c7b61889d2b2d5ef69e196af6cea7647b) Outdated
 
 ```
-  1299      - 		// Embedded app launches directly into the sessions window
-  1300      - 		if ((process as INodeProcess).isEmbeddedApp) {
-       1312 + 		// Open sessions window if requested
-       1313 + 		if ((process as INodeProcess).isEmbeddedApp || args['sessions-utility-process']) {
+1299      - 		// Embedded app launches directly into the sessions window
+1300      - 		if ((process as INodeProcess).isEmbeddedApp) {
+     1312 + 		// Open sessions window if requested
+     1313 + 		if ((process as INodeProcess).isEmbeddedApp || args['sessions-utility-process']) {
 ```
 
 This is outdated, we have the `--sessions` CLI flag back in `main`.
@@ -1190,8 +1190,8 @@ Copilot reviewed 33 out of 36 changed files in this pull request and generated 5
 Comment on lines +625 to +626
 
 ```
-  625 + 		this._textarea.style.height = 'auto';
-  626 + 		this._textarea.style.height = `${Math.min(this._textarea.scrollHeight, 200)}px`;
+ 625 + 		this._textarea.style.height = 'auto';
+ 626 + 		this._textarea.style.height = `${Math.min(this._textarea.scrollHeight, 200)}px`;
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI**
@@ -1201,20 +1201,20 @@ The textarea auto-resize logic calculates height synchronously based on `scrollH
 Suggested change
 
 ```
-  638 - 		this._textarea.style.height = 'auto';
-  639 - 		this._textarea.style.height = `${Math.min(this._textarea.scrollHeight, 200)}px`;
-  638 + 		const textarea = this._textarea;
-  639 + 		const textareaWithState = textarea as unknown as { _resizeRaf?: number } & HTMLTextAreaElement;
-  640 +
-  641 + 		if (textareaWithState._resizeRaf !== undefined) {
-  642 + 			return;
-  643 + 		}
-  644 +
-  645 + 		textareaWithState._resizeRaf = window.requestAnimationFrame(() => {
-  646 + 			textareaWithState._resizeRaf = undefined;
-  647 + 			textarea.style.height = 'auto';
-  648 + 			textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
-  649 + 		});
+638 - 		this._textarea.style.height = 'auto';
+639 - 		this._textarea.style.height = `${Math.min(this._textarea.scrollHeight, 200)}px`;
+638 + 		const textarea = this._textarea;
+639 + 		const textareaWithState = textarea as unknown as { _resizeRaf?: number } & HTMLTextAreaElement;
+640 +
+641 + 		if (textareaWithState._resizeRaf !== undefined) {
+642 + 			return;
+643 + 		}
+644 +
+645 + 		textareaWithState._resizeRaf = window.requestAnimationFrame(() => {
+646 + 			textareaWithState._resizeRaf = undefined;
+647 + 			textarea.style.height = 'auto';
+648 + 			textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+649 + 		});
 ```
 
 ▸ 
@@ -1222,10 +1222,10 @@ Suggested change
 [src/vs/sessions/services/copilotSdk/node/copilotSdkHost.ts](https://github.com/microsoft/vscode/pull/295817/files/08d444a8ef605e9d867d98a363894cae06449757#diff-6c7ad505eb29f64a8351f7d8a54fccecb756ece60bc0ed8cebe625c2f420ded9)
 
 ```
-  170 + 				this._onProcessOutput.fire({ stream: 'stderr', data: text.trimEnd() });
-  171 + 			}
-  172 + 			return this._originalStderrWrite!(chunk, ...args as [BufferEncoding?, ((err?: Error | null) => void)?]);
-  173 + 		};
+ 170 + 				this._onProcessOutput.fire({ stream: 'stderr', data: text.trimEnd() });
+ 171 + 			}
+ 172 + 			return this._originalStderrWrite!(chunk, ...args as [BufferEncoding?, ((err?: Error | null) => void)?]);
+ 173 + 		};
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (10 days ago)](#discussion_r2833208107)
@@ -1235,14 +1235,14 @@ Monkey-patching `process.stderr.write` is risky and could interfere with other c
 Suggested change
 
 ```
-  177 - 		};
-  177 + 		};
-  178 + 		// Ensure stderr is restored when the client is disposed.
-  179 + 		this._clientDisposables.add(toDisposable(() => {
-  180 + 			if (this._originalStderrWrite) {
-  181 + 				process.stderr.write = this._originalStderrWrite;
-  182 + 			}
-  183 + 		}));
+177 - 		};
+177 + 		};
+178 + 		// Ensure stderr is restored when the client is disposed.
+179 + 		this._clientDisposables.add(toDisposable(() => {
+180 + 			if (this._originalStderrWrite) {
+181 + 				process.stderr.write = this._originalStderrWrite;
+182 + 			}
+183 + 		}));
 ```
 
 ▸ 
@@ -1252,10 +1252,10 @@ Suggested change
 Comment on lines 148 to 151
 
 ```
-  148 + 			const timeoutPromise = new Promise<never>((_, reject) =>
-  149 + 				setTimeout(() => reject(new Error('SDK client.start() timed out after 30 seconds')), 30000)
-  150 + 			);
-  151 + 			await Promise.race([startPromise, timeoutPromise]);
+ 148 + 			const timeoutPromise = new Promise<never>((_, reject) =>
+ 149 + 				setTimeout(() => reject(new Error('SDK client.start() timed out after 30 seconds')), 30000)
+ 150 + 			);
+ 151 + 			await Promise.race([startPromise, timeoutPromise]);
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (10 days ago)](#discussion_r2833208119)
@@ -1265,21 +1265,21 @@ The timeout promise (line 148-150) creates a timer that's never cancelled if `st
 Suggested change
 
 ```
-  · - 			const timeoutPromise = new Promise<never>((_, reject) =>
-  · - 				setTimeout(() => reject(new Error('SDK client.start() timed out after 30 seconds')), 30000)
-  · - 			);
-  · - 			await Promise.race([startPromise, timeoutPromise]);
-  · + 			let timeoutHandle: NodeJS.Timeout | undefined;
-  · + 			const timeoutPromise = new Promise<never>((_, reject) => {
-  · + 				timeoutHandle = setTimeout(() => reject(new Error('SDK client.start() timed out after 30 seconds')), 30000);
-  · + 			});
-  · + 			try {
-  · + 				await Promise.race([startPromise, timeoutPromise]);
-  · + 			} finally {
-  · + 				if (timeoutHandle) {
-  · + 					clearTimeout(timeoutHandle);
-  · + 				}
-  · + 			}
+· - 			const timeoutPromise = new Promise<never>((_, reject) =>
+· - 				setTimeout(() => reject(new Error('SDK client.start() timed out after 30 seconds')), 30000)
+· - 			);
+· - 			await Promise.race([startPromise, timeoutPromise]);
+· + 			let timeoutHandle: NodeJS.Timeout | undefined;
+· + 			const timeoutPromise = new Promise<never>((_, reject) => {
+· + 				timeoutHandle = setTimeout(() => reject(new Error('SDK client.start() timed out after 30 seconds')), 30000);
+· + 			});
+· + 			try {
+· + 				await Promise.race([startPromise, timeoutPromise]);
+· + 			} finally {
+· + 				if (timeoutHandle) {
+· + 					clearTimeout(timeoutHandle);
+· + 				}
+· + 			}
 ```
 
 Fixed — same as above. `clearTimeout` in `finally` block.
@@ -1291,13 +1291,13 @@ Fixed — same as above. `clearTimeout` in `finally` block.
 Comment on lines 239 to 245
 
 ```
-  239 + 		try { await this.copilotSdkService.deleteSession(sessionId); } catch { /* best-effort */ }
-  240 + 		if (this._sdkSelectedSessionId === sessionId) {
-  241 + 			this._sdkSelectedSessionId = undefined;
-  242 + 			const chatPane = this.viewsService.getViewWithId<SdkChatViewPane>(SdkChatViewId);
-  243 + 			chatPane?.widget?.newSession();
-  244 + 		}
-  245 + 		this._refreshSdkSessionList();
+ 239 + 		try { await this.copilotSdkService.deleteSession(sessionId); } catch { /* best-effort */ }
+ 240 + 		if (this._sdkSelectedSessionId === sessionId) {
+ 241 + 			this._sdkSelectedSessionId = undefined;
+ 242 + 			const chatPane = this.viewsService.getViewWithId<SdkChatViewPane>(SdkChatViewId);
+ 243 + 			chatPane?.widget?.newSession();
+ 244 + 		}
+ 245 + 		this._refreshSdkSessionList();
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (10 days ago)](#discussion_r2833208135)
@@ -1311,8 +1311,8 @@ After deleting a session (line 239), the widget immediately calls `newSession()`
 Comment on lines +1299 to +1300
 
 ```
-  1299 + 			const copilotSdkMainService = accessor.get(ICopilotSdkMainService);
-  1300 + 			mainProcessElectronServer.registerChannel(CopilotSdkChannel, copilotSdkMainService.getServerChannel());
+ 1299 + 			const copilotSdkMainService = accessor.get(ICopilotSdkMainService);
+ 1300 + 			mainProcessElectronServer.registerChannel(CopilotSdkChannel, copilotSdkMainService.getServerChannel());
 ```
 
 ### **[Copilot](https://github.com/apps/copilot-pull-request-reviewer) AI** [2026-02-20 (10 days ago)](#discussion_r2833208144)
@@ -1322,17 +1322,17 @@ The service registration (lines 1136-1138) and channel registration (lines 1298-
 Suggested change
 
 ```
-  1299 - 			const copilotSdkMainService = accessor.get(ICopilotSdkMainService);
-  1300 - 			mainProcessElectronServer.registerChannel(CopilotSdkChannel, copilotSdkMainService.getServerChannel());
-  1299 + 			let copilotSdkMainService: ICopilotSdkMainService | undefined;
-  1300 + 			try {
-  1301 + 				copilotSdkMainService = accessor.get(ICopilotSdkMainService);
-  1302 + 			} catch {
-  1303 + 				copilotSdkMainService = undefined;
-  1304 + 			}
-  1305 + 			if (copilotSdkMainService) {
-  1306 + 				mainProcessElectronServer.registerChannel(CopilotSdkChannel, copilotSdkMainService.getServerChannel());
-  1307 + 			}
+1299 - 			const copilotSdkMainService = accessor.get(ICopilotSdkMainService);
+1300 - 			mainProcessElectronServer.registerChannel(CopilotSdkChannel, copilotSdkMainService.getServerChannel());
+1299 + 			let copilotSdkMainService: ICopilotSdkMainService | undefined;
+1300 + 			try {
+1301 + 				copilotSdkMainService = accessor.get(ICopilotSdkMainService);
+1302 + 			} catch {
+1303 + 				copilotSdkMainService = undefined;
+1304 + 			}
+1305 + 			if (copilotSdkMainService) {
+1306 + 				mainProcessElectronServer.registerChannel(CopilotSdkChannel, copilotSdkMainService.getServerChannel());
+1307 + 			}
 ```
 
 [[ Copilot on 2026-02-20 (10 days ago) ]]
@@ -1364,10 +1364,10 @@ Many unresolved Copilot code feedback comments and 1 comment from me.
 [src/vs/sessions/services/copilotSdk/node/copilotSdkHost.ts](https://github.com/microsoft/vscode/pull/295817/files/08d444a8ef605e9d867d98a363894cae06449757#diff-6c7ad505eb29f64a8351f7d8a54fccecb756ece60bc0ed8cebe625c2f420ded9)
 
 ```
-  392 + 	server.registerChannel(CopilotSdkChannel, channel);
-  393 + 	process.stderr.write(`[CopilotSdkHost] Channel '${CopilotSdkChannel}' registered on server\n`);
-  394 +
-  395 + 	process.once('exit', () => {
+ 392 + 	server.registerChannel(CopilotSdkChannel, channel);
+ 393 + 	process.stderr.write(`[CopilotSdkHost] Channel '${CopilotSdkChannel}' registered on server\n`);
+ 394 +
+ 395 + 	process.once('exit', () => {
 ```
 
 Are we certain this works? At this moment the process is stopping and you are calling a long running operation?
@@ -1435,10 +1435,10 @@ Sorry for the late review, the comments can be addressed as followup
 [build/azure-pipelines/darwin/copilot-cli-entitlements.plist](https://github.com/microsoft/vscode/pull/295817/files/6fef58cfbebb6e85233d8089a80c8d7d61021032#diff-301d6d3128613649b23f09c96e9dd458a7696e4fd6b03620059773bbce8f37a7) Outdated
 
 ```
-   8 +     <true/>
-   9 +     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-  10 +     <true/>
-  11 +     <key>com.apple.security.automation.apple-events</key>
+  8 +     <true/>
+  9 +     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+ 10 +     <true/>
+ 11 +     <key>com.apple.security.automation.apple-events</key>
 ```
 
 Is the apple events needed ?
@@ -1459,10 +1459,10 @@ Tl:dr, if the apple events is not needed can we remove this entitlement file in 
 [build/darwin/create-universal-app.ts](https://github.com/microsoft/vscode/pull/295817/files/6fef58cfbebb6e85233d8089a80c8d7d61021032#diff-6e3bf673b5cd62ad9dd6f1c5d4ec6311c411461dcc4ac1172b97b0c22147946a)
 
 ```
-  48 + 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
-  49 + 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
-  50 + 			fs.cpSync(inArm64U, inX64U, { recursive: true });
-  51 + 		}
+ 48 + 		} else if (fs.existsSync(inArm64U) && !fs.existsSync(inX64U)) {
+ 49 + 			fs.mkdirSync(path.dirname(inX64U), { recursive: true });
+ 50 + 			fs.cpSync(inArm64U, inX64U, { recursive: true });
+ 51 + 		}
 ```
 
 Hmm can you remove the platform specific suffix and keep it as `@github/copilot` then we would just merge the binaries without having to do the above workaround.
@@ -1472,10 +1472,10 @@ Hmm can you remove the platform specific suffix and keep it as `@github/copilot`
 [src/vs/platform/copilotSdk/electron-main/copilotSdkStarter.ts](https://github.com/microsoft/vscode/pull/295817/files/6fef58cfbebb6e85233d8089a80c8d7d61021032#diff-1f764fe17e0660ea5cc31489196a492fab903e658712020ac59f1c6edcb64a0c) Outdated
 
 ```
-  75 + 				type: 'copilotSdkHost',
-  76 + 				name: 'copilot-sdk-host',
-  77 + 				entryPoint: 'vs/sessions/services/copilotSdk/node/copilotSdkHost',
-  78 + 				args: ['--logsPath', this._environmentMainService.logsHome.with({ scheme: Schemas.file }).fsPath, '--disable-gpu'],
+ 75 + 				type: 'copilotSdkHost',
+ 76 + 				name: 'copilot-sdk-host',
+ 77 + 				entryPoint: 'vs/sessions/services/copilotSdk/node/copilotSdkHost',
+ 78 + 				args: ['--logsPath', this._environmentMainService.logsHome.with({ scheme: Schemas.file }).fsPath, '--disable-gpu'],
 ```
 
 why `--disable-gpu` ?
@@ -1487,8 +1487,8 @@ why `--disable-gpu` ?
 Comment on lines 123 to 124
 
 ```
-  123 + 		delete cliEnv['__CFBundleIdentifier'];
-  124 + 		delete cliEnv['APP_SANDBOX_CONTAINER_ID'];
+ 123 + 		delete cliEnv['__CFBundleIdentifier'];
+ 124 + 		delete cliEnv['APP_SANDBOX_CONTAINER_ID'];
 ```
 
 `APP_SANDBOX_CONTAINER_ID` is for apps from mac app store relying on the mac container sandbox, which our app doesn't, can be removed

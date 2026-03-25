@@ -326,9 +326,9 @@ describe('Code Tables', () => {
       'Lines 60 to 75 in [92daef0](/rollup/plugins/commit/92daef00b0da30de172868d4e0792c8686da0045)',
       '',
       '```js',
-      '  60  // Checks if the given path lies within Rollup output dir ',
-      '  61  if (outputOptions.dir) { ',
-      '  62    const fromRollupDirToTs = relative(outputDir, compilerOptions[dirProperty]!); ',
+      '60  // Checks if the given path lies within Rollup output dir ',
+      '61  if (outputOptions.dir) { ',
+      '62    const fromRollupDirToTs = relative(outputDir, compilerOptions[dirProperty]!); ',
       '```',
     ].join('\n'));
   });

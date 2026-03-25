@@ -342,3 +342,22 @@ export function normalizeCodeTable(root: Element): HTMLPreElement | null {
   if (lang) setLang(pre, lang);
   return pre;
 }
+
+export function statusFromSvg(svg: SVGElement): string | null {
+  const values = [
+    svg.getAttribute('aria-label')?.toLowerCase() ?? '',
+    svg.getAttribute('class')?.toLowerCase() ?? '',
+  ];
+
+  const has = (...parts: string[]) =>
+    parts.some((part) => values.some((v) => v.includes(part)));
+
+  if (has('run', 'rotat')) return 'running';
+  if (has('fail')) return 'failed';
+  if (has('cancel')) return 'cancelled';
+  if (has('skip')) return 'skipped';
+  if (has('succ')) return 'ok';
+  if (has('pend', 'queue')) return 'pending';
+
+  return null;
+}

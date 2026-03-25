@@ -345,22 +345,22 @@ As far I understood the discussion and change in [#1728](https://github.com/roll
 Lines 60 to 75 in [92daef0](https://github.com/rollup/plugins/commit/92daef00b0da30de172868d4e0792c8686da0045)
 
 ```js
-  60  // Checks if the given path lies within Rollup output dir 
-  61  if (outputOptions.dir) { 
-  62    const fromRollupDirToTs = relative(outputDir, compilerOptions[dirProperty]!); 
-  63    if (fromRollupDirToTs.startsWith('..')) { 
-  64      context.error( 
-  65        `@rollup/plugin-typescript: Path of Typescript compiler option '${dirProperty}' must be located inside Rollup 'dir' option.` 
-  66      ); 
-  67    } 
-  68  } else { 
-  69    const fromTsDirToRollup = relative(compilerOptions[dirProperty]!, outputDir); 
-  70    if (fromTsDirToRollup.startsWith('..')) { 
-  71      context.error( 
-  72        `@rollup/plugin-typescript: Path of Typescript compiler option '${dirProperty}' must be located inside the same directory as the Rollup 'file' option.` 
-  73      ); 
-  74    } 
-  75  } 
+60  // Checks if the given path lies within Rollup output dir 
+61  if (outputOptions.dir) { 
+62    const fromRollupDirToTs = relative(outputDir, compilerOptions[dirProperty]!); 
+63    if (fromRollupDirToTs.startsWith('..')) { 
+64      context.error( 
+65        `@rollup/plugin-typescript: Path of Typescript compiler option '${dirProperty}' must be located inside Rollup 'dir' option.` 
+66      ); 
+67    } 
+68  } else { 
+69    const fromTsDirToRollup = relative(compilerOptions[dirProperty]!, outputDir); 
+70    if (fromTsDirToRollup.startsWith('..')) { 
+71      context.error( 
+72        `@rollup/plugin-typescript: Path of Typescript compiler option '${dirProperty}' must be located inside the same directory as the Rollup 'file' option.` 
+73      ); 
+74    } 
+75  } 
 ```
 
 If my understanding is correct, the code above could be fixed like this:

@@ -59,10 +59,10 @@ Also, in order to add a test for this behavior, the typescript version in the de
 [packages/typescript/src/outputFile.ts](https://github.com/rollup/plugins/pull/1949/files#diff-120678bfd12e91144ba66253506e2d2e4314e4d287fa75b216b217417cd31d90)
 
 ```
-  39 39    */
-  40 40   export function isDeclarationOutputFile(name: string): boolean {
-  41    -   return /\.d\.[cm]?ts$/.test(name);
-     41 +   return /\.d(\..+)?\.[cm]?ts$/.test(name);
+39 39    */
+40 40   export function isDeclarationOutputFile(name: string): boolean {
+41    -   return /\.d\.[cm]?ts$/.test(name);
+   41 +   return /\.d(\..+)?\.[cm]?ts$/.test(name);
 ```
 
 I was wondering whether an arbitrary string is allowed between `.d.` and `.ts`, or if only a restricted set of characters are allowed. It turns out any arbitrary string is allowed here:
@@ -88,10 +88,10 @@ tl;dr this regexp sounds correct to me.
 [packages/typescript/test/test.js](https://github.com/rollup/plugins/pull/1949/files#diff-9b47757e1347eae5ab5cefedce0669826e925f9b073a02815b9507b782f2211b) Outdated
 
 ```
-  1541      -   t.is(warnings.length, 1);
-  1542      -   t.is(warnings[0].code, 'UNRESOLVED_IMPORT');
-       1541 +   t.is(warnings.length, 2);
-       1542 +   t.is(warnings[0].pluginCode, 'TS5110');
+1541      -   t.is(warnings.length, 1);
+1542      -   t.is(warnings[0].code, 'UNRESOLVED_IMPORT');
+     1541 +   t.is(warnings.length, 2);
+     1542 +   t.is(warnings[0].pluginCode, 'TS5110');
 ```
 
 What is this warning? Is it about the `module` value not being aligned with the `moduleResolution` value?
@@ -119,10 +119,10 @@ What the test cares about is the unresolved import, so I'd say it's better if we
 [packages/typescript/src/options/tsconfig.ts](https://github.com/rollup/plugins/pull/1949/files#diff-6ecfc1f9278a1047a5ea41728957d156541d8ac8045357641f77edb5e105bdd4) Outdated
 
 ```
-  123 123   }
-  124 124  
-  125     - const configCache = new Map() as typescript.ESMap<string, ExtendedConfigCacheEntry>;
-      125 + const configCache = new Map() as Map<string, ExtendedConfigCacheEntry>;
+123 123   }
+124 124  
+125     - const configCache = new Map() as typescript.ESMap<string, ExtendedConfigCacheEntry>;
+    125 + const configCache = new Map() as Map<string, ExtendedConfigCacheEntry>;
 ```
 
 Nit: could we avoid the cast here by using `new Map<string, ExtendedConfigCacheEntry>()` instead?

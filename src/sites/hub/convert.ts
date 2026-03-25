@@ -3,6 +3,7 @@ import { toHtml as _toHtml, toMd as _toMd } from '../../core';
 import { h, isElement, isSub, isSup, isText } from '../../utils/dom';
 import { formatDateWithRelative } from '../../utils/strings';
 import { setLang } from '../../normalize';
+import { normalizeCodeTable } from './dom';
 
 function shouldSkip(node: Node | null): boolean {
   if (!node) throw new Error('shouldSkip called with null or undefined node');
@@ -51,64 +52,9 @@ const toMdElemHandler: ToMdElementHandler = (node, ctx, gc) => {
   }
 
   // GitHub code table (line-numbered snippet)
-  if (
-    node.matches('table') &&
-    node.querySelector('td[data-line-number]') &&
-    node.querySelector('.blob-code-inner, td.blob-code')
-  ) {
-    const table = node as HTMLTableElement;
-    type Entry = { leftNo: string; rightNo: string; op: '+' | '-' | ' '; code: string; };
-    const entries: Entry[] = [];
-    let lang = '';
-
-    // Detect line number columns (some tables have one for additions and one for deletions, but some have only one shared column)
-    const lineNoCols = new Set<number>();
-    for (const tr of table.rows) for (const c of tr.cells) if (c.hasAttribute('data-line-number')) lineNoCols.add(c.cellIndex);
-    if (lineNoCols.size > 2) return {};
-    const leftCol = Math.min(...lineNoCols);
-    const rightCol = lineNoCols.has(leftCol + 1) ? leftCol + 1 : null;
-
-    for (const tr of table.rows) {
-      const leftTd = tr.cells[leftCol] as HTMLTableCellElement | undefined;
-      const rightTd = rightCol ? (tr.cells[rightCol] as HTMLTableCellElement | undefined) : undefined;
-      const leftNo = leftTd?.getAttribute('data-line-number')?.trim() ?? '';
-      const rightNo = rightTd?.getAttribute('data-line-number')?.trim() ?? '';
-
-      const codeTd = tr.querySelector<HTMLElement>('td.blob-code, td.blob-code-inner');
-      if (!codeTd) continue;
-
-      // ignore pretty-print whitespace (alt: .blob-code-inner=pre, .blob-code!=pre)
-      let code = '';
-      const kids = [...codeTd.childNodes];
-      for (let i = 0; i < kids.length; i++) {
-        const t = kids[i].textContent ?? '';
-        if ((i === 0 || i === kids.length - 1) && isText(kids[i]) && /[\r\n]/.test(t)) continue;
-        code += t;
-      }
-
-      const classList = [...codeTd.classList, ...tr.classList];
-      const op = classList.some((c) => /addition/.test(c)) ? '+'
-        : classList.some((c) => /deletion/.test(c)) ? '-'
-        : ' ';
-      entries.push({ leftNo, rightNo, op, code });
-      lang ||= classList.find((c) => c.endsWith('-file-line'))?.replace(/-file-line$/, '') ?? '';
-    }
-
-    if (!entries.length) return {};
-
-    const maxPropLen = (prop: 'leftNo' | 'rightNo') =>
-      entries.reduce((m, e) => Math.max(m, e[prop].length), 0);
-    const leftW = maxPropLen('leftNo');
-    const rightW = maxPropLen('rightNo');
-    const opUse = entries.some((e) => e.op !== ' ');
-    const lines = entries.map(({ leftNo, rightNo, op, code }) => {
-      let out = `  ${leftNo.padStart(leftW, ' ')}`;
-      if (rightW > 0) out += ` ${rightNo.padStart(rightW, ' ')}`;
-      if (opUse) out += ` ${op}`;
-      return code ? `${out} ${code}` : out;
-    });
-    const md = [`\`\`\`${lang}`, ...lines, '```'].join('\n');
-    return { md };
+  if (node.matches('table')) {
+    const norm = normalizeCodeTable(node);
+    if (norm) return { md: toMd(norm, { ...ctx, skipCustomHandler: true }) };
   }
 
   if (node.matches('div.highlight')) {
