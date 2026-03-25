@@ -5,7 +5,7 @@ export type GhPage =
   | 'discussions' | 'disc'
   | 'tree' | 'blob' | 'blame'
   | 'commit' | 'commits'
-  | 'actions' | 'actions-run' | 'actions-job' | 'actions-workflow' | 'actions-usage'
+  | 'actions' | 'actions-run' | 'actions-job' | 'actions-workflow' | 'actions-usage' | 'actions-file'
   ;
 
 type GhRouteBase = { url: string; hash: string; search: string; };
@@ -35,6 +35,7 @@ export type GhRoute =
   | (GhRepoBase & { page: 'actions-job'; runId: string; jobId: string; })
   | (GhRepoBase & { page: 'actions-workflow'; runId: string; })
   | (GhRepoBase & { page: 'actions-usage'; runId: string; })
+  | (GhRepoBase & { page: 'actions-file'; yaml: string; })
   ;
 
 export function getGhRoute(str: string): GhRoute | undefined {
@@ -120,16 +121,23 @@ export function getGhRoute(str: string): GhRoute | undefined {
     }
 
     case 'actions': {
-      const [subkind, runId, subpage, jobId, ...rest] = tail;
+      const [actionKind, ...actionRest] = tail;
 
-      if (!subkind) return { ...base, page: 'actions' };
+      if (!actionKind) return { ...base, page: 'actions' };
 
-      if (subkind === 'runs') {
+      if (actionKind === 'workflows') {
+        const [yaml, ...workflowRest] = actionRest;
+        if (!yaml || workflowRest.length) return;
+        return { ...base, page: 'actions-file', yaml };
+      }
+
+      if (actionKind === 'runs') {
+        const [runId, runKind, jobId, ...runRest] = actionRest;
         if (!runId) return;
-        if (!subpage) return { ...base, page: 'actions-run', runId };
-        if (subpage === 'workflow' && !jobId) return { ...base, page: 'actions-workflow', runId };
-        if (subpage === 'usage' && !jobId) return { ...base, page: 'actions-usage', runId };
-        if (subpage === 'job' && jobId && !rest.length) return { ...base, page: 'actions-job', runId, jobId };
+        if (!runKind) return { ...base, page: 'actions-run', runId };
+        if (runKind === 'workflow' && !jobId) return { ...base, page: 'actions-workflow', runId };
+        if (runKind === 'usage' && !jobId) return { ...base, page: 'actions-usage', runId };
+        if (runKind === 'job' && jobId && !runRest.length) return { ...base, page: 'actions-job', runId, jobId };
       }
       return;
     }

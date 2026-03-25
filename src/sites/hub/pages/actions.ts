@@ -52,8 +52,8 @@ export const blocks: BlockSpec[] = [
           'button',
           'modal-dialog',
           'actions-workflow-filter',
-          // '.PageHeader-actions',
-          // '.PageHeader-navigation',
+          '.PageHeader-actions',
+          '.PageHeader-navigation',
         ],
       },
       { kind: 'replace', with: 'div', selectors: ['page-header'] },
@@ -159,6 +159,18 @@ export const blocks: BlockSpec[] = [
       );
     },
   },
+  // {
+  //   name: 'all-workflows',
+  //   select: { kind: 'ancestor', selectors: ['ul li[data-test-selector="workflow-rendered"]'] },
+  //   normalize: (root) => {
+  //     if (!root.matches('ul[class*="ActionList"]')) return null;
+  //     return root;
+  //   },
+  //   transforms: [
+  //     { kind: 'unwrap', selectors: ['a'] },
+  //     { kind: 'wrapSection', heading: { level: 2, text: 'All Workflows' } },
+  //   ],
+  // },
 ];
 
 export const createActionsPage: CreatePage = ({ sourceDoc, ctxs, state }) => {

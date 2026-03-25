@@ -82,6 +82,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'actions-job': page = await createActionsJobPage({ sourceDoc, ctxs, state }); break;
     case 'actions-workflow': page = await createActionsWorkflowPage({ sourceDoc, ctxs, state }); break;
     case 'actions-usage': page = await createActionsUsagePage({ sourceDoc, ctxs, state }); break;
+    case 'actions-file': page = await createActionsPage({ sourceDoc, ctxs, state }); break;
     default: assertNever(route);
   }
 
