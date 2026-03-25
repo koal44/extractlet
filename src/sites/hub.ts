@@ -22,6 +22,7 @@ import { createPrChecksPage } from './hub/pages/pr-checks';
 import { createActionsJobPage } from './hub/pages/actions-job';
 import { createActionsRunPage } from './hub/pages/actions-run';
 import { createActionsWorkflowPage } from './hub/pages/actions-workflow';
+import { createActionsUsagePage } from './hub/pages/actions-usage';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -79,7 +80,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'actions-run': page = await createActionsRunPage({ sourceDoc, ctxs, state }); break;
     case 'actions-job': page = await createActionsJobPage({ sourceDoc, ctxs, state }); break;
     case 'actions-workflow': page = await createActionsWorkflowPage({ sourceDoc, ctxs, state }); break;
-    case 'actions-usage': break; // Not implemented yet
+    case 'actions-usage': page = await createActionsUsagePage({ sourceDoc, ctxs, state }); break;
     default: assertNever(route);
   }
 
