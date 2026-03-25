@@ -459,7 +459,7 @@ export function toMd(node: Node | null, opts: Partial<ToMdContext> = {} ): strin
       case 'H6': {
         const level = parseHeadingLevel(node as HTMLHeadingElement);
         const hashes = '#'.repeat(level);
-        result = frameMd(`${hashes} ${glueChildren(node, 'inline')}`, 'block', ctx);
+        result = frameMd(`${hashes} ${glueChildren(node, 'inline').trim()}`, 'block', ctx);
         break;
       }
 

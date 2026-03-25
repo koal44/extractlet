@@ -49,19 +49,19 @@ export const blocks: BlockSpec[] = [
       kind: 'match',
       selectors: ['h1.PageHeader-title'],
     },
-    normalize: (h1) => {
-      const els = [...h1.querySelectorAll(':scope > span, :scope > bdi')];
-      if (els.length >= 2) {
-        const first = els[0]?.textContent?.trim();
-        const second = els[1]?.textContent?.replace(/\s+/g, ' ').trim();
+    // normalize: (h1) => {
+    //   const els = [...h1.querySelectorAll(':scope > span, :scope > bdi')];
+    //   if (els.length >= 2) {
+    //     const first = els[0]?.textContent?.trim();
+    //     const second = els[1]?.textContent?.replace(/\s+/g, ' ').trim();
 
-        if (first && second?.startsWith('#')) {
-          return joinWrap('h1', [h('span', {}, first), h('span', {}, second)]);
-        }
-      }
+    //     if (first && second?.startsWith('#')) {
+    //       return joinWrap('h1', [h('span', {}, first), h('span', {}, second)]);
+    //     }
+    //   }
 
-      return h1;
-    },
+    //   return h1;
+    // },
   },
   {
     name: 'log-header',

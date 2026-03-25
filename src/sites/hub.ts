@@ -20,6 +20,7 @@ import { createSearchPage } from './hub/pages/search';
 import { createPrCommitsPage } from './hub/pages/pr-commits';
 import { createPrChecksPage } from './hub/pages/pr-checks';
 import { createActionsJobPage } from './hub/pages/actions-job';
+import { createActionsRunPage } from './hub/pages/actions-run';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -74,7 +75,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'pr-files': break; // Not implemented yet
     case 'owner': break; // Not implemented yet
     case 'actions': break; // Not implemented yet
-    case 'actions-run': break; // Not implemented yet
+    case 'actions-run': page = await createActionsRunPage({ sourceDoc, ctxs, state }); break;
     case 'actions-job': page = await createActionsJobPage({ sourceDoc, ctxs, state }); break;
     case 'actions-workflow': break; // Not implemented yet
     case 'actions-usage': break; // Not implemented yet

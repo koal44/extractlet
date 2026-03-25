@@ -22,6 +22,7 @@ export type TransformSpec =
   | { kind: 'replace'; selectors: string[]; with: keyof HTMLElementTagNameMap; }
   | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element, ctxs: XletContexts) => Element | null; }
   | { kind: 'wrapSection'; heading: { level: HLevel; text: string; }; relevelChildren?: boolean; }
+  | { kind: 'trim'; selectors: string[]; }
 
 type OneBlockSpec = {
   name: string;
@@ -185,9 +186,14 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
   const wrapSpecs = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'wrapSection'; }> => f.kind === 'wrapSection');
 
+  const trimSelectors = transforms
+    .filter((f): f is Extract<TransformSpec, { kind: 'trim'; }> => f.kind === 'trim')
+    .flatMap((f) => f.selectors);
+
   const shouldRemove = (el: Element) => removeSelectors.some((sel) => el.matches(sel));
   const shouldRemoveNextSiblings = (el: Element) => removeNextSiblingSelectors.some((sel) => el.matches(sel));
   const shouldUnwrap = (el: Element) => unwrapSelectors.some((sel) => el.matches(sel));
+  const shouldTrim = (el: Element) => trimSelectors.some((sel) => el.matches(sel));
 
   function getReplacementTag(n: Node): keyof HTMLElementTagNameMap | null {
     if (!isElement(n)) return null;
@@ -253,6 +259,10 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
         child = newChild;
       }
 
+      if (isElement(child) && shouldTrim(child)) {
+        trimWsBoundary(child);
+      }
+
       if (isElement(child) && shouldUnwrap(child)) {
         while (child.firstChild) {
           node.insertBefore(child.firstChild, child);
@@ -271,6 +281,8 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
 
   const tag = getReplacementTag(root);
   if (tag) return h(tag, {}, ...root.childNodes);
+
+  if (shouldTrim(root)) trimWsBoundary(root);
 
   if (shouldUnwrap(root)) {
     const wrapper = isInlineElement(root) ? 'span' : 'div';
@@ -319,4 +331,27 @@ function clean(root: Element): Element | null {
   return isDisposable(root) ? null : root;
 }
 
+function trimWsBoundary(root: Element): void {
+  const trim = (side: 'firstChild' | 'lastChild', fn: 'trimStart' | 'trimEnd') => {
+    for (let cur: Node | null = root; ;) {
+      const child: ChildNode | null = side === 'firstChild' ? cur.firstChild : cur.lastChild;
+      if (!child) return;
 
+      if (child.nodeType !== Node.TEXT_NODE) {
+        cur = child;
+        continue;
+      }
+
+      const text = (child.textContent ?? '')[fn]();
+      if (text) {
+        child.textContent = text;
+        return;
+      }
+
+      child.remove();
+    }
+  };
+
+  trim('firstChild', 'trimStart');
+  trim('lastChild', 'trimEnd');
+}
