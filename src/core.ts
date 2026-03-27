@@ -4,6 +4,7 @@ import { hasOfType, isNumberish, parseJsonAs } from './utils/typing.js';
 import { mathVendorToHtml, mathVendorToMd } from './math-vendor';
 import { log } from './utils/logging.js';
 import {
+  copyClasses,
   copyHrefAttr, copySrcAttr, copyStyleAttr, getNormalizedUrl,
   isBreak, isElement, isHTML, isImage, isInput, isList, isListItem,
   isOList, isPre, isSVG, isTableCell, isTableHeader, isText, isTextArea,
@@ -164,6 +165,10 @@ export function toHtml(node: Node | null, opts: Partial<ToHtmlContext> = {}): No
       }
       case 'title': {
         clone.setAttribute('title', attr.value.replace(/\s+/g, ' ').trim());
+        break;
+      }
+      case 'class': {
+        copyClasses(clone, node, ['xlet-']);
         break;
       }
       case 'xmlns':

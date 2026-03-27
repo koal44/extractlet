@@ -3,7 +3,8 @@ import type { CreatePage } from '../../../snapshot-loader';
 import { h, isTable } from '../../../utils/dom';
 import { extractBlocks, type BlockSpec } from '../../../utils/extract';
 import { toHtml, toMd } from '../convert';
-import { brWrap, joinWrap, normalizeDiffTable } from '../dom';
+import { normalizeDiffTable } from '../diff-table';
+import { brWrap, joinWrap } from '../dom';
 
 export const blocks: BlockSpec[] = [
   {

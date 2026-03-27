@@ -1,6 +1,6 @@
 import { type XletContexts } from '../settings';
 import {
-  findCommonAncestor, h, isDiv, isDoc, isElement, isInlineElement, isSpan,
+  findCommonAncestor, h, isDiv, isDoc, isElement, isInlineElement, isSection, isSpan,
   relevelHeadings,
   type HLevel,
 } from './dom';
@@ -28,10 +28,10 @@ type OneBlockSpec = {
   name: string;
   select: SelectOneSpec;
   fallbackSelects?: SelectOneSpec[];
-  normalize?: (root: Element, ctxs: XletContexts) => Element | null;
+  normalize?: (root: Element, ctxs: XletContexts, fields: (Element | null)[]) => Element | null;
   transforms?: TransformSpec[];
+  fields?: BlockSpec[];
 
-  fields?: never;
   itemFn?: never;
   itemsFn?: never;
 };
@@ -62,7 +62,7 @@ function isOneBlockSpec(spec: BlockSpec): spec is OneBlockSpec {
   return spec.select.kind === 'match' || spec.select.kind === 'ancestor' || spec.select.kind === 'root';
 }
 
-function extractBlock(root: ParentNode, spec: BlockSpec, ctxs: XletContexts): Element | null {
+export function extractBlock(root: ParentNode, spec: BlockSpec, ctxs: XletContexts): Element | null {
   const block = isOneBlockSpec(spec)
     ? extractOne(root, spec, ctxs)
     : extractMany(root, spec, ctxs);
@@ -88,7 +88,12 @@ function extractOne(root: ParentNode, spec: OneBlockSpec, ctxs: XletContexts): E
   const clone = found.cloneNode(true);
   if (!isElement(clone)) return null;
 
-  return spec.normalize ? spec.normalize(clone, ctxs) : clone;
+  let fields: (Element | null)[] = [];
+  if (spec.fields) {
+    fields = extractBlocks(clone, spec.fields, ctxs);
+  }
+
+  return spec.normalize ? spec.normalize(clone, ctxs, fields) : clone;
 }
 
 function selectOne(root: ParentNode, select: SelectOneSpec): Element | null {
@@ -312,7 +317,7 @@ function resolveRootElement(root: ParentNode): Element | null {
 
 function clean(root: Element): Element | null {
   function isDisposable(node: Node): boolean {
-    return (isDiv(node) || isSpan(node)) && node.children.length === 0 && !(node.textContent);
+    return (isDiv(node) || isSpan(node) || isSection(node)) && node.children.length === 0 && !(node.textContent);
   }
 
   function walk(node: Node): void {

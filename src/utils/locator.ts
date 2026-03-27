@@ -1,46 +1,53 @@
+import { isElement } from './dom';
 import { repr, warn } from './logging';
+import { isROArray } from './typing';
 
 export type Locator = { sel: string; attr?: string; valMap?: ValMapFn; };
-export type ValMapFn = (v: string, doc: Document, scope?: ParentNode) => string;
+export type ValMapFn = (v: string, root: ParentNode) => string;
 
-export function pickEl(specs: readonly Locator[], doc: Document, scope?: Element): Element | undefined {
-  for (const { sel } of specs) {
+export function pickEl<T extends Element>(locators: Locator | readonly Locator[], root: ParentNode): T | undefined {
+  for (const { sel } of asLocators(locators)) {
     if (sel === ':scope') {
-      if (scope) return scope;
-      else continue;
+      if (isElement(root)) return root as T;
+      continue;
     }
-    const el = (scope ?? doc).querySelector(sel);
+    const el = root.querySelector<T>(sel);
     if (el) return el;
   }
   return undefined;
 }
 
-export function pickEls(specs: readonly Locator[], doc: Document, scope?: Element): Element[] {
-  for (const { sel } of specs) {
+export function pickEls<T extends Element>(locators: Locator | readonly Locator[], root: ParentNode): T[] {
+  for (const { sel } of asLocators(locators)) {
     if (sel === ':scope') {
-      if (scope) return [scope];
-      else continue;
+      if (isElement(root)) return [root as T];
+      continue;
     }
-    const els = (scope ?? doc).querySelectorAll(sel);
+    const els = root.querySelectorAll<T>(sel);
     if (els.length > 0) return [...els];
   }
   return [];
 }
 
-export function pickVal(specs: readonly Locator[], doc: Document, scope?: Element): string | undefined {
-  for (const { sel, attr, valMap } of specs) {
-    const el = sel === ':scope' ? scope : (scope ?? doc).querySelector(sel);
+export function pickVal(locators: Locator | readonly Locator[], root: ParentNode): string | undefined {
+  for (const { sel, attr, valMap } of asLocators(locators)) {
+    const el = sel === ':scope' && isElement(root) ? root : root.querySelector(sel);
     if (!el) continue;
     let val =
-      attr === 'innerHTML' ? el.innerHTML.trim() :
-      attr === 'outerHTML' ? el.outerHTML.trim() :
-      attr === 'textContent' || !attr ? el.textContent?.trim() ?? undefined :
-      el.getAttribute(attr)?.trim() ?? undefined;
+      attr === 'innerHTML' ? el.innerHTML :
+      attr === 'outerHTML' ? el.outerHTML :
+      attr === 'textContent' || !attr ? el.textContent ?? undefined :
+      el.getAttribute(attr) ?? undefined;
+
     if (val === undefined) continue;
-    val = valMap ? valMap(val, doc, scope).trim() : val;
+    val = valMap ? valMap(val, root) : val;
     if (val) return val;
   }
   return undefined;
+}
+
+function asLocators(locators: Locator | readonly Locator[]): readonly Locator[] {
+  return isROArray(locators) ? locators : [locators];
 }
 
 // MapFns

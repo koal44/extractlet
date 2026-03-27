@@ -111,10 +111,10 @@ export function scrapePosts(srcDoc: Document, locators: PostLocators, norm?: Nor
 
   const posts: Post[] = [];
   for (const item of items) {
-    const author    = pickVal(locators.posts_author, srcDoc, item);
-    const createdAt = pickVal(locators.posts_createdAt, srcDoc, item);
-    const postId    = pickVal(locators.posts_postId, srcDoc, item);
-    let bodyEl      =  pickEl(locators.posts_bodyViewer, srcDoc, item);
+    const author    = pickVal(locators.posts_author, item);
+    const createdAt = pickVal(locators.posts_createdAt, item);
+    const postId    = pickVal(locators.posts_postId, item);
+    let bodyEl      =  pickEl(locators.posts_bodyViewer, item);
     bodyEl ??= item;
     if (norm) bodyEl = norm(bodyEl);
 

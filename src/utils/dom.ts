@@ -284,6 +284,19 @@ export function getNormalizedUrl(node: Element, attr: 'href' | 'src'): string {
   }
 }
 
+export function copyClasses(target: Element, source: Element, allowedPrefixes: readonly string[]): void {
+  const classAttr = source.getAttribute('class');
+  if (!classAttr) return;
+
+  const allowed = classAttr
+    .split(/\s+/)
+    .filter((cls) => allowedPrefixes.some((prefix) => cls.startsWith(prefix)));
+
+  if (allowed.length > 0) {
+    target.setAttribute('class', allowed.join(' '));
+  }
+}
+
 export function copyStyleAttr(dest: HTMLElement, src: HTMLElement, allowStyles: boolean | ReadonlySet<string>) {
   if (!src.hasAttribute('style')) return; // check only one of these?
   if (allowStyles === false) return;

@@ -292,7 +292,7 @@ test('scrapePostContributor basic editor', () => {
                 </div>`;
 
   const node = el(html);
-  const result = scrapePostContributor(node, document);
+  const result = scrapePostContributor(node);
   const expected = {
     contributorType: 'editor',
     isOwner: false,
@@ -326,7 +326,7 @@ test('scrapePostContributor basic editor', () => {
             </div>`;
 
   const node = el(html);
-  const result = scrapePostContributor(node, document);
+  const result = scrapePostContributor(node);
   const expected = {
     contributorType: 'author',
     isOwner: true,

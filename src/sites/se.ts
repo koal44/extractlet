@@ -238,24 +238,24 @@ function scrapePosts(srcDoc: Document, ctxs?: XletContexts): Post[] {
 
   for (const post of pickEls(seTable['posts_items'], srcDoc)) {
     // post body
-    const bodyEl = pickEl(seTable['post_body'], srcDoc, post);
+    const bodyEl = pickEl(seTable['post_body'], post);
     const bodyHtml = toHtml(bodyEl, ctxs?.html)?.outerHTML;
     const bodyMd = toMd(bodyEl, ctxs?.md);
 
     // contributors
-    const sigNodes = pickEls(seTable['sig_items'], srcDoc, post);
-    const contributors = sigNodes.map((x) => scrapePostContributor(x, srcDoc));
+    const sigNodes = pickEls(seTable['sig_items'], post);
+    const contributors = sigNodes.map((x) => scrapePostContributor(x));
 
-    const vote = scrapePostVote(post, srcDoc);
+    const vote = scrapePostVote(post);
 
     // comments
-    const comments = pickEls(seTable['comment_items'], srcDoc, post).map((comment) => {
-      const cBodyEl = pickEl(seTable['comment_body'], srcDoc, comment);
+    const comments = pickEls(seTable['comment_items'], post).map((comment) => {
+      const cBodyEl = pickEl(seTable['comment_body'], comment);
       const bodyHtml = toHtml(cBodyEl, ctxs?.html)?.outerHTML;
       const bodyMd = toMd(cBodyEl, ctxs?.md);
 
-      const contributors = [scrapeCommentContributor(comment, srcDoc)];
-      const vote = scrapeCommentVote(comment, srcDoc);
+      const contributors = [scrapeCommentContributor(comment)];
+      const vote = scrapeCommentVote(comment);
       return { bodyHtml, bodyMd, contributors, vote };
     });
 
@@ -264,37 +264,37 @@ function scrapePosts(srcDoc: Document, ctxs?: XletContexts): Post[] {
   return posts;
 }
 
-export function scrapePostContributor(elem: Element | null, srcDoc: Document): Contributor {
+export function scrapePostContributor(elem: Element | null): Contributor {
   if (!elem) return { contributorType: 'editor', isOwner: false, timestamp: '', name: '', userId: -1, userSlug: '' };
 
-  const timestamp = pickVal(seTable['poster_time'], srcDoc, elem) ?? '';
-  const contributorType = pickVal(seTable['poster_type'], srcDoc, elem) === 'author' ? 'author' : 'editor';
-  const isOwner = pickVal(seTable['poster_isOwner'], srcDoc, elem) === 'true';
+  const timestamp = pickVal(seTable['poster_time'], elem) ?? '';
+  const contributorType = pickVal(seTable['poster_type'], elem) === 'author' ? 'author' : 'editor';
+  const isOwner = pickVal(seTable['poster_isOwner'], elem) === 'true';
 
-  const name = pickVal(seTable['poster_name'], srcDoc, elem) ?? '';
-  const userId = parseInt(pickVal(seTable['poster_id'], srcDoc, elem) ?? '-1', 10);
-  const userSlug = pickVal(seTable['poster_slug'], srcDoc, elem) ?? '';
+  const name = pickVal(seTable['poster_name'], elem) ?? '';
+  const userId = parseInt(pickVal(seTable['poster_id'], elem) ?? '-1', 10);
+  const userSlug = pickVal(seTable['poster_slug'], elem) ?? '';
 
   return { contributorType, isOwner, timestamp, name, userId, userSlug };
 }
 
-function scrapePostVote(elem: Element, srcDoc: Document): number {
-  const val = pickVal(seTable['poster_voteCount'], srcDoc, elem);
+function scrapePostVote(elem: Element): number {
+  const val = pickVal(seTable['poster_voteCount'], elem);
   const n = parseInt(val ?? '', 10);
   return Number.isNaN(n) ? 0 : n;
 }
 
-function scrapeCommentContributor(elem: Element, srcDoc: Document): Contributor {
-  const timestamp = pickVal(seTable['commenter_time'], srcDoc, elem) ?? '';
-  const name = pickVal(seTable['commenter_name'], srcDoc, elem) ?? '';
-  const userId = parseInt(pickVal(seTable['commenter_id'], srcDoc, elem) ?? '-1', 10);
-  const userSlug = pickVal(seTable['commenter_slug'], srcDoc, elem) ?? '';
+function scrapeCommentContributor(elem: Element): Contributor {
+  const timestamp = pickVal(seTable['commenter_time'], elem) ?? '';
+  const name = pickVal(seTable['commenter_name'], elem) ?? '';
+  const userId = parseInt(pickVal(seTable['commenter_id'], elem) ?? '-1', 10);
+  const userSlug = pickVal(seTable['commenter_slug'], elem) ?? '';
 
   return { contributorType: 'commenter', isOwner: false, timestamp, name, userId, userSlug };
 }
 
-function scrapeCommentVote(elem: Element, srcDoc: Document): number {
-  const val = pickVal(seTable['commenter_voteCount'], srcDoc, elem);
+function scrapeCommentVote(elem: Element): number {
+  const val = pickVal(seTable['commenter_voteCount'], elem);
   const n = parseInt(val ?? '', 10);
   return Number.isNaN(n) ? 0 : n;
 }
