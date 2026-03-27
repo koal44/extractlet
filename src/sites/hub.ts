@@ -25,6 +25,7 @@ import { createActionsWorkflowPage } from './hub/pages/actions-workflow';
 import { createActionsUsagePage } from './hub/pages/actions-usage';
 import { createActionsPage } from './hub/pages/actions';
 import { createPrFilesPage } from './hub/pages/pr-files';
+import { createPrChangesPage } from './hub/pages/pr-changes';
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -77,6 +78,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'pr-commits': page = await createPrCommitsPage({ sourceDoc, ctxs, state }); break;
     case 'pr-checks': page = await createPrChecksPage({ sourceDoc, ctxs, state }); break;
     case 'pr-files': page = await createPrFilesPage({ sourceDoc, ctxs, state }); break;
+    case 'pr-changes': page = await createPrChangesPage({ sourceDoc, ctxs, state }); break;
     case 'owner': break; // Not implemented yet
     case 'actions': page = await createActionsPage({ sourceDoc, ctxs, state }); break;
     case 'actions-run': page = await createActionsRunPage({ sourceDoc, ctxs, state }); break;

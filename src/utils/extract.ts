@@ -23,6 +23,8 @@ export type TransformSpec =
   | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element, ctxs: XletContexts) => Element | null; }
   | { kind: 'wrapSection'; heading: { level: HLevel; text: string; }; relevelChildren?: boolean; }
   | { kind: 'trim'; selectors: string[]; }
+  | { kind: 'insertText'; selectors: string[]; text: string; where: InsertPosition; }
+  | { kind: 'insertElement'; selectors: string[]; element: Element; where: InsertPosition; }
 
 type OneBlockSpec = {
   name: string;
@@ -195,6 +197,14 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
     .filter((f): f is Extract<TransformSpec, { kind: 'trim'; }> => f.kind === 'trim')
     .flatMap((f) => f.selectors);
 
+  const insertTexts = transforms
+    .filter((f): f is Extract<TransformSpec, { kind: 'insertText'; }> => f.kind === 'insertText')
+    .flatMap((f) => f.selectors.map((selector) => ({ selector, where: f.where, text: f.text })));
+
+  const insertElements = transforms
+    .filter((f): f is Extract<TransformSpec, { kind: 'insertElement'; }> => f.kind === 'insertElement')
+    .flatMap((f) => f.selectors.map((selector) => ({ selector, where: f.where, element: f.element })));
+
   const shouldRemove = (el: Element) => removeSelectors.some((sel) => el.matches(sel));
   const shouldRemoveNextSiblings = (el: Element) => removeNextSiblingSelectors.some((sel) => el.matches(sel));
   const shouldUnwrap = (el: Element) => unwrapSelectors.some((sel) => el.matches(sel));
@@ -210,6 +220,16 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
     if (!isElement(n)) return null;
     const fn = replaceFns.find((r) => n.matches(r.selector))?.fn;
     return fn ?? null;
+  }
+
+  function getInsertTexts(n: Node): { where: InsertPosition; text: string; }[] {
+    if (!isElement(n)) return [];
+    return insertTexts.filter((r) => n.matches(r.selector)).map(({ where, text }) => ({ where, text }));
+  }
+
+  function getInsertElements(n: Node): { where: InsertPosition; element: Element; }[] {
+    if (!isElement(n)) return [];
+    return insertElements.filter((r) => n.matches(r.selector)).map(({ where, element }) => ({ where, element }));
   }
 
   if (shouldRemove(root)) return null;
@@ -254,6 +274,20 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
           child.remove();
           child = next;
           continue;
+        }
+      }
+
+      const insertTexts = getInsertTexts(child);
+      if (insertTexts.length && isElement(child)) {
+        for (const { where, text } of insertTexts) {
+          child.insertAdjacentText(where, text);
+        }
+      }
+
+      const insertElements = getInsertElements(child);
+      if (insertElements.length && isElement(child)) {
+        for (const { where, element } of insertElements) {
+          child.insertAdjacentElement(where, element);
         }
       }
 

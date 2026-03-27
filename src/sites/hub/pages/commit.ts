@@ -1,6 +1,6 @@
 import { setPreserve } from '../../../normalize';
 import type { CreatePage } from '../../../snapshot-loader';
-import { h, isTable } from '../../../utils/dom';
+import { h, isTable, scrubBidiText } from '../../../utils/dom';
 import { extractBlocks, type BlockSpec } from '../../../utils/extract';
 import { toHtml, toMd } from '../convert';
 import { normalizeDiffTable } from '../diff-table';
@@ -309,16 +309,6 @@ export const mainBlocks: BlockSpec[] = [
     ],
   },
 ];
-
-function scrubBidiText(node: Node): void {
-  for (const child of node.childNodes) {
-    if (child.nodeType === Node.TEXT_NODE && child.textContent) {
-      child.textContent = child.textContent.replace(/[\u200e\u200f\u202a-\u202e]/g, '');
-    } else {
-      scrubBidiText(child);
-    }
-  }
-}
 
 export const createCommitPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const commitBlocks = extractBlocks(sourceDoc, blocks, ctxs);

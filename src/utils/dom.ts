@@ -335,6 +335,28 @@ export function scrubSvgElement(e: Element): void {
   for (let i = e.children.length; i--;) scrubSvgElement(e.children[i]);
 }
 
+export function scrubBidiText(node: Node): void {
+  const re = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
+
+  for (const child of node.childNodes) {
+    if (child.nodeType === Node.TEXT_NODE && child.textContent) {
+      child.textContent = child.textContent.replace(re, '');
+    } else {
+      scrubBidiText(child);
+    }
+  }
+}
+
+export function removeCommentNodes(node: Node): void {
+  for (const child of [...node.childNodes]) {
+    if (child.nodeType === Node.COMMENT_NODE) {
+      child.remove();
+    } else {
+      removeCommentNodes(child);
+    }
+  }
+}
+
 export function findCommonAncestor(root: ParentNode, selectors: string[]): Element | null {
   if (selectors.length === 0) return null;
   const descendants = [...root.querySelectorAll(selectors.join(', '))];

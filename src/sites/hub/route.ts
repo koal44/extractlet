@@ -1,13 +1,3 @@
-export type GhPage =
-  | 'search' | 'owner' | 'repo'
-  | 'issues' | 'issue'
-  | 'pulls' | 'pr' | 'pr-commits' | 'pr-checks' | 'pr-files'
-  | 'discussions' | 'disc'
-  | 'tree' | 'blob' | 'blame'
-  | 'commit' | 'commits'
-  | 'actions' | 'actions-run' | 'actions-job' | 'actions-workflow' | 'actions-usage' | 'actions-file'
-  ;
-
 type GhRouteBase = { url: string; hash: string; search: string; };
 type GhRepoBase = GhRouteBase & { owner: string; repo: string; };
 
@@ -23,6 +13,7 @@ export type GhRoute =
   | (GhRepoBase & { page: 'pr-commits'; prId: string; })
   | (GhRepoBase & { page: 'pr-checks'; prId: string; })
   | (GhRepoBase & { page: 'pr-files'; prId: string; })
+  | (GhRepoBase & { page: 'pr-changes'; prId: string; })
   | (GhRepoBase & { page: 'discussions'; })
   | (GhRepoBase & { page: 'disc'; discussionId: string; })
   | (GhRepoBase & { page: 'tree'; ref: string; pathParts: string[]; })
@@ -37,6 +28,8 @@ export type GhRoute =
   | (GhRepoBase & { page: 'actions-usage'; runId: string; })
   | (GhRepoBase & { page: 'actions-file'; yaml: string; })
   ;
+
+// export type GhPage = GhRoute['page'];
 
 export function getGhRoute(str: string): GhRoute | undefined {
   let u: URL;
@@ -81,6 +74,7 @@ export function getGhRoute(str: string): GhRoute | undefined {
       if (subpage === 'commits' && !rest.length) return { ...base, page: 'pr-commits', prId };
       if (subpage === 'checks' && !rest.length) return { ...base, page: 'pr-checks', prId };
       if (subpage === 'files' && !rest.length) return { ...base, page: 'pr-files', prId };
+      if (subpage === 'changes' && !rest.length) return { ...base, page: 'pr-changes', prId };
       return;
     }
 

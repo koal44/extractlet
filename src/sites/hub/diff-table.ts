@@ -1,7 +1,7 @@
 import { findCommonAncestor, h, isTable, relevelHeadings } from '../../utils/dom';
 import { extractBlock, type BlockSpec } from '../../utils/extract';
 import { pickEl, pickEls, pickVal, type Locator } from '../../utils/locator';
-import { normalizeCodeTable } from './dom';
+import { normalizeCodeTable, normalizeReactions } from './dom';
 
 type DiffOp = '+' | '-' | ' ';
 type UnifiedEntry = { kind: 'unified'; lNo: string; rNo: string; op: DiffOp; code: string; };
@@ -25,24 +25,11 @@ type CommentProfile = {
   cell: Locator;
 };
 
+const commentClass = 'xlet-comment-heading';
+
 const profiles: DiffProfile[] = [
   {
-    match: [
-      { sel: 'tbody > tr.diff-line-row' },
-      { sel: 'td.diff-hunk-cell' },
-      { sel: 'code.diff-text, code .diff-text-inner' },
-    ],
-    rows: { sel: 'tbody > tr.diff-line-row' },
-    cells: { sel: ':scope > td' },
-    hunkText: { sel: ':scope > td.diff-hunk-cell code .diff-text-inner', attr: 'textContent', valMap: (v) => v.trim() },
-    codeText: { sel: 'code .diff-text-inner', attr: 'textContent', valMap: (v) => v.trimEnd() },
-    lineNo: { sel: 'code', attr: 'textContent', valMap: (v) => v.trim() },
-    diffOp: {
-      sel: 'code.diff-text', attr: 'class',
-      valMap: (v) => v.includes('addition') ? '+' : v.includes('deletion') ? '-' : ' ',
-    },
-  },
-  {
+    // pr-files (older, when not logged in)
     match: [
       { sel: 'tbody > tr[data-hunk]' },
       { sel: 'td.blob-code-hunk' },
@@ -64,7 +51,8 @@ const profiles: DiffProfile[] = [
       name: 'comment',
       select: { kind: 'root' },
       normalize: (root) => {
-        // Move labels next to author
+        const commentHeading = root.querySelector(`.${commentClass}`);
+        // promote author associations into the heading line
         root.querySelectorAll('div.timeline-comment-group').forEach((group) => {
           const labels = group.querySelectorAll('.timeline-comment-actions + * .Label');
           const a = group.querySelector('strong > a.author');
@@ -73,27 +61,26 @@ const profiles: DiffProfile[] = [
             a.parentElement?.insertAdjacentElement('afterend', h('span', {}, ` (${labelText}) • `));
           }
         });
+        // render suggested-change mini tables as code diffs
         root.querySelectorAll('table.d-table').forEach((table) => {
           const norm = normalizeCodeTable(table);
           if (norm) table.replaceWith(norm);
         });
+        // replace the synthetic fallback heading with GitHub's explicit multiline range label when present.
         const lineNoHeading = findCommonAncestor(root, ['.js-multi-line-preview-start', '.js-multi-line-preview-end']);
-        if (lineNoHeading) {
-          const h4 = root.querySelector('.xlet-comment-heading');
-          if (h4) {
-            h4.textContent = lineNoHeading.textContent?.trim() || h4.textContent;
-            lineNoHeading.remove();
-          }
+        if (lineNoHeading && commentHeading) {
+          commentHeading.textContent = lineNoHeading.textContent?.trim() || commentHeading.textContent;
+          lineNoHeading.remove();
         }
+        // replace GitHub reaction widgets with plain text summaries
         root.querySelectorAll('form.js-pick-reaction').forEach((form) => {
-          const msg = form.querySelector('tool-tip')?.textContent?.trim();
-          const emoji = form.querySelector('g-emoji')?.textContent?.trim();
-          form.replaceWith(h('span', {}, msg && emoji && msg.includes('reacted with ')
-            ? msg.replace(/reacted with .*$/, `reacted with ${emoji}`)
-            : (msg ?? '')));
+          const norm = normalizeReactions(form);
+          if (norm) form.replaceWith(norm);
+          else form.remove();
         });
         return root;
       },
+      // Flatten UI chrome while preserving the actual review conversation content.
       transforms: [
         {
           kind: 'remove', selectors: [
@@ -105,6 +92,98 @@ const profiles: DiffProfile[] = [
         { kind: 'replace', with: 'div', selectors: ['td', 'summary'] },
         { kind: 'unwrap', selectors: ['a.author', 'a.js-timestamp', 'js-comment-reactions-options > tool-tip'] },
       ],
+    },
+  },
+  {
+    // pr-files (newer, when logged in)
+    match: [
+      { sel: 'tbody > tr.diff-line-row' },
+      { sel: 'td.diff-hunk-cell' },
+      { sel: 'td[data-line-number]' },
+      { sel: 'td.diff-text-cell' },
+      { sel: 'code.diff-text, code .diff-text-inner' },
+    ],
+    rows: { sel: 'tbody > tr.diff-line-row' },
+    cells: { sel: ':scope > td' },
+    hunkText: { sel: ':scope > td.diff-hunk-cell code .diff-text-inner', attr: 'textContent', valMap: (v) => v.trim() },
+    codeText: { sel: 'code .diff-text-inner', attr: 'textContent', valMap: (v) => v.trimEnd() },
+    lineNo: { sel: ':scope', attr: 'data-line-number' },
+    diffOp: {
+      sel: 'code.diff-text', attr: 'class',
+      valMap: (v) => v.includes('addition') ? '+' : v.includes('deletion') ? '-' : ' ',
+    },
+    comment: { cell: { sel: 'td.diff-text-cell > div' } },
+    commentBlock: {
+      name: 'comment',
+      select: { kind: 'root' },
+      normalize: (root) => {
+        const commentHeading = root.querySelector(`.${commentClass}`);
+        // replace comment heading with a line number version if possible
+        const lineNoHeading = root.querySelector('[class*="inlineReviewThreadHeading"]');
+        if (commentHeading && lineNoHeading?.textContent.trim()) {
+          commentHeading.textContent = lineNoHeading.textContent.trim();
+          lineNoHeading.remove();
+        }
+        // move resolve to main heading
+        const resolved = root.querySelector('[class*="ResolvableContainer"]');
+        if (commentHeading && resolved?.textContent.trim()) {
+          commentHeading.textContent += ` (${resolved.textContent.trim()})`;
+          resolved.remove();
+        }
+        // Move labels next to author
+        root.querySelectorAll('[data-testid="comment-header"]').forEach((group) => {
+          const labels = group.querySelectorAll('[data-testid="comment-author-association"], [data-testid="comment-subject-author"]');
+          const a = group.querySelector('[data-testid="avatar-link"]');
+          if (labels.length && a) {
+            const labelText = [...labels].map((l) => l.textContent?.trim()).join(', ');
+            a.parentElement?.insertAdjacentElement('afterend', h('span', {}, ` (${labelText}) • `));
+          }
+        });
+        // use emojis in reactions instead of text
+        root.querySelectorAll('[role="toolbar"]').forEach((toolbar) => {
+          const norm = normalizeReactions(toolbar);
+          if (norm) toolbar.replaceWith(norm);
+          else toolbar.remove();
+        });
+        // normalize suggested changes tables in comments
+        root.querySelectorAll('table.d-table').forEach((table) => {
+          const norm = normalizeCodeTable(table);
+          if (norm) table.replaceWith(norm);
+        });
+        return root;
+      },
+      transforms: [
+        {
+          kind: 'remove', selectors: [
+            'button',
+            '[popover]',
+            'img',
+            'a:has(> img)',
+            '[data-testid="comment-header-right-side-items"]',
+            '.sr-only',
+            '.js-apply-changes',
+          ],
+        },
+        { kind: 'replace', with: 'span', selectors: ['[data-testid^="comment-header-"] :is(div)'] },
+        { kind: 'replace', with: 'h3', selectors: ['[data-testid^="comment-header-"]'] },
+        { kind: 'unwrap', selectors: ['a[data-testid="avatar-link"]', 'a:has(relative-time)'] },
+      ],
+    },
+  },
+  {
+    match: [
+      { sel: 'tbody > tr.diff-line-row' },
+      { sel: 'td.diff-hunk-cell' },
+      { sel: 'code.diff-text, code .diff-text-inner' },
+    ],
+    rows: { sel: 'tbody > tr.diff-line-row' },
+    cells: { sel: ':scope > td' },
+    hunkText: { sel: ':scope > td.diff-hunk-cell code .diff-text-inner', attr: 'textContent', valMap: (v) => v.trim() },
+    codeText: { sel: 'code .diff-text-inner', attr: 'textContent', valMap: (v) => v.trimEnd() },
+    lineNo: { sel: 'code', attr: 'textContent', valMap: (v) => v.trim() },
+    diffOp: {
+      sel: 'code.diff-text', attr: 'class',
+      valMap: (v) => v.includes('addition') ? '+' : v.includes('deletion') ? '-' : ' ',
     },
   },
 ];
@@ -126,19 +205,19 @@ export function normalizeDiffTable(root: Element): Element | null {
     const cells = pickEls<HTMLTableCellElement>(p.cells, row); // ':scope > td'
     if (!cells.length) continue;
 
+    const entry = parseHunkRow(row, p) ?? parseUnifiedRow(cells, p) ?? parseSplitRow(cells, p);
+    if (entry?.kind === 'hunk') prevLine = { lNo: '', rNo: '' };
+    if (entry?.kind === 'unified') prevLine = { lNo: entry.lNo, rNo: entry.rNo };
+    if (entry?.kind === 'split') prevLine = { lNo: entry.lNo, rNo: entry.rNo };
+    if (entry) entries.push(entry);
+
     const comment = parseCommentRow(row, p);
     if (comment) {
       const leftNo = prevLine.lNo ? `L${prevLine.lNo}` : '';
       const rightNo = prevLine.rNo ? `R${prevLine.rNo}` : '';
-      comment.prepend(h('h2', { class: 'xlet-comment-heading' }, `Comments near ${[leftNo, rightNo].filter(Boolean).join('/')}`));
+      comment.prepend(h('h2', { class: commentClass }, `Comments near ${[leftNo, rightNo].filter(Boolean).join('/')}`));
       comments.push(comment);
-      continue;
     }
-
-    const entry = parseHunkRow(row, p) ?? parseUnifiedRow(cells, p) ?? parseSplitRow(cells, p);
-    if (entry?.kind === 'unified' || entry?.kind === 'split') prevLine = { lNo: entry.lNo, rNo: entry.rNo };
-    if (entry?.kind === 'hunk') prevLine = { lNo: '', rNo: '' };
-    if (entry) entries.push(entry);
   }
 
   if (!entries.length) return null;

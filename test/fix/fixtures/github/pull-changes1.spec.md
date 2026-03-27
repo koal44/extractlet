@@ -2,15 +2,15 @@
 <!-- XLET-BEGIN -->
 
 <!-- Extractlet -->
-<!-- tweak `run_in_terminal` changes by meganrogge · Pull Request #304843 · microsoft/vscode · GitHub -->
-<!-- https://github.com/microsoft/vscode/pull/304843/files -->
+<!-- tweak `run_in_terminal` changes by meganrogge · Pull Request #304843 · microsoft/vscode -->
+<!-- https://github.com/microsoft/vscode/pull/304843/changes -->
 
-[microsoft](https://github.com/microsoft) / **[vscode](https://github.com/microsoft/vscode)** Public
+[microsoft](https://github.com/microsoft) / [vscode](https://github.com/microsoft/vscode)
 
-# tweak `run_in_terminal` changes #304843 · Open
+# tweak `run_in_terminal` changes #304843 · Merged
 
-meganrogge wants to merge 8 commits into `main` from `merogge/tweak-run-terminal`  
-+16 −6 lines changed
+meganrogge merged 9 commits into `main` from `merogge/tweak-run-terminal` 2026-03-26 (3 hours ago)  
++16 -6 lines changed
 
 ## Files changed (5)
 
@@ -21,12 +21,12 @@ meganrogge wants to merge 8 commits into `main` from `merogge/tweak-run-terminal
     - terminal.ts
   - workbench/contrib
     - terminal/common
-      - terminalConfiguration.ts 
+      - terminalConfiguration.ts
       - terminalEnvironment.ts
     - terminalContrib/chatAgentTools/browser/executeStrategy
       - noneExecuteStrategy.ts
 
-### extensions/vscode-api-tests/src/singlefolder-tests/chat.runInTerminal.test.ts
+### `extensions/vscode-api-tests/src/singlefolder-tests/chat.runInTerminal.test.ts`
 
 +5 -1
 
@@ -53,7 +53,7 @@ meganrogge wants to merge 8 commits into `main` from `merogge/tweak-run-terminal
 168 172   			await toolConfig.update('idlePollInterval', 100, vscode.ConfigurationTarget.Global);
 ```
 
-### src/vs/platform/terminal/common/terminal.ts
+### `src/vs/platform/terminal/common/terminal.ts`
 
 +4 -0
 
@@ -71,7 +71,7 @@ meganrogge wants to merge 8 commits into `main` from `merogge/tweak-run-terminal
 1065 1069   	Shutdown = 1,
 ```
 
-### src/vs/workbench/contrib/terminal/common/terminalConfiguration.ts
+### `src/vs/workbench/contrib/terminal/common/terminalConfiguration.ts`
 
 +1 -1
 
@@ -87,12 +87,12 @@ meganrogge wants to merge 8 commits into `main` from `merogge/tweak-run-terminal
 631 631   		maximum: 60000,
 ```
 
-### src/vs/workbench/contrib/terminal/common/terminalEnvironment.ts
+### `src/vs/workbench/contrib/terminal/common/terminalEnvironment.ts`
 
 +5 -3
 
 ```
-          @@ -12,7 +12,7 @@ import { URI, uriToFsPath } from '../../../../base/common/uri.js';
+          @@ -12,7 +12,7 @@
  12  12   import { IWorkspaceContextService, IWorkspaceFolder } from '../../../../platform/workspace/common/workspace.js';
  13  13   import { IConfigurationResolverService } from '../../../services/configurationResolver/common/configurationResolver.js';
  14  14   import { sanitizeProcessEnvironment } from '../../../../base/common/processes.js';
@@ -101,32 +101,48 @@ meganrogge wants to merge 8 commits into `main` from `merogge/tweak-run-terminal
  16  16   import { IProcessEnvironment, isWindows, isMacintosh, language, OperatingSystem } from '../../../../base/common/platform.js';
  17  17   import { escapeNonWindowsPath, sanitizeCwd } from '../../../../platform/terminal/common/terminalEnvironment.js';
  18  18   import { isNumber, isString } from '../../../../base/common/types.js';
-          @@ -422,8 +422,10 @@ export function getShellIntegrationTimeout(
+          @@ -422,11 +422,13 @@
 422 422   ): number {
 423 423   	const timeoutValue = configurationService.getValue<unknown>(TerminalSettingId.ShellIntegrationTimeout);
 424 424   	let timeoutMs: number;
 425     -
-426     - 	if (!isNumber(timeoutValue) || timeoutValue < 0) {
     425 + 	if (isNumber(timeoutValue) && timeoutValue === ShellIntegrationTimeoutOverride.DisableForTests) {
+426     - 	if (!isNumber(timeoutValue) || timeoutValue < 0) {
     426 + 		// Used for tests
     427 + 		timeoutMs = 0;
     428 + 	} else if (!isNumber(timeoutValue) || timeoutValue < 0) {
 427 429   		timeoutMs = siInjectionEnabled ? 5000 : (isRemote ? 3000 : 2000);
 428 430   	} else if (timeoutValue === 0) {
 429 431   		timeoutMs = 0;
+430 432   	} else {
+431 433   		timeoutMs = Math.max(timeoutValue, 500);
+432 434   	}
 ```
 
-#### Comments near L429/R431
+#### Comment on line R431 (Resolved)
 
-**meganrogge** marked this conversation as resolved.
-
-##### **alexdima** (Member) • 2026-03-25 (yesterday)
+##### alexdima (Member) • 2026-03-25 (yesterday)
 
 @meganrogge Here we should remove this if branch
 
 Reactions: 👍 (meganrogge)
 
-### src/vs/workbench/contrib/terminalContrib/chatAgentTools/browser/executeStrategy/noneExecuteStrategy.ts
+**meganrogge** marked this comment as resolved
+
+#### Comment on lines R430 to R432 (Resolved)
+
+##### meganrogge (Collaborator, Author) • 2026-03-25 (yesterday)
+
+Suggested change
+
+```
+430 -
+430 + } else {
+```
+
+**meganrogge** marked this comment as resolved
+
+### `src/vs/workbench/contrib/terminalContrib/chatAgentTools/browser/executeStrategy/noneExecuteStrategy.ts`
 
 +1 -1
 

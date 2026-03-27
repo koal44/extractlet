@@ -1,4 +1,4 @@
-import { pickVal, asAbsUrl, type Locator } from '../../utils/locator';
+import { pickVal, asAbsUrl, type Locator, pickEls } from '../../utils/locator';
 import { h, type HChild, isTable, isText } from '../../utils/dom';
 import { warn } from '../../utils/logging';
 import { chooseCanonicalUrl } from '../../utils/strings';
@@ -244,4 +244,44 @@ export function normalizeCheckStatus(raw: string | null): CheckStatus | null {
     if (s.includes(frag)) return status;
   }
   return null;
+}
+
+export function normalizeReactions(root: Element): Element | null {
+  type RxnLocs = { match: Locator; buttons: Locator; emoji: Locator; tooltipMatch: Locator; tooltipVal: Locator; };
+
+  const formLocs: RxnLocs = {
+    match: { sel: 'form.js-pick-reaction' },
+    buttons: { sel: 'button.js-reaction-group-button' },
+    emoji: { sel: 'g-emoji', attr: 'textContent', valMap: (v) => v.trim() },
+    tooltipMatch: { sel: 'tool-tip' },
+    tooltipVal: { sel: ':scope', attr: 'textContent', valMap: (v) => v.trim() },
+  };
+
+  const toolbarLocs: RxnLocs = {
+    match: { sel: '[role="toolbar"]' },
+    buttons: { sel: 'button[class*="ReactionButton-"]' },
+    emoji: { sel: '[data-component="leadingVisual"]', attr: 'textContent', valMap: (v) => v.trim() },
+    tooltipMatch: { sel: '[role="tooltip"]' },
+    tooltipVal: { sel: ':scope', attr: 'textContent', valMap: (v) => v.trim() },
+  };
+
+  const locs = [formLocs, toolbarLocs].find(({ match }) => root.matches(match.sel));
+  if (!locs) return null;
+
+  const parts: Element[] = [];
+  for (const button of pickEls<HTMLElement>(locs.buttons, root)) {
+    const emoji = pickVal(locs.emoji, button);
+    if (!emoji) continue;
+    const tooltip = button.nextElementSibling?.matches(locs.tooltipMatch.sel) ? button.nextElementSibling : null;
+    if (!tooltip) continue;
+    const msg = pickVal(locs.tooltipVal, tooltip);
+    if (!msg) continue;
+
+    const who = msg.split(' reacted with ', 1)[0];
+
+    if (parts.length) parts.push(h('span', {}, ' · '));
+    parts.push(h('span', {}, emoji, ' (', who, ')'));
+  }
+
+  return parts.length ? h('span', {}, 'Reactions: ', ...parts) : null;
 }
