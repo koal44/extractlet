@@ -2,6 +2,7 @@
 import fs from 'node:fs/promises';
 import { rollup, type ModuleFormat, type RollupLog } from 'rollup';
 import typescript from '@rollup/plugin-typescript';
+import replace from '@rollup/plugin-replace';
 
 type WarningCode = RollupLog['code'];
 
@@ -104,7 +105,13 @@ async function bundleSource({ input, output, format, muteWarnings }: BundleEntry
   const bundle = await rollup({
     input,
     external: ['webextension-polyfill', 'dompurify'],
-    plugins: [typescript()],
+    plugins: [
+      replace({
+        preventAssignment: true,
+        __DEV__: process.env.DEBUG === 'true' ? 'true' : 'false',
+      }),
+      typescript(),
+    ],
 
     // Some entry scripts export values but aren't libraries; mute IIFE export warnings.
     // either name them (but pollutes window) or mute the warning.

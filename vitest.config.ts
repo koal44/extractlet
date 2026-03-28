@@ -7,6 +7,9 @@ export default defineConfig(({ mode }) => {
   Object.assign(process.env, env);
 
   return {
+    define: {
+      __DEV__: env.DEBUG === 'true',
+    },
     test: {
       environment: 'node', // or 'jsdom'
       // include: ['test/unit/**/*.test.{ts,tsx,js}'],

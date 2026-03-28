@@ -18,8 +18,12 @@ declare module 'saxon-js' {
   export default saxonJS;
 }
 
-export declare global {
+export {};
+
+declare global {
   interface Window {
     exampleRaw?: string;
   }
+
+  const __DEV__: boolean;
 }
