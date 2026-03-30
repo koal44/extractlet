@@ -1,9 +1,11 @@
 import { pickVal, asAbsUrl, type Locator, pickEls } from '../../utils/locator';
-import { h, type HChild, isTable, isText } from '../../utils/dom';
+import { h, type HChild, isAnchor, isTable, isText } from '../../utils/dom';
 import { warn } from '../../utils/logging';
 import { chooseCanonicalUrl } from '../../utils/strings';
 import { getGhRoute } from './route';
 import { setLang } from '../../normalize';
+import { type BlockSpec, extractBlock } from '../../utils/extract';
+import { type XletContexts } from '../../settings';
 
 const locators: Record<string, Locator[]> = {
   permalink: [
@@ -23,7 +25,7 @@ export function scrapePermaUrl(srcDoc: Document): string | undefined {
   link = chooseCanonicalUrl(link, srcDoc.baseURI);
   if (!link) return warn(undefined, 'scrapePermaUrl: no link found');
   const route = getGhRoute(link);
-  if (route) return route.url;
+  return route.url;
 }
 
 export function scrapeTitle(srcDoc: Document): string | undefined {
@@ -284,4 +286,31 @@ export function normalizeReactions(root: Element): Element | null {
   }
 
   return parts.length ? h('span', {}, 'Reactions: ', ...parts) : null;
+}
+
+export function normalizeReadme(root: Element, ctxs: XletContexts): Element | null {
+  if (!root.matches('article.markdown-body')) return null;
+
+  const block: BlockSpec = {
+    name: 'readme',
+    select: { kind: 'root' },
+    transforms: [
+      { kind: 'remove', selectors: ['article > .markdown-heading > a[href^="#"]'] },
+      { kind: 'unwrap', selectors: ['article'] },
+      { kind: 'replaceFn', selectors: ['animated-image'], fn: (el) => el.querySelector('img') },
+      {
+        kind: 'replaceFn',
+        selectors: ['a:has(> img:only-child)'],
+        fn: (a) => {
+          const img = a.querySelector<HTMLImageElement>('img');
+          if (!img || !isAnchor(a)) return a; // shouldn't happen
+          const norm = (s: string) => s.replace('/blob/', '/').replace('/raw/', '/');
+          return norm(a.href) === norm(img.src) ? img : a;
+        },
+      },
+    ],
+  };
+
+  const extracted = extractBlock(root, block, ctxs);
+  return extracted;
 }

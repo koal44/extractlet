@@ -120,13 +120,13 @@ const profiles: DiffProfile[] = [
         const commentHeading = root.querySelector(`.${commentClass}`);
         // replace comment heading with a line number version if possible
         const lineNoHeading = root.querySelector('[class*="inlineReviewThreadHeading"]');
-        if (commentHeading && lineNoHeading?.textContent.trim()) {
+        if (commentHeading && lineNoHeading?.textContent && lineNoHeading.textContent.trim()) {
           commentHeading.textContent = lineNoHeading.textContent.trim();
           lineNoHeading.remove();
         }
         // move resolve to main heading
         const resolved = root.querySelector('[class*="ResolvableContainer"]');
-        if (commentHeading && resolved?.textContent.trim()) {
+        if (commentHeading && resolved?.textContent && resolved.textContent.trim()) {
           commentHeading.textContent += ` (${resolved.textContent.trim()})`;
           resolved.remove();
         }

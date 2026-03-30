@@ -31,12 +31,14 @@ export type GhRoute =
 
 // export type GhPage = GhRoute['page'];
 
-export function getGhRoute(str: string): GhRoute | undefined {
+export function getGhRoute(str: string): GhRoute {
+  const unknownRoute: GhRoute = { page: 'unknown', url: str };
+
   let u: URL;
   try { u = new URL(str, 'https://github.com'); }
-  catch { return; }
+  catch { return unknownRoute; }
 
-  if (u.hostname !== 'github.com') return;
+  if (u.hostname !== 'github.com') return unknownRoute;
 
   const parts = u.pathname.split('/').filter(Boolean);
   const hash = u.hash;
@@ -45,11 +47,11 @@ export function getGhRoute(str: string): GhRoute | undefined {
   const urlWithSearch = `${url}${search}`;
 
   const [root, repo, kind, ...tail] = parts;
-  if (!root) return;
+  if (!root) return unknownRoute;
   if (root === 'search') return { page: 'search', url: urlWithSearch, hash, search };
 
   const owner = root;
-  if (!repo) return { page: 'owner', owner, url, hash, search };
+  if (!repo) return { page: 'owner', owner, url: urlWithSearch, hash, search };
 
   const base = { owner, repo, url, hash, search };
   if (!kind) return { ...base, page: 'repo' };
@@ -59,47 +61,47 @@ export function getGhRoute(str: string): GhRoute | undefined {
       const [issueId, ...rest] = tail;
       if (!issueId) return { ...base, page: 'issues' };
       if (!rest.length) return { ...base, page: 'issue', issueId };
-      return;
+      break;
     }
 
     case 'pulls': {
       if (!tail.length) return { ...base, page: 'pulls' };
-      return;
+      break;
     }
 
     case 'pull': {
       const [prId, subpage, ...rest] = tail;
-      if (!prId) return;
+      if (!prId) break;
       if (!subpage) return { ...base, page: 'pr', prId };
       if (subpage === 'commits' && !rest.length) return { ...base, page: 'pr-commits', prId };
       if (subpage === 'checks' && !rest.length) return { ...base, page: 'pr-checks', prId };
       if (subpage === 'files' && !rest.length) return { ...base, page: 'pr-files', prId };
       if (subpage === 'changes' && !rest.length) return { ...base, page: 'pr-changes', prId };
-      return;
+      break;
     }
 
     case 'discussions': {
       const [discussionId, ...rest] = tail;
       if (!discussionId) return { ...base, page: 'discussions' };
       if (!rest.length) return { ...base, page: 'disc', discussionId };
-      return;
+      break;
     }
 
     case 'tree': {
       const [ref, ...pathParts] = tail;
-      if (!ref) return;
+      if (!ref) break;
       return { ...base, page: 'tree', ref, pathParts };
     }
 
     case 'blob': {
       const [ref, ...pathParts] = tail;
-      if (!ref || !pathParts.length) return;
+      if (!ref || !pathParts.length) break;
       return { ...base, page: 'blob', ref, pathParts };
     }
 
     case 'blame': {
       const [ref, ...pathParts] = tail;
-      if (!ref || !pathParts.length) return;
+      if (!ref || !pathParts.length) break;
       return { ...base, page: 'blame', ref, pathParts };
     }
 
@@ -111,7 +113,7 @@ export function getGhRoute(str: string): GhRoute | undefined {
     case 'commit': {
       const [commitSha, ...rest] = tail;
       if (commitSha && !rest.length) return { ...base, page: 'commit', commitSha };
-      return;
+      break;
     }
 
     case 'actions': {
@@ -121,22 +123,22 @@ export function getGhRoute(str: string): GhRoute | undefined {
 
       if (actionKind === 'workflows') {
         const [yaml, ...workflowRest] = actionRest;
-        if (!yaml || workflowRest.length) return;
+        if (!yaml || workflowRest.length) break;
         return { ...base, page: 'actions-file', yaml };
       }
 
       if (actionKind === 'runs') {
         const [runId, runKind, jobId, ...runRest] = actionRest;
-        if (!runId) return;
+        if (!runId) break;
         if (!runKind) return { ...base, page: 'actions-run', runId };
         if (runKind === 'workflow' && !jobId) return { ...base, page: 'actions-workflow', runId };
         if (runKind === 'usage' && !jobId) return { ...base, page: 'actions-usage', runId };
         if (runKind === 'job' && jobId && !runRest.length) return { ...base, page: 'actions-job', runId, jobId };
       }
-      return;
+      break;
     }
 
-    default:
-      return { page: 'unknown', url };
+    default: break;
   }
+  return unknownRoute;
 }

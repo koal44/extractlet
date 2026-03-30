@@ -1,6 +1,7 @@
 import { type XletContexts } from '../settings';
 import {
   findCommonAncestor, h, isDiv, isDoc, isElement, isInlineElement, isSection, isSpan,
+  isText,
   relevelHeadings,
   type HLevel,
 } from './dom';
@@ -20,11 +21,18 @@ export type TransformSpec =
   | { kind: 'removeNextSiblings'; selectors: string[]; }
   | { kind: 'unwrap'; selectors: string[]; }
   | { kind: 'replace'; selectors: string[]; with: keyof HTMLElementTagNameMap; }
-  | { kind: 'replaceFn'; selectors: string[]; fn: (el: Element, ctxs: XletContexts) => Element | null; }
+  |
+    {
+      kind: 'replaceFn';
+      selectors: string[];
+      fn: (el: Element, ctxs: XletContexts) => Element | null;
+      transforms?: TransformSpec[];
+    }
   | { kind: 'wrapSection'; heading: { level: HLevel; text: string; }; relevelChildren?: boolean; }
   | { kind: 'trim'; selectors: string[]; }
   | { kind: 'insertText'; selectors: string[]; text: string; where: InsertPosition; }
   | { kind: 'insertElement'; selectors: string[]; element: Element; where: InsertPosition; }
+  | { kind: 'relevelHeadings';  selectors: string[]; level: HLevel; }
 
 type OneBlockSpec = {
   name: string;
@@ -95,7 +103,9 @@ function extractOne(root: ParentNode, spec: OneBlockSpec, ctxs: XletContexts): E
     fields = extractBlocks(clone, spec.fields, ctxs);
   }
 
-  return spec.normalize ? spec.normalize(clone, ctxs, fields) : clone;
+  return spec.normalize ? spec.normalize(clone, ctxs, fields)
+    : fields.length ? h('section', {}, ...fields)
+    : clone;
 }
 
 function selectOne(root: ParentNode, select: SelectOneSpec): Element | null {
@@ -188,10 +198,14 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
 
   const replaceFns = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'replaceFn'; }> => f.kind === 'replaceFn')
-    .flatMap((f) => f.selectors.map((selector) => ({ selector, fn: f.fn })));
+    .flatMap((f) => f.selectors.map((selector) => ({ selector, spec: f })));
 
   const wrapSpecs = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'wrapSection'; }> => f.kind === 'wrapSection');
+
+  const relevelSpecs = transforms
+    .filter((f): f is Extract<TransformSpec, { kind: 'relevelHeadings'; }> => f.kind === 'relevelHeadings')
+    .flatMap((f) => f.selectors.map((selector) => ({ selector, level: f.level })));
 
   const trimSelectors = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'trim'; }> => f.kind === 'trim')
@@ -218,8 +232,14 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
 
   function getReplacementFn(n: Node): ((el: Element, ctxs: XletContexts) => Element | null) | null {
     if (!isElement(n)) return null;
-    const fn = replaceFns.find((r) => n.matches(r.selector))?.fn;
-    return fn ?? null;
+    const replacement = replaceFns.find((r) => n.matches(r.selector))?.spec;
+    if (!replacement) return null;
+    const { fn, transforms = [] } = replacement;
+    if (!transforms.length) return fn;
+    return (el, ctxs) => {
+      const res = fn(el, ctxs);
+      return res ? applyTransforms(res, transforms, ctxs) : null;
+    };
   }
 
   function getInsertTexts(n: Node): { where: InsertPosition; text: string; }[] {
@@ -230,6 +250,11 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
   function getInsertElements(n: Node): { where: InsertPosition; element: Element; }[] {
     if (!isElement(n)) return [];
     return insertElements.filter((r) => n.matches(r.selector)).map(({ where, element }) => ({ where, element }));
+  }
+
+  function getRelevel(n: Node): HLevel | null {
+    if (!isElement(n)) return null;
+    return relevelSpecs.find((r) => n.matches(r.selector))?.level ?? null;
   }
 
   if (shouldRemove(root)) return null;
@@ -291,6 +316,15 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
         }
       }
 
+      const relevel = getRelevel(child);
+      if (relevel && isElement(child)) {
+        relevelHeadings(child, relevel);
+      }
+
+      if (isElement(child) && shouldTrim(child)) {
+        trimWsBoundary(child);
+      }
+
       const tag = getReplacementTag(child);
       if (tag) {
         const newChild = h(tag, {}, ...child.childNodes);
@@ -298,11 +332,8 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
         child = newChild;
       }
 
-      if (isElement(child) && shouldTrim(child)) {
-        trimWsBoundary(child);
-      }
-
       if (isElement(child) && shouldUnwrap(child)) {
+        trimDirectWsBoundary(child);
         while (child.firstChild) {
           node.insertBefore(child.firstChild, child);
         }
@@ -315,32 +346,62 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
 
   walk(root);
 
-  const replaceFn = getReplacementFn(root);
-  if (replaceFn) return replaceFn(root, ctxs);
+  let out: Element | null = root;
 
-  const tag = getReplacementTag(root);
-  if (tag) return h(tag, {}, ...root.childNodes);
+  // handcrafted replacement first
+  const rootReplaceFn = getReplacementFn(out);
+  if (rootReplaceFn) out = rootReplaceFn(out, ctxs);
+  if (!out) return null;
 
-  if (shouldTrim(root)) trimWsBoundary(root);
-
-  if (shouldUnwrap(root)) {
-    const wrapper = isInlineElement(root) ? 'span' : 'div';
-    return h(wrapper, {}, ...root.childNodes);
+  // inner-position inserts only
+  for (const { where, text } of getInsertTexts(out)) {
+    if (where === 'afterbegin' || where === 'beforeend') {
+      out.insertAdjacentText(where, text);
+    }
+  }
+  for (const { where, element } of getInsertElements(out)) {
+    if (where === 'afterbegin' || where === 'beforeend') {
+      out.insertAdjacentElement(where, element);
+    }
   }
 
-  const hasContent = root.children.length > 0 || !!root.textContent?.trim();
+  // simpler tag replacement
+  const replacementTag = getReplacementTag(out);
+  if (replacementTag) {
+    out = h(replacementTag, {}, ...out.childNodes);
+  }
+
+  // unwrap after replace
+  if (shouldUnwrap(out)) {
+    const wrapper = isInlineElement(out) ? 'span' : 'div';
+    out = h(wrapper, {}, ...out.childNodes);
+  }
+
+  // trim the final surviving root
+  if (shouldTrim(out)) {
+    trimWsBoundary(out);
+  }
+
+  // relevel the final surviving root
+  const rootRelevel = getRelevel(out);
+  if (rootRelevel) {
+    relevelHeadings(out, rootRelevel);
+  }
+
+  // final outer wrapper
+  const hasContent = out.children.length > 0 || !!out.textContent?.trim();
   if (wrapSpecs.length && hasContent) {
-    let section: Element = root;
+    let section: Element = out;
     for (const wrapSpec of wrapSpecs) {
       if (wrapSpec.relevelChildren) {
         relevelHeadings(section, Math.min(wrapSpec.heading.level + 1, 6) as HLevel);
       }
       section = h('section', {}, h(`h${wrapSpec.heading.level}`, {}, wrapSpec.heading.text), section);
     }
-    return section;
+    out = section;
   }
 
-  return root;
+  return out;
 }
 
 function resolveRootElement(root: ParentNode): Element | null {
@@ -393,4 +454,21 @@ function trimWsBoundary(root: Element): void {
 
   trim('firstChild', 'trimStart');
   trim('lastChild', 'trimEnd');
+}
+
+
+
+function trimDirectWsBoundary(root: Element): void {
+  const trim = (node: ChildNode | null, side: 'start' | 'end'): void => {
+    if (!node || !isText(node)) return;
+
+    const text = node.textContent ?? '';
+    const next = side === 'start' ? text.trimStart() : text.trimEnd();
+
+    if (next) node.textContent = next;
+    else node.remove();
+  };
+
+  trim(root.firstChild, 'start');
+  trim(root.lastChild, 'end');
 }

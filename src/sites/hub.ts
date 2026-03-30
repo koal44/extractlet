@@ -26,6 +26,24 @@ import { createActionsUsagePage } from './hub/pages/actions-usage';
 import { createActionsPage } from './hub/pages/actions';
 import { createPrFilesPage } from './hub/pages/pr-files';
 import { createPrChangesPage } from './hub/pages/pr-changes';
+import { createUserPage } from './hub/pages/owner-user';
+
+type OwnerKind = 'user' | 'org' | 'unknown';
+function detectOwnerKind(node: ParentNode): OwnerKind {
+  const analytics =
+    node.querySelector('meta[name="analytics-location"]')?.getAttribute('content') ?? '';
+
+  if (analytics === '/<user-name>') return 'user';
+  if (analytics === '/<org-login>') return 'org';
+
+  const scope =
+    node.querySelector('qbsearch-input')?.getAttribute('data-scope') ?? '';
+
+  if (scope.startsWith('owner:')) return 'user';
+  if (scope.startsWith('org:')) return 'org';
+
+  return 'unknown';
+}
 
 export const renderPage: RenderPage = async ({ sourceDoc, ctxs, state, targetDoc, root }) => {
   const page = await createHubPage({ sourceDoc, ctxs, state });
@@ -49,17 +67,6 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
   }
 
   const route = getGhRoute(permalink);
-  if (!route || route.page === 'unknown') {
-    return createNoticePage({
-      kind: 'info', siteLabel: 'GitHub', permalink, title,
-      message: h('div', {},
-        h('p', {}, `Extractlet doesn't know about this GitHub page type yet.`),
-        h('p', {}, `If you'd like to see it supported, you can `,
-          h('a', ISSUE_LINK_ATTRS, 'ask for it here')),
-      ),
-    });
-  }
-
   let page: XletPage | undefined;
   switch (route.page) {
     case 'pr': page = await createPrPage({ sourceDoc, ctxs, state }); break;
@@ -79,13 +86,29 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'pr-checks': page = await createPrChecksPage({ sourceDoc, ctxs, state }); break;
     case 'pr-files': page = await createPrFilesPage({ sourceDoc, ctxs, state }); break;
     case 'pr-changes': page = await createPrChangesPage({ sourceDoc, ctxs, state }); break;
-    case 'owner': break; // Not implemented yet
+    case 'owner': {
+      const ownerKind = detectOwnerKind(sourceDoc);
+      if (ownerKind === 'user') page = await createUserPage({ sourceDoc, ctxs, state });
+      // else if (ownerKind === 'org') page = await createOrgPage({ sourceDoc, ctxs, state });
+      break;
+    }
     case 'actions': page = await createActionsPage({ sourceDoc, ctxs, state }); break;
     case 'actions-run': page = await createActionsRunPage({ sourceDoc, ctxs, state }); break;
     case 'actions-job': page = await createActionsJobPage({ sourceDoc, ctxs, state }); break;
     case 'actions-workflow': page = await createActionsWorkflowPage({ sourceDoc, ctxs, state }); break;
     case 'actions-usage': page = await createActionsUsagePage({ sourceDoc, ctxs, state }); break;
     case 'actions-file': page = await createActionsPage({ sourceDoc, ctxs, state }); break;
+    case 'unknown': {
+      page = createNoticePage({
+        kind: 'info', siteLabel: 'GitHub', permalink, title,
+        message: h('div', {},
+          h('p', {}, `Extractlet doesn't know about this GitHub page type yet.`),
+          h('p', {}, `If you'd like to see it supported, you can `,
+            h('a', ISSUE_LINK_ATTRS, 'ask for it here')),
+        ),
+      });
+      break;
+    }
     default: assertNever(route);
   }
 

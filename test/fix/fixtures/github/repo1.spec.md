@@ -29,9 +29,9 @@ No packages published
 
 ## Languages
 
-- TypeScript 92.6% 
-- HTML 4.5% 
-- CSS 1.7% 
+- TypeScript 92.6%
+- HTML 4.5%
+- CSS 1.7%
 - JavaScript 1.2%
 
 ## Ref info

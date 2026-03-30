@@ -48,7 +48,7 @@ const blocks: BlockSpec[] = [
       if (!permalink) return null;
 
       const route = getGhRoute(permalink);
-      if (route?.page !== 'blob') return null;
+      if (route.page !== 'blob') return null;
 
       const pathInfo = h('div', { class: 'breadcrumb' },
         h('h2', {}, 'Breadcrumb'),

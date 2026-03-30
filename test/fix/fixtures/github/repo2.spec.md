@@ -13,9 +13,9 @@ A terminal for the web
 
 - xtermjs.org/
 - javascript, console, ssh, webgl, development, typescript, terminal, tty, pty, xterm, terminal-emulators, vt100
-- MIT license 
-- Code of conduct 
-- Contributing 
+- MIT license
+- Code of conduct
+- Contributing
 - Custom properties
 - 20.1k stars
 - 184 watching
@@ -50,11 +50,11 @@ A terminal for the web
 
 ## Languages
 
-- TypeScript 96.3% 
-- JavaScript 2.7% 
-- Shell 0.6% 
-- CSS 0.2% 
-- Python 0.1% 
+- TypeScript 96.3%
+- JavaScript 2.7%
+- Shell 0.6%
+- CSS 0.2%
+- Python 0.1%
 - PowerShell 0.1%
 
 ## Ref info
