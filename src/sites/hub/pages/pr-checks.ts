@@ -46,14 +46,102 @@ export const blocks: BlockSpec[] = [
   {
     name: 'main',
     select: { kind: 'root' },
-    normalize: (root, ctxs) => {
-      const [title, status, summary, diffState] = extractBlocks(root, mainFieldSpecs, ctxs);
+    normalize: (_root, [title, status, summary, diffState]) => {
       return h('section', {},
         ...brWrap('div', [title, status], ' · '),
         ...brWrap('div', [summary]),
         ...brWrap('div', [diffState]),
       );
     },
+    fields: [
+      {
+        name: 'title',
+        select: {
+          kind: 'match',
+          selectors: [
+            '[data-component="TitleArea"] h1[data-component="PH_Title"]',
+            'h1.gh-header-title',
+          ],
+        },
+        normalize: (h1) => {
+          const els = [...h1.querySelectorAll(':scope > span, :scope > bdi')];
+          if (els.length >= 2) {
+            const first = els[0]?.textContent?.trim();
+            const second = els[1]?.textContent?.replace(/\s+/g, ' ').trim();
+
+            if (first && second?.startsWith('#')) {
+              return joinWrap('span', [h('span', {}, first), h('span', {}, second)]);
+            }
+          }
+
+          return h('span', {}, h1.textContent?.replace(/\s+/g, ' ').trim() ?? '');
+        },
+      },
+      {
+        name: 'status',
+        select: {
+          kind: 'match',
+          selectors: [
+            '[class*="PageHeader-Description"]',
+            '[class*="gh-header-meta"]',
+          ],
+        },
+        normalize: (root) => {
+          const svg = root.querySelector('.State > svg.octicon');
+          let status: string | null = null;
+          if (svg?.classList.contains('octicon-git-pull-request')) status = 'Open';
+          else if (svg?.classList.contains('octicon-git-pull-request-draft')) status = 'Draft';
+          else if (svg?.classList.contains('octicon-git-pull-request-closed')) status = 'Closed';
+          else if (svg?.classList.contains('octicon-git-merge')) status = 'Merged';
+          return status ? h('span', {}, status) : null;
+        },
+      },
+      {
+        name: 'summary',
+        select: {
+          kind: 'ancestor',
+          selectors: [
+            '.gh-header-meta a.author',
+            '.gh-header-meta .commit-ref',
+            '.gh-header-meta .base-ref',
+            '.gh-header-meta .head-ref',
+          ],
+        },
+        normalize: (root) => {
+          root.querySelectorAll('a').forEach((a) => {
+            a.insertAdjacentElement('afterend', h('span', {}, ' '));
+            a.insertAdjacentElement('beforebegin', h('span', {}, ' '));
+          });
+          return root;
+        },
+        transforms: [
+          { kind: 'remove', selectors: ['button', '[popover], .commit-ref-dropdown, react-partial'] },
+          { kind: 'replace', with: 'code', selectors: ['a[href*="/tree/"]'] },
+          { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+        ],
+      },
+      {
+        name: 'diff-state',
+        select: {
+          kind: 'match',
+          selectors: [
+            '[class*="diffStatesWrapper"]',
+            '#diffstat',
+          ],
+        },
+        normalize: (root) => {
+          root.querySelectorAll('span').forEach((span) => {
+            span.insertAdjacentElement('afterend', h('span', {}, ' '));
+            span.insertAdjacentElement('beforebegin', h('span', {}, ' '));
+          });
+          return h('span', {}, root, 'lines changed');
+        },
+        transforms: [
+          { kind: 'remove', selectors: ['.sr-only'] },
+          { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+        ],
+      },
+    ],
   },
   {
     name: 'selected-commit',
@@ -180,96 +268,6 @@ export const blocks: BlockSpec[] = [
     transforms: [
       { kind: 'unwrap', selectors: ['sub', 'sup'] },
       { kind: 'wrapSection', heading: { level: 2, text: 'Check Run Summary' }, relevelChildren: true },
-    ],
-  },
-];
-
-const mainFieldSpecs: BlockSpec[] = [
-  {
-    name: 'title',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[data-component="TitleArea"] h1[data-component="PH_Title"]',
-        'h1.gh-header-title',
-      ],
-    },
-    normalize: (h1) => {
-      const els = [...h1.querySelectorAll(':scope > span, :scope > bdi')];
-      if (els.length >= 2) {
-        const first = els[0]?.textContent?.trim();
-        const second = els[1]?.textContent?.replace(/\s+/g, ' ').trim();
-
-        if (first && second?.startsWith('#')) {
-          return joinWrap('span', [h('span', {}, first), h('span', {}, second)]);
-        }
-      }
-
-      return h('span', {}, h1.textContent?.replace(/\s+/g, ' ').trim() ?? '');
-    },
-  },
-  {
-    name: 'status',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[class*="PageHeader-Description"]',
-        '[class*="gh-header-meta"]',
-      ],
-    },
-    normalize: (root) => {
-      const svg = root.querySelector('.State > svg.octicon');
-      let status: string | null = null;
-      if (svg?.classList.contains('octicon-git-pull-request')) status = 'Open';
-      else if (svg?.classList.contains('octicon-git-pull-request-draft')) status = 'Draft';
-      else if (svg?.classList.contains('octicon-git-pull-request-closed')) status = 'Closed';
-      else if (svg?.classList.contains('octicon-git-merge')) status = 'Merged';
-      return status ? h('span', {}, status) : null;
-    },
-  },
-  {
-    name: 'summary',
-    select: {
-      kind: 'ancestor',
-      selectors: [
-        '.gh-header-meta a.author',
-        '.gh-header-meta .commit-ref',
-        '.gh-header-meta .base-ref',
-        '.gh-header-meta .head-ref',
-      ],
-    },
-    normalize: (root) => {
-      root.querySelectorAll('a').forEach((a) => {
-        a.insertAdjacentElement('afterend', h('span', {}, ' '));
-        a.insertAdjacentElement('beforebegin', h('span', {}, ' '));
-      });
-      return root;
-    },
-    transforms: [
-      { kind: 'remove', selectors: ['button', '[popover], .commit-ref-dropdown, react-partial'] },
-      { kind: 'replace', with: 'code', selectors: ['a[href*="/tree/"]'] },
-      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
-    ],
-  },
-  {
-    name: 'diff-state',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[class*="diffStatesWrapper"]',
-        '#diffstat',
-      ],
-    },
-    normalize: (root) => {
-      root.querySelectorAll('span').forEach((span) => {
-        span.insertAdjacentElement('afterend', h('span', {}, ' '));
-        span.insertAdjacentElement('beforebegin', h('span', {}, ' '));
-      });
-      return h('span', {}, root, 'lines changed');
-    },
-    transforms: [
-      { kind: 'remove', selectors: ['.sr-only'] },
-      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
     ],
   },
 ];

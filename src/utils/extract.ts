@@ -38,7 +38,7 @@ type OneBlockSpec = {
   name: string;
   select: SelectOneSpec;
   fallbackSelects?: SelectOneSpec[];
-  normalize?: (root: Element, ctxs: XletContexts, fields: (Element | null)[]) => Element | null;
+  normalize?: (root: Element, fields: (Element | null)[], ctxs: XletContexts) => Element | null;
   transforms?: TransformSpec[];
   fields?: BlockSpec[];
 
@@ -103,7 +103,7 @@ function extractOne(root: ParentNode, spec: OneBlockSpec, ctxs: XletContexts): E
     fields = extractBlocks(clone, spec.fields, ctxs);
   }
 
-  return spec.normalize ? spec.normalize(clone, ctxs, fields)
+  return spec.normalize ? spec.normalize(clone, fields, ctxs)
     : fields.length ? h('section', {}, ...fields)
     : clone;
 }

@@ -46,7 +46,7 @@ export const blocks: BlockSpec[] = [
   {
     name: 'main',
     select: { kind: 'root' },
-    normalize: (_root, _ctxs, [title, status, summary, diffState]) => {
+    normalize: (_root, [title, status, summary, diffState]) => {
       return h('section', {},
         joinWrap('h1', [title, status], ' · '),
         summary,
@@ -93,7 +93,6 @@ export const blocks: BlockSpec[] = [
           kind: 'match',
           selectors: ['[class*="PageHeader-Description"] [class*="PullRequestHeaderSummary"]'],
         },
-        normalize: (root) => root,
         transforms: [
           {
             kind: 'remove', selectors: [

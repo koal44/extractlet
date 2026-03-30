@@ -8,10 +8,50 @@ const blocks: BlockSpec[] = [
   {
     name: 'meta',
     select: { kind: 'root' },
-    normalize: (root, ctxs) => {
-      const [counts, pagination] = extractBlocks(root, metaSpecs, ctxs);
+    normalize: (_root, [counts, pagination]) => {
       return joinWrap('div', [pagination, counts]);
     },
+    fields: [
+      {
+        name: 'counts',
+        select: {
+          kind: 'match',
+          selectors: [
+            '.table-list-filters .states',
+          ],
+        },
+        normalize: (root) => {
+          const items = [...root.querySelectorAll('a[href*="/pulls?q="][href*="is%3Apr"]')]
+            .filter((a): a is HTMLAnchorElement =>
+              isAnchor(a) && (a.href.includes('is%3Aopen') || a.href.includes('is%3Aclosed'))
+            );
+          if (items.length !== 2) return null;
+          return h('span', {}, items[0], ' · ', items[1]);
+        },
+        transforms: [
+          { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+          { kind: 'unwrap', selectors: ['a'] },
+        ],
+      },
+      {
+        name: 'pagination',
+        select: {
+          kind: 'match',
+          selectors: [
+            '.paginate-container [role="navigation"]',
+          ],
+        },
+        normalize: (root) => {
+          const current = Number(root.querySelector('em[aria-current="page"]')?.textContent?.trim() || '');
+          const pageNums = [...root.querySelectorAll('a[href*="page"]')]
+            .map((a) => Number(a.textContent?.trim() || ''))
+            .filter((n) => !isNaN(n));
+          const maxPage = pageNums.length ? Math.max(...pageNums) : current;
+          if (isNaN(current) || isNaN(maxPage)) return null;
+          return h('span', {}, `Page ${current} of ${maxPage}`);
+        },
+      },
+    ],
   },
   {
     name: 'rows',
@@ -134,49 +174,6 @@ const blocks: BlockSpec[] = [
     itemsFn: (items) => h('ul', {}, ...items),
   },
 ];
-
-const metaSpecs: BlockSpec[] = [
-  {
-    name: 'counts',
-    select: {
-      kind: 'match',
-      selectors: [
-        '.table-list-filters .states',
-      ],
-    },
-    normalize: (root) => {
-      const items = [...root.querySelectorAll('a[href*="/pulls?q="][href*="is%3Apr"]')]
-        .filter((a): a is HTMLAnchorElement =>
-          isAnchor(a) && (a.href.includes('is%3Aopen') || a.href.includes('is%3Aclosed'))
-        );
-      if (items.length !== 2) return null;
-      return h('span', {}, items[0], ' · ', items[1]);
-    },
-    transforms: [
-      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
-      { kind: 'unwrap', selectors: ['a'] },
-    ],
-  },
-  {
-    name: 'pagination',
-    select: {
-      kind: 'match',
-      selectors: [
-        '.paginate-container [role="navigation"]',
-      ],
-    },
-    normalize: (root) => {
-      const current = Number(root.querySelector('em[aria-current="page"]')?.textContent?.trim() || '');
-      const pageNums = [...root.querySelectorAll('a[href*="page"]')]
-        .map((a) => Number(a.textContent?.trim() || ''))
-        .filter((n) => !isNaN(n));
-      const maxPage = pageNums.length ? Math.max(...pageNums) : current;
-      if (isNaN(current) || isNaN(maxPage)) return null;
-      return h('span', {}, `Page ${current} of ${maxPage}`);
-    },
-  },
-];
-
 
 export const createListPrPage: CreatePage = ({ sourceDoc, ctxs, state }) => {
   const extracted = extractBlocks(sourceDoc, blocks, ctxs);

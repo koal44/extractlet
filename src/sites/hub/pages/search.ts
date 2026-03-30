@@ -9,13 +9,37 @@ const blocks: BlockSpec[] = [
   {
     name: 'search-header',
     select: { kind: 'root' },
-    normalize: (root, ctxs) => {
-      const [count, pages] = extractBlocks(root, searchHeaderBlocks, ctxs);
+    normalize: (_root, [count, pages]) => {
       return h('div', {},
         h('h2', {}, 'Search'),
         joinWrap('div', [count, pages], ' · '),
       );
     },
+    fields: [
+      {
+        name: 'results-count',
+        select: { kind: 'match', selectors: ['h2#search-results-count'] },
+        transforms: [
+          { kind: 'replace', with: 'span', selectors: ['h2#search-results-count'] },
+        ],
+      },
+      {
+        name: 'pagination',
+        select: { kind: 'match', selectors: ['nav[class*="Pagination"]'] },
+        normalize: (root) => {
+          const current = Number(root.querySelector('a[aria-current]')?.textContent?.trim() || '');
+          const pageNums = [...root.querySelectorAll('a[href*="&p="]')].map((a) => Number(a.textContent?.trim() || '')).filter((n) => !isNaN(n));
+          const maxPage = Math.max(...pageNums);
+          if (isNaN(current) || isNaN(maxPage)) return null;
+          return h('span', {},
+            `Page ${current} of ${maxPage}`
+          );
+        },
+        transforms: [
+          { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+        ],
+      },
+    ],
   },
   {
     name: 'search-summary',
@@ -123,7 +147,7 @@ const blocks: BlockSpec[] = [
   {
     name: 'results',
     select: { kind: 'root' },
-    normalize: (root, ctxs) => {
+    normalize: (root, _fields, ctxs) => {
       const info = getSearchInfo(root.ownerDocument);
       if (!info) return null;
 
@@ -151,32 +175,6 @@ const blocks: BlockSpec[] = [
         h('div', {}, ...results),
       );
     },
-  },
-];
-
-const searchHeaderBlocks: BlockSpec[] = [
-  {
-    name: 'results-count',
-    select: { kind: 'match', selectors: ['h2#search-results-count'] },
-    transforms: [
-      { kind: 'replace', with: 'span', selectors: ['h2#search-results-count'] },
-    ],
-  },
-  {
-    name: 'pagination',
-    select: { kind: 'match', selectors: ['nav[class*="Pagination"]'] },
-    normalize: (root) => {
-      const current = Number(root.querySelector('a[aria-current]')?.textContent?.trim() || '');
-      const pageNums = [...root.querySelectorAll('a[href*="&p="]')].map((a) => Number(a.textContent?.trim() || '')).filter((n) => !isNaN(n));
-      const maxPage = Math.max(...pageNums);
-      if (isNaN(current) || isNaN(maxPage)) return null;
-      return h('span', {},
-        `Page ${current} of ${maxPage}`
-      );
-    },
-    transforms: [
-      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
-    ],
   },
 ];
 

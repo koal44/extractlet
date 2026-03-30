@@ -11,7 +11,6 @@ const blocks: BlockSpec[] = [
     name: 'profile',
     select: { kind: 'match', selectors: ['[itemscope][itemtype="http://schema.org/Person"]'] },
     fields: [],
-    normalize: (root, _fields, _ctx) => root,
     transforms: [
       {
         kind: 'remove', selectors: [
@@ -61,7 +60,7 @@ const blocks: BlockSpec[] = [
   {
     name: 'readme',
     select: { kind: 'match', selectors: ['#user-profile-frame .profile-readme article'] },
-    normalize: (root, ctxs, _fields) => normalizeReadme(root, ctxs),
+    normalize: (root, _fields, ctxs) => normalizeReadme(root, ctxs),
     transforms: [
       { kind: 'wrapSection', heading: { level: 2, text: 'README' }, relevelChildren: true },
     ],
@@ -71,7 +70,7 @@ const blocks: BlockSpec[] = [
     name: 'pinned',
     select: { kind: 'match', selectors: ['.js-pinned-items-reorder-container'] },
     fields: [],
-    normalize: (root, _ctx, _fields) => {
+    normalize: (root) => {
       for (const p of root.querySelectorAll('p:has(> .pinned-item-meta)')) {
         const kids = [...p.children];
         for (let i = 0; i < kids.length - 1; i++) {
@@ -166,7 +165,7 @@ const blocks: BlockSpec[] = [
     name: 'activity',
     select: { kind: 'match', selectors: ['#js-contribution-activity'] },
     fields: [],
-    normalize: (root, _ctx, _fields) => {
+    normalize: (root) => {
       // fuse sibling date links into the h4 headings
       for (const a of root.querySelectorAll<HTMLAnchorElement>('a[href*="?tab=overview&from="]')) {
         const parent = a.parentElement;
@@ -202,7 +201,7 @@ const blocks: BlockSpec[] = [
   {
     name: 'repositories',
     select: { kind: 'root' },
-    normalize: (root, _ctx, [repoList]) => {
+    normalize: (root, [repoList]) => {
       if (!repoList) return null;
       const repoCount = root.querySelector('[data-tab-item="repositories"] .Counter')?.textContent?.trim();
       return h('section', {},
@@ -289,7 +288,7 @@ const blocks: BlockSpec[] = [
   {
     name: 'stars',
     select: { kind: 'root' },
-    normalize: (root, _ctx, [repoList, topicList]) => {
+    normalize: (root, [repoList, topicList]) => {
       if (!repoList && !topicList) return null;
       const starCount = root.querySelector('[data-tab-item="stars"] .Counter')?.textContent?.trim();
       return h('section', {},
@@ -393,7 +392,7 @@ const blocks: BlockSpec[] = [
   {
     name: 'sponsoring',
     select: { kind: 'root' },
-    normalize: (root, _ctx, [sponsoringList]) => {
+    normalize: (root, [sponsoringList]) => {
       if (!sponsoringList) return null;
       const sponsoringCount = root.querySelector('[data-tab-item="sponsoring"] .Counter')?.textContent?.trim();
       return h('section', {},
@@ -437,7 +436,7 @@ const blocks: BlockSpec[] = [
   {
     name: 'followList',
     select: { kind: 'ancestor', selectors: ['#user-profile-frame a[data-hovercard-type]'] },
-    normalize: (root, _ctx, [followerItems]) => {
+    normalize: (root, [followerItems]) => {
       const doc = root.ownerDocument;
       const selected = doc.querySelector('meta[name="selected-link"]')?.getAttribute('value');
       const controller = doc.querySelector('meta[name="route-controller"]')?.getAttribute('content');
@@ -480,7 +479,7 @@ const blocks: BlockSpec[] = [
   {
     name: 'achievements',
     select: { kind: 'root' },
-    normalize: (root, _ctx, [items]) => {
+    normalize: (root, [items]) => {
       const doc = root.ownerDocument;
       const selected = doc.querySelector('meta[name="selected-link"]')?.getAttribute('value');
       const controller = doc.querySelector('meta[name="route-controller"]')?.getAttribute('content');
@@ -512,14 +511,6 @@ const blocks: BlockSpec[] = [
         ],
       },
     ],
-  },
-
-  {
-    name: 'sponsors',
-    select: { kind: 'match', selectors: [] },
-    fields: [],
-    normalize: (root, _fields, _ctx) => root,
-    transforms: [],
   },
 ];
 

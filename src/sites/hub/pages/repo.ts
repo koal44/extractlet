@@ -49,7 +49,29 @@ const blocks: BlockSpec[] = [
         'rails-partial a[href*="/graphs/contributors"]', // Contributors section
       ],
     },
-    normalize: normalizeMeta,
+    normalize: (root) => {
+      const sections: (Element | null)[] = [];
+      for (const group of root.children) {
+        if (group.querySelector('a[href="#readme-ov-file"]')) { // About section
+          const about = walkAbout(group);
+          sections.push(about.label ?? about.item);
+        } else if (group.querySelector('a[href$="/releases"]')) { // Releases section
+          sections.push(group);
+        } else if (group.querySelector('a[href*="/graphs/contributors"]')) { // Contributors section
+          group.querySelectorAll('li').forEach((li) => {
+            const span = li.querySelector(':scope > span');
+            const alt = li.querySelector(':scope > a > img[alt]')?.getAttribute('alt');
+            if (!span && alt) li.appendChild(h('span', {}, alt.replace(/^@/, '')));
+          });
+          sections.push(group);
+        } else if (group.querySelector('.Progress')) { // Languages section
+          sections.push(group);
+        } else {
+          sections.push(group);
+        }
+      }
+      return h('div', { class: 'repo-meta' }, ...sections);
+    },
     transforms: [
       {
         kind: 'remove', selectors: [
@@ -168,30 +190,6 @@ function walkAbout(el: Element): { label: Element | null; item: Element | null; 
   }
   if (el.matches('p, h2')) return { label: el, item: null };
   return { label: null, item: el };
-}
-
-function normalizeMeta(meta: Element): Element | null {
-  const sections: (Element | null)[] = [];
-  for (const group of meta.children) {
-    if (group.querySelector('a[href="#readme-ov-file"]')) { // About section
-      const about = walkAbout(group);
-      sections.push(about.label ?? about.item);
-    } else if (group.querySelector('a[href$="/releases"]')) { // Releases section
-      sections.push(group);
-    } else if (group.querySelector('a[href*="/graphs/contributors"]')) { // Contributors section
-      group.querySelectorAll('li').forEach((li) => {
-        const span = li.querySelector(':scope > span');
-        const alt = li.querySelector(':scope > a > img[alt]')?.getAttribute('alt');
-        if (!span && alt) li.appendChild(h('span', {}, alt.replace(/^@/, '')));
-      });
-      sections.push(group);
-    } else if (group.querySelector('.Progress')) { // Languages section
-      sections.push(group);
-    } else {
-      sections.push(group);
-    }
-  }
-  return h('div', { class: 'repo-meta' }, ...sections);
 }
 
 export const createRepoPage: CreatePage = ({ sourceDoc, ctxs, state }) => {

@@ -9,10 +9,59 @@ const blocks: BlockSpec[] = [
   {
     name: 'meta',
     select: { kind: 'root' },
-    normalize: (root, ctxs) => {
-      const [pagination, counts] = extractBlocks(root, metaSpecs, ctxs);
+    normalize: (_root, [pagination, counts]) => {
       return joinWrap('div', [pagination, counts]);
     },
+    fields: [
+      {
+        name: 'pagination',
+        select: {
+          kind: 'match',
+          selectors: [
+            'nav[aria-label="Pagination"]',
+            'nav[class*="Pagination"]',
+          ],
+        },
+        normalize: (root) => {
+          const current = Number(root.querySelector('a[aria-current="page"]')?.textContent?.trim() || '');
+          const pageNums = [...root.querySelectorAll('a[href*="page"]')].map((a) => Number(a.textContent?.trim() || '')).filter((n) => !isNaN(n));
+          const maxPage = pageNums.length ? Math.max(...pageNums) : current;
+          if (isNaN(current) || isNaN(maxPage)) return null;
+          return h('span', {}, `Page ${current} of ${maxPage}`);
+        },
+      },
+      {
+        name: 'counts',
+        select: {
+          kind: 'ancestor',
+          selectors: [
+            'a[class^="SectionFilterLink"]',
+          ],
+        },
+        normalize: (root) => {
+          if (root.tagName !== 'UL') return null;
+          const items = [...root.children].filter((el): el is Element => el.tagName === 'LI');
+          if (!items.length) return null;
+          for (let i = 0; i < items.length - 1; i++) {
+            items[i].after(h('span', {}, ' · '));
+          }
+          return root;
+        },
+        transforms: [
+          {
+            kind: 'remove', selectors: [
+              'span[aria-hidden="true"]',
+            ],
+          },
+          { kind: 'replace', with: 'span', selectors: ['div', 'p', 'ul', 'li'] },
+          {
+            kind: 'unwrap', selectors: [
+              'a',
+            ],
+          },
+        ],
+      },
+    ],
   },
   {
     name: 'rows',
@@ -138,57 +187,6 @@ const blocks: BlockSpec[] = [
       );
     },
     itemsFn: (items) => h('ul', {}, ...items),
-  },
-];
-
-const metaSpecs: BlockSpec[] = [
-  {
-    name: 'pagination',
-    select: {
-      kind: 'match',
-      selectors: [
-        'nav[aria-label="Pagination"]',
-        'nav[class*="Pagination"]',
-      ],
-    },
-    normalize: (root) => {
-      const current = Number(root.querySelector('a[aria-current="page"]')?.textContent?.trim() || '');
-      const pageNums = [...root.querySelectorAll('a[href*="page"]')].map((a) => Number(a.textContent?.trim() || '')).filter((n) => !isNaN(n));
-      const maxPage = pageNums.length ? Math.max(...pageNums) : current;
-      if (isNaN(current) || isNaN(maxPage)) return null;
-      return h('span', {}, `Page ${current} of ${maxPage}`);
-    },
-  },
-  {
-    name: 'counts',
-    select: {
-      kind: 'ancestor',
-      selectors: [
-        'a[class^="SectionFilterLink"]',
-      ],
-    },
-    normalize: (root) => {
-      if (root.tagName !== 'UL') return null;
-      const items = [...root.children].filter((el): el is Element => el.tagName === 'LI');
-      if (!items.length) return null;
-      for (let i = 0; i < items.length - 1; i++) {
-        items[i].after(h('span', {}, ' · '));
-      }
-      return root;
-    },
-    transforms: [
-      {
-        kind: 'remove', selectors: [
-          'span[aria-hidden="true"]',
-        ],
-      },
-      { kind: 'replace', with: 'span', selectors: ['div', 'p', 'ul', 'li'] },
-      {
-        kind: 'unwrap', selectors: [
-          'a',
-        ],
-      },
-    ],
   },
 ];
 

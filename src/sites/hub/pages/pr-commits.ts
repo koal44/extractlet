@@ -46,14 +46,97 @@ export const blocks: BlockSpec[] = [
   {
     name: 'main',
     select: { kind: 'root' },
-    normalize: (root, ctxs) => {
-      const [title, status, summary, diffState] = extractBlocks(root, mainFieldSpecs, ctxs);
+    normalize: (_root, [title, status, summary, diffState]) => {
       return h('section', {},
         ...brWrap('div', [title, status], ' · '),
         ...brWrap('div', [summary]),
         ...brWrap('div', [diffState]),
       );
     },
+    fields: [
+      {
+        name: 'title',
+        select: {
+          kind: 'match',
+          selectors: [
+            '[data-component="TitleArea"]',
+          ],
+        },
+        normalize: (root) => {
+          const h1 = root.querySelector('h1[data-component="PH_Title"]');
+          if (!h1) return null;
+
+          const spans = [...h1.querySelectorAll(':scope > span')];
+          if (spans.length >= 2) {
+            const first = spans[0]?.textContent?.trim();
+            const second = spans[1]?.textContent?.replace(/\s+/g, ' ').trim();
+
+            if (first && second?.startsWith('#')) {
+              return joinWrap('span', [h('span', {}, first), h('span', {}, second)]);
+            }
+          }
+
+          return h('span', {}, h1.textContent?.replace(/\s+/g, ' ').trim() ?? '');
+        },
+      },
+      {
+        name: 'status',
+        select: {
+          kind: 'match',
+          selectors: [
+            '[class*="PageHeader-Description"]',
+          ],
+        },
+        normalize: (root) => {
+          const statusEl = root.querySelector('[data-status]');
+          const raw = statusEl?.getAttribute('data-status')?.trim();
+          if (!raw) return null;
+          const status = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+          return h('span', {}, status);
+        },
+      },
+      {
+        name: 'summary',
+        select: {
+          kind: 'match',
+          selectors: [
+            '[class*="PullRequestHeaderSummary"]',
+          ],
+        },
+        normalize: (root) => {
+          root.querySelectorAll('a').forEach((a) => {
+            a.insertAdjacentElement('afterend', h('span', {}, ' '));
+            a.insertAdjacentElement('beforebegin', h('span', {}, ' '));
+          });
+          return root;
+        },
+        transforms: [
+          { kind: 'remove', selectors: ['button', '[popover]'] },
+          { kind: 'replace', with: 'code', selectors: ['a[href*="/tree/"]'] },
+          { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+        ],
+      },
+      {
+        name: 'diff-state',
+        select: {
+          kind: 'match',
+          selectors: [
+            '[class*="diffStatesWrapper"]',
+          ],
+        },
+        normalize: (root) => {
+          root.querySelectorAll('span').forEach((span) => {
+            span.insertAdjacentElement('afterend', h('span', {}, ' '));
+            span.insertAdjacentElement('beforebegin', h('span', {}, ' '));
+          });
+          return h('span', {}, root, 'lines changed');
+        },
+        transforms: [
+          { kind: 'remove', selectors: ['.sr-only'] },
+          { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
+        ],
+      },
+    ],
   },
   {
     name: 'history',
@@ -196,91 +279,6 @@ export const blocks: BlockSpec[] = [
       return h('div', {}, ...(date ? [date] : []), ...(commits ? [commits] : []));
     },
     itemsFn: (items) => h('section', {}, ...items),
-  },
-];
-
-const mainFieldSpecs: BlockSpec[] = [
-  {
-    name: 'title',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[data-component="TitleArea"]',
-      ],
-    },
-    normalize: (root) => {
-      const h1 = root.querySelector('h1[data-component="PH_Title"]');
-      if (!h1) return null;
-
-      const spans = [...h1.querySelectorAll(':scope > span')];
-      if (spans.length >= 2) {
-        const first = spans[0]?.textContent?.trim();
-        const second = spans[1]?.textContent?.replace(/\s+/g, ' ').trim();
-
-        if (first && second?.startsWith('#')) {
-          return joinWrap('span', [h('span', {}, first), h('span', {}, second)]);
-        }
-      }
-
-      return h('span', {}, h1.textContent?.replace(/\s+/g, ' ').trim() ?? '');
-    },
-  },
-  {
-    name: 'status',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[class*="PageHeader-Description"]',
-      ],
-    },
-    normalize: (root) => {
-      const statusEl = root.querySelector('[data-status]');
-      const raw = statusEl?.getAttribute('data-status')?.trim();
-      if (!raw) return null;
-      const status = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
-      return h('span', {}, status);
-    },
-  },
-  {
-    name: 'summary',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[class*="PullRequestHeaderSummary"]',
-      ],
-    },
-    normalize: (root) => {
-      root.querySelectorAll('a').forEach((a) => {
-        a.insertAdjacentElement('afterend', h('span', {}, ' '));
-        a.insertAdjacentElement('beforebegin', h('span', {}, ' '));
-      });
-      return root;
-    },
-    transforms: [
-      { kind: 'remove', selectors: ['button', '[popover]'] },
-      { kind: 'replace', with: 'code', selectors: ['a[href*="/tree/"]'] },
-      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
-    ],
-  },
-  {
-    name: 'diff-state',
-    select: {
-      kind: 'match',
-      selectors: [
-        '[class*="diffStatesWrapper"]',
-      ],
-    },
-    normalize: (root) => {
-      root.querySelectorAll('span').forEach((span) => {
-        span.insertAdjacentElement('afterend', h('span', {}, ' '));
-        span.insertAdjacentElement('beforebegin', h('span', {}, ' '));
-      });
-      return h('span', {}, root, 'lines changed');
-    },
-    transforms: [
-      { kind: 'remove', selectors: ['.sr-only'] },
-      { kind: 'replace', with: 'span', selectors: ['div', 'p'] },
-    ],
   },
 ];
 
