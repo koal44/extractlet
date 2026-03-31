@@ -1,9 +1,7 @@
 import { type XletContexts } from '../settings';
 import {
   findCommonAncestor, h, isDiv, isDoc, isElement, isInlineElement, isSection, isSpan,
-  isText,
-  relevelHeadings,
-  type HLevel,
+  isText, relevelHeadings, type HLevel,
 } from './dom';
 import { assertNever } from './typing';
 
@@ -21,10 +19,15 @@ export type TransformSpec =
   | { kind: 'removeNextSiblings'; selectors: string[]; }
   | { kind: 'unwrap'; selectors: string[]; }
   | { kind: 'replace'; selectors: string[]; with: keyof HTMLElementTagNameMap; }
+  | {
+    kind: 'replaceTemplate'; selectors: string[];
+    with?: keyof HTMLElementTagNameMap; // default 'span'
+    from?: string;  // default 'textContent'
+    template?: string;  // default '{value} forks'
+  }
   |
     {
-      kind: 'replaceFn';
-      selectors: string[];
+      kind: 'replaceFn'; selectors: string[];
       fn: (el: Element, ctxs: XletContexts) => Element | null;
       transforms?: TransformSpec[];
     }
@@ -177,6 +180,9 @@ function selectMany(root: ParentNode, select: SelectManySpec): Element[] {
   }
 }
 
+type MaybeResult<T> = { result: T | null; } | null;
+type TransformResult = MaybeResult<Element>;
+
 function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletContexts): Element | null {
   if (!transforms.length) return root;
 
@@ -195,6 +201,10 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
   const replacements = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'replace'; }> => f.kind === 'replace')
     .flatMap((f) => f.selectors.map((selector) => ({ selector, tag: f.with })));
+
+  const templateReplacements = transforms
+    .filter((f): f is Extract<TransformSpec, { kind: 'replaceTemplate'; }> => f.kind === 'replaceTemplate')
+    .flatMap((f) => f.selectors.map((selector) => ({ selector, spec: f })));
 
   const replaceFns = transforms
     .filter((f): f is Extract<TransformSpec, { kind: 'replaceFn'; }> => f.kind === 'replaceFn')
@@ -224,13 +234,34 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
   const shouldUnwrap = (el: Element) => unwrapSelectors.some((sel) => el.matches(sel));
   const shouldTrim = (el: Element) => trimSelectors.some((sel) => el.matches(sel));
 
-  function getReplacementTag(n: Node): keyof HTMLElementTagNameMap | null {
+  function getReplacementTag(n: Node | null): keyof HTMLElementTagNameMap | null {
     if (!isElement(n)) return null;
     const tag = replacements.find((r) => n.matches(r.selector))?.tag;
     return tag ?? null;
   }
 
-  function getReplacementFn(n: Node): ((el: Element, ctxs: XletContexts) => Element | null) | null {
+  function templateReplace(n: Node | null): TransformResult {
+    if (!isElement(n)) return null;
+
+    const spec = templateReplacements.find((r) => n.matches(r.selector))?.spec;
+    if (!spec) return null;
+
+    const tag = spec.with ?? 'span';
+    const attr = spec.from ?? 'textContent';
+    const template = spec.template ?? '{value}';
+
+    const raw = attr === 'textContent' ? n.textContent : n.getAttribute(attr);
+    if (!raw) return { result: null };
+
+    const value = raw.trim();
+    const text = template
+      .replaceAll('{value}', value)
+      .replaceAll('{s}', value === '1' ? '' : 's');
+
+    return { result: h(tag, {}, text) };
+  }
+
+  function getReplacementFn(n: Node | null): ((el: Element, ctxs: XletContexts) => Element | null) | null {
     if (!isElement(n)) return null;
     const replacement = replaceFns.find((r) => n.matches(r.selector))?.spec;
     if (!replacement) return null;
@@ -242,17 +273,17 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
     };
   }
 
-  function getInsertTexts(n: Node): { where: InsertPosition; text: string; }[] {
+  function getInsertTexts(n: Node | null): { where: InsertPosition; text: string; }[] {
     if (!isElement(n)) return [];
     return insertTexts.filter((r) => n.matches(r.selector)).map(({ where, text }) => ({ where, text }));
   }
 
-  function getInsertElements(n: Node): { where: InsertPosition; element: Element; }[] {
+  function getInsertElements(n: Node | null): { where: InsertPosition; element: Element; }[] {
     if (!isElement(n)) return [];
     return insertElements.filter((r) => n.matches(r.selector)).map(({ where, element }) => ({ where, element }));
   }
 
-  function getRelevel(n: Node): HLevel | null {
+  function getRelevel(n: Node | null): HLevel | null {
     if (!isElement(n)) return null;
     return relevelSpecs.find((r) => n.matches(r.selector))?.level ?? null;
   }
@@ -325,8 +356,15 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
         trimWsBoundary(child);
       }
 
+      const tr = templateReplace(child);
+      if (tr) {
+        if (tr.result) child.replaceWith(tr.result);
+        else child.remove();
+        child = tr.result;
+      }
+
       const tag = getReplacementTag(child);
-      if (tag) {
+      if (child && tag) {
         const newChild = h(tag, {}, ...child.childNodes);
         child.replaceWith(newChild);
         child = newChild;
@@ -363,6 +401,13 @@ function applyTransforms(root: Element, transforms: TransformSpec[], ctxs: XletC
     if (where === 'afterbegin' || where === 'beforeend') {
       out.insertAdjacentElement(where, element);
     }
+  }
+
+  // template-based replacement next (which may change the root)
+  const tr = templateReplace(out);
+  if (tr) {
+    if (tr.result) out = tr.result;
+    else return null;
   }
 
   // simpler tag replacement

@@ -1,6 +1,6 @@
 import type { Sidecar } from '../../fix';
 
 export default {
-  baseUrl: 'https://github.com/openai',
-  now: new Date('2026-03-29T00:00:00Z'),
+  baseUrl: 'https://github.com/github',
+  now: new Date('2026-04-02T00:00:00Z'),
 } satisfies Sidecar;

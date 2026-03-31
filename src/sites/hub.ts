@@ -27,6 +27,7 @@ import { createActionsPage } from './hub/pages/actions';
 import { createPrFilesPage } from './hub/pages/pr-files';
 import { createPrChangesPage } from './hub/pages/pr-changes';
 import { createUserPage } from './hub/pages/owner-user';
+import { createOrgPage } from './hub/pages/owner-org';
 
 type OwnerKind = 'user' | 'org' | 'unknown';
 function detectOwnerKind(node: ParentNode): OwnerKind {
@@ -89,7 +90,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'owner': {
       const ownerKind = detectOwnerKind(sourceDoc);
       if (ownerKind === 'user') page = await createUserPage({ sourceDoc, ctxs, state });
-      // else if (ownerKind === 'org') page = await createOrgPage({ sourceDoc, ctxs, state });
+      else if (ownerKind === 'org') page = await createOrgPage({ sourceDoc, ctxs, state });
       break;
     }
     case 'actions': page = await createActionsPage({ sourceDoc, ctxs, state }); break;

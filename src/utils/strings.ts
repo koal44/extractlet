@@ -276,3 +276,14 @@ export function sanitizeMdLinks(url: string): string {
   }
   return out;
 }
+
+export function countNoun(
+  n: number | string,
+  singular: string,
+  plural = `${singular}s`,
+  opts?: { zero?: string; }
+): string {
+  const value = String(n).trim();
+  if (opts?.zero && value === '0') return opts.zero;
+  return `${value} ${value === '1' ? singular : plural}`;
+}
