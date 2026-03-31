@@ -27,7 +27,7 @@ export type GhRoute =
   | (GhRepoBase & { page: 'actions-workflow'; runId: string; })
   | (GhRepoBase & { page: 'actions-usage'; runId: string; })
   | (GhRepoBase & { page: 'actions-file'; yaml: string; })
-  ;
+  | (GhRepoBase & { page: 'wiki'; wikiPath?: string[]; })
 
 // export type GhPage = GhRoute['page'];
 
@@ -136,6 +136,11 @@ export function getGhRoute(str: string): GhRoute {
         if (runKind === 'job' && jobId && !runRest.length) return { ...base, page: 'actions-job', runId, jobId };
       }
       break;
+    }
+
+    case 'wiki': {
+      const wikiPath = tail.length ? tail : undefined;
+      return { ...base, page: 'wiki', wikiPath };
     }
 
     default: break;

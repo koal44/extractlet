@@ -289,13 +289,13 @@ export function normalizeReactions(root: Element): Element | null {
 }
 
 export function normalizeReadme(root: Element, ctxs: XletContexts): Element | null {
-  if (!root.matches('article.markdown-body')) return null;
+  if (!root.matches('.markdown-body')) return null;
 
   const block: BlockSpec = {
     name: 'readme',
     select: { kind: 'root' },
     transforms: [
-      { kind: 'remove', selectors: ['article > .markdown-heading > a[href^="#"]'] },
+      { kind: 'remove', selectors: ['.markdown-body > .markdown-heading > a[href^="#"]'] },
       { kind: 'unwrap', selectors: ['article'] },
       { kind: 'replaceFn', selectors: ['animated-image'], fn: (el) => el.querySelector('img') },
       {

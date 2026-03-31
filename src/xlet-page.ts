@@ -2,7 +2,7 @@ import type { PageState } from './snapshot-loader';
 import { copyButtonCss, createCopyButton } from './ui/copy-button';
 import { createMultiToggle, multiToggleCss } from './ui/multi-toggle';
 import { attachStickyHeader } from './ui/sticky';
-import { h, htmlToElement, injectCss } from './utils/dom';
+import { h, type HLevel, htmlToElement, injectCss } from './utils/dom';
 
 export type XletPage = {
   siteLabel?: string; // e.g. "GitHub", "Stack Exchange", "Wikipedia"
@@ -17,6 +17,7 @@ export type XletView = 'html' | 'md' | 'raw';
 
 export type XletNode = {
   label?: string; // e.g. "Question", "Answer", "Comment", "Post", "Contrib"
+  labelLevel?: HLevel;
   permalink?: string;
   content?: {
     md?: string;
@@ -101,6 +102,7 @@ function buildCopyBody(node: XletNode, page: XletPage, level: number): string {
   const out: string[] = [];
   const view = page.views[page.state.viewIdx];
 
+  if (node.labelLevel) level = node.labelLevel;
   if (node.label) out.push('', `${'#'.repeat(Math.min(level, 3))} ${node.label.trim()}`);
 
   const content: string[] = [];

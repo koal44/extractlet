@@ -28,6 +28,7 @@ import { createPrFilesPage } from './hub/pages/pr-files';
 import { createPrChangesPage } from './hub/pages/pr-changes';
 import { createUserPage } from './hub/pages/owner-user';
 import { createOrgPage } from './hub/pages/owner-org';
+import { createWikiPage } from './hub/pages/wiki';
 
 type OwnerKind = 'user' | 'org' | 'unknown';
 function detectOwnerKind(node: ParentNode): OwnerKind {
@@ -99,6 +100,9 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
     case 'actions-workflow': page = await createActionsWorkflowPage({ sourceDoc, ctxs, state }); break;
     case 'actions-usage': page = await createActionsUsagePage({ sourceDoc, ctxs, state }); break;
     case 'actions-file': page = await createActionsPage({ sourceDoc, ctxs, state }); break;
+    case 'wiki': {
+      page = await createWikiPage({ sourceDoc, ctxs, state }); break;
+    }
     case 'unknown': {
       page = createNoticePage({
         kind: 'info', siteLabel: 'GitHub', permalink, title,
