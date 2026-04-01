@@ -6,6 +6,7 @@ If you use these sites and want to discuss what you're looking at, click the ext
 
 ## Demo
 
+https://github.com/user-attachments/assets/11d2829d-eb22-4da6-91cc-9686e3138265
 
 ## Supported Sites
 
@@ -17,7 +18,7 @@ If you use these sites and want to discuss what you're looking at, click the ext
 
 ### Chrome Web Store · Firefox Add-ons
 
-[<img src="https://raw.githubusercontent.com/alrra/browser-logos/ce0aac88/src/chrome/chrome.svg" alt="Chrome Web Store" width="40"> ](https://chromewebstore.google.com/detail/extractlet/cjkobbhfagjbjjllohdjabjedabjedfo)
+[<img src="https://raw.githubusercontent.com/alrra/browser-logos/ce0aac88/src/chrome/chrome.svg" alt="Chrome Web Store" width="40">](https://chromewebstore.google.com/detail/extractlet/cjkobbhfagjbjjllohdjabjedabjedfo) 
 [<img src="https://raw.githubusercontent.com/alrra/browser-logos/ce0aac88/src/firefox/firefox.svg" alt="Firefox Add-ons" width="40">](https://addons.mozilla.org/en-US/firefox/addon/extractlet/)
 
 ### From source
