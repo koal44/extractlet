@@ -78,6 +78,7 @@ const blocks: BlockSpec[] = [
           'include-fragment',
           'img.avatar',
           'a[data-hovercard-type="user"] > img',
+          '.js-notice',
         ],
       },
       { kind: 'unwrap', selectors: ['a', 'strong'] },
@@ -152,6 +153,7 @@ function walkAbout(el: Element): { label: Element | null; item: Element | null; 
   const remove = [
     'h3', 'svg', 'include-fragment', 'a[href="#readme-ov-file"]',
     'a[href$="/activity"]', 'a[href*="report-content"]',
+    'details',
   ];
   if (el.matches(remove.join(', '))) return { label: null, item: null };
   if (el.matches('div')) {
