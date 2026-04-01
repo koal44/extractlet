@@ -1,7 +1,7 @@
 {
   "name": "extractlet",
-  "version": "0.1.0",
-  "description": "Browser extension for extracting GitHub, Stack Exchange, and MediaWiki content as normalized Markdown.",
+  "version": "0.1.1",
+  "description": "Browser extension for sharing GitHub, Stack Exchange, and MediaWiki pages with AI via bespoke HTML-to-Markdown extraction.",
   "private": true,
   "scripts": {
     "build": "tsx --env-file=.env.production scripts/build.ts",

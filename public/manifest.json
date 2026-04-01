@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "extractlet",
-  "version": "0.1.0",
-  "description": "Extract content into plain-text-friendly Markdown from GitHub, Stack Exchange, or Wikipedia.",
+  "version": "0.1.1",
+  "description": "Share GitHub, Stack Exchange, and wiki pages with your AI.",
   "background": {
     "service_worker": "background.js",
     "scripts": ["browser-polyfill.js", "background.js"],

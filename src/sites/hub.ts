@@ -131,7 +131,7 @@ export const createHubPage: CreatePage = async ({ sourceDoc, ctxs, state }) => {
   page.siteLabel ??= 'GitHub';
   page.title ??= title;
   page.root.permalink ??= permalink;
-  page.views = ['html', 'md'];
+  page.views = page.views.length ? page.views : ['html', 'md'];
 
   return page;
 };
